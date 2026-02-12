@@ -1,0 +1,120 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Namaz Vakti Desktop</title>
+    <style>
+      :root {
+        --bg: #f3f1eb;
+        --panel: #ffffff;
+        --ink: #1e1e1e;
+        --accent: #315f72;
+      }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", sans-serif;
+        background: radial-gradient(circle at 10% 10%, #f8f5e9, var(--bg));
+        color: var(--ink);
+      }
+      .shell {
+        max-width: 980px;
+        margin: 2rem auto;
+        padding: 1.5rem;
+        background: var(--panel);
+        border: 1px solid #d5d5d5;
+      }
+      .row {
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: 190px 1fr auto;
+        margin-bottom: 0.75rem;
+      }
+      label {
+        font-weight: 600;
+      }
+      input, select, button {
+        font-size: 14px;
+        padding: 0.5rem 0.625rem;
+      }
+      button {
+        background: var(--accent);
+        color: #fff;
+        border: 0;
+      }
+      pre {
+        background: #fafafa;
+        border: 1px solid #ddd;
+        padding: 0.75rem;
+        min-height: 220px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <h1>Iqamah Schedule Generator</h1>
+
+      <div class="row">
+        <label for="tsvFolder">TSV Folder</label>
+        <input id="tsvFolder" type="text" />
+        <button id="pickTsv" type="button">Browse</button>
+      </div>
+
+      <div class="row">
+        <label for="templateFile">Template XLSX</label>
+        <input id="templateFile" type="text" />
+        <button id="pickTemplate" type="button">Browse</button>
+      </div>
+
+      <div class="row">
+        <label for="outputFolder">Output Folder</label>
+        <input id="outputFolder" type="text" />
+        <button id="pickOutput" type="button">Browse</button>
+      </div>
+
+      <div class="row">
+        <label for="month">Month</label>
+        <select id="month"></select>
+        <button id="refreshMonths" type="button">Refresh</button>
+      </div>
+
+      <div class="row">
+        <label for="locale">Locale</label>
+        <select id="locale">
+          <option value="en">English</option>
+          <option value="tr">Turkish</option>
+        </select>
+        <span></span>
+      </div>
+
+      <div class="row">
+        <label for="timeFormat">Time Format</label>
+        <select id="timeFormat">
+          <option value="ampm">AM/PM</option>
+          <option value="24h">24h</option>
+        </select>
+        <span></span>
+      </div>
+
+      <div class="row">
+        <label for="baseGroupSize">Base Group Size</label>
+        <select id="baseGroupSize">
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="15">15</option>
+        </select>
+        <span></span>
+      </div>
+
+      <div class="row">
+        <label></label>
+        <button id="preview" type="button">Preview</button>
+        <button id="generate" type="button">Generate XLSX + PNG</button>
+      </div>
+
+      <pre id="log"></pre>
+    </main>
+
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
