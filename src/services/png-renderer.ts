@@ -11,6 +11,12 @@ type PngRenderInput = {
   plan: MonthlyPlan;
 };
 
+type PngSlot = {
+  groupIndex: number;
+  group: GroupResult;
+  rowCount: number;
+};
+
 const PRAYERS: PrayerKey[] = ["fajr", "zhuhr", "asr", "maghrib", "isha"];
 
 export async function renderPng(input: PngRenderInput): Promise<string> {
@@ -49,22 +55,25 @@ export async function renderPng(input: PngRenderInput): Promise<string> {
 function buildExportHtml(plan: MonthlyPlan): string {
   const theme = Number(plan.month.split("-")[1]) % 2 === 0 ? EVEN_THEME : ODD_THEME;
   const colorByToken = Object.fromEntries(theme.sequence.map((item) => [item.token, item]));
+  const slots = buildSlots(plan.baseGroups);
 
   const rows: string[] = [];
-  const prayerRunTables = Object.fromEntries(PRAYERS.map((p) => [p, buildRuns(plan.baseGroups, p)])) as Record<
+  const prayerRunTables = Object.fromEntries(PRAYERS.map((p) => [p, buildRuns(slots, p)])) as Record<
     PrayerKey,
-    Array<{ start: number; end: number; value: number }>
+    Array<{ start: number; end: number; value: number; rowSpan: number }>
   >;
 
-  for (let groupIndex = 0; groupIndex < plan.baseGroups.length; groupIndex += 1) {
-    const group = plan.baseGroups[groupIndex]!;
-    const token = plan.colorByGroupIndex[groupIndex] ?? theme.sequence[0]!.token;
+  for (let groupIndex = 0; groupIndex < slots.length; groupIndex += 1) {
+    const slot = slots[groupIndex]!;
+    const group = slot.group;
+    const token = plan.colorByGroupIndex[slot.groupIndex] ?? theme.sequence[0]!.token;
     const color = colorByToken[token] ?? theme.sequence[0]!;
 
     const startDay = plan.rawDays.find((day) => day.dayOfMonth === group.startDay);
     const endDay = plan.rawDays.find((day) => day.dayOfMonth === group.endDay);
 
-    rows.push(`<tr style="background:${color.fillHex};color:${color.textHex}">`);
+    const rowClass = slot.rowCount === 1 ? "single-day" : "";
+    rows.push(`<tr class="${rowClass}" style="background:${color.fillHex};color:${color.textHex}">`);
     rows.push(`<td>${group.startDay}</td>`);
     rows.push(`<td>${weekdayLabel(startDay, plan.locale)}</td>`);
 
@@ -73,15 +82,17 @@ function buildExportHtml(plan: MonthlyPlan): string {
       if (!run) {
         continue;
       }
-      const rowspan = ((run.end - run.start) + 1) * 2;
-      rows.push(`<td rowspan="${rowspan}">${formatMinutes(run.value, plan.locale, plan.timeFormat)}</td>`);
+      rows.push(`<td rowspan="${run.rowSpan}">${formatMinutes(run.value, plan.locale, plan.timeFormat)}</td>`);
     }
 
     rows.push("</tr>");
-    rows.push(`<tr style="background:${color.fillHex};color:${color.textHex}">`);
-    rows.push(`<td>${group.endDay}</td>`);
-    rows.push(`<td>${weekdayLabel(endDay, plan.locale)}</td>`);
-    rows.push("</tr>");
+
+    if (slot.rowCount === 2) {
+      rows.push(`<tr style="background:${color.fillHex};color:${color.textHex}">`);
+      rows.push(`<td>${group.endDay}</td>`);
+      rows.push(`<td>${weekdayLabel(endDay, plan.locale)}</td>`);
+      rows.push("</tr>");
+    }
   }
 
   const headerMonth = formatMonthLabel(plan.month, plan.locale);
@@ -96,8 +107,9 @@ function buildExportHtml(plan: MonthlyPlan): string {
       .header { background: #ececec; text-align: center; padding: 24px 20px 10px; }
       .header h1 { margin: 0 0 8px; font-size: 54px; }
       .header p { margin: 0 0 8px; font-size: 30px; }
-      table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-      th, td { border: 1px solid #222; text-align: center; padding: 8px 6px; font-size: 46px; font-weight: 700; }
+      table { width: 100%; border-collapse: collapse; table-layout: fixed; border: 3px solid #222; }
+      th, td { border: 3px solid #222; text-align: center; padding: 8px 6px; font-size: 38px; font-weight: 700; }
+      tr.single-day td { padding-top: 0; padding-bottom: 0; line-height: 0.95; }
       th { background: #ececec; color: #000; }
       th.small { width: 8%; }
       th.day { width: 10%; }
@@ -130,26 +142,46 @@ function buildExportHtml(plan: MonthlyPlan): string {
 </html>`;
 }
 
-function buildRuns(groups: GroupResult[], prayer: PrayerKey): Array<{ start: number; end: number; value: number }> {
-  if (groups.length === 0) {
+function buildSlots(groups: GroupResult[]): PngSlot[] {
+  return groups.map((group, idx) => ({
+    groupIndex: idx,
+    group,
+    rowCount: group.startDay === group.endDay ? 1 : 2
+  }));
+}
+
+function buildRuns(
+  slots: PngSlot[],
+  prayer: PrayerKey
+): Array<{ start: number; end: number; value: number; rowSpan: number }> {
+  if (slots.length === 0) {
     return [];
   }
 
-  const runs: Array<{ start: number; end: number; value: number }> = [];
+  const runs: Array<{ start: number; end: number; value: number; rowSpan: number }> = [];
   let start = 0;
-  let value = groups[0]!.iqamahByPrayer[prayer];
+  let value = slots[0]!.group.iqamahByPrayer[prayer];
 
-  for (let i = 1; i < groups.length; i += 1) {
-    const current = groups[i]!.iqamahByPrayer[prayer];
+  for (let i = 1; i < slots.length; i += 1) {
+    const current = slots[i]!.group.iqamahByPrayer[prayer];
     if (current !== value) {
-      runs.push({ start, end: i - 1, value });
+      const rowSpan = sumRows(slots, start, i - 1);
+      runs.push({ start, end: i - 1, value, rowSpan });
       start = i;
       value = current;
     }
   }
 
-  runs.push({ start, end: groups.length - 1, value });
+  runs.push({ start, end: slots.length - 1, value, rowSpan: sumRows(slots, start, slots.length - 1) });
   return runs;
+}
+
+function sumRows(slots: PngSlot[], start: number, end: number): number {
+  let total = 0;
+  for (let i = start; i <= end; i += 1) {
+    total += slots[i]!.rowCount;
+  }
+  return total;
 }
 
 function weekdayLabel(day: RawDailyRecord | undefined, locale: MonthlyPlan["locale"]): string {

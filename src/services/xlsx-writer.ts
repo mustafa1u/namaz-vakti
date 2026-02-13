@@ -1,12 +1,20 @@
 ﻿import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { PrayerKey } from "@shared/ipc";
-import type { MonthlyPlan, RawDailyRecord } from "@domain/types";
+import type { GroupResult, MonthlyPlan, RawDailyRecord } from "@domain/types";
 import { formatMinutes, formatMonthLabel } from "@domain/format";
 import { EVEN_THEME, ODD_THEME } from "@domain/pipeline";
 import { getTemplateSheetMap } from "./template-map";
 
 const PRAYERS: PrayerKey[] = ["fajr", "zhuhr", "asr", "maghrib", "isha"];
+
+type DisplaySlot = {
+  groupIndex: number;
+  group: GroupResult;
+  topRow: number;
+  bottomRow: number;
+  rowCount: number;
+};
 
 export type XlsxWriteInput = {
   outputFolder: string;
@@ -24,16 +32,70 @@ export async function writeXlsxFromTemplate(input: XlsxWriteInput): Promise<stri
     throw new Error(`Template sheet not found: ${map.sheetName}`);
   }
 
+  const slots = buildDisplaySlots(input.plan.baseGroups, map.dataStartRow);
+  const pairHeights = captureTemplatePairHeights(sheet, map);
+
   writeHeader(sheet, map.rawHeaderTemplate, input.plan);
-  writeDayColumns(sheet, input.plan, map);
-  applyGroupStyles(sheet, input.plan, map);
-  writePrayerColumns(sheet, input.plan, map);
+  applyRowHeights(sheet, slots, pairHeights, map);
+  writeDayColumns(sheet, input.plan, map, slots);
+  applyGroupStyles(sheet, input.plan, map, slots);
+  writePrayerColumns(sheet, input.plan, map, slots);
   keepOnlySelectedSheet(workbook, map.sheetName);
 
   const outputPath = join(input.outputFolder, `iqamah_${input.plan.month}.xlsx`);
   await workbook.toFileAsync(outputPath);
-  await rewritePrayerMergesInXml(outputPath, input.plan, map);
+  await rewritePrayerMergesInXml(outputPath, input.plan, map, slots);
   return outputPath;
+}
+
+function buildDisplaySlots(groups: GroupResult[], startRow: number): DisplaySlot[] {
+  const slots: DisplaySlot[] = [];
+  let currentRow = startRow;
+
+  groups.forEach((group, index) => {
+    const rowCount = group.startDay === group.endDay ? 1 : 2;
+    const topRow = currentRow;
+    const bottomRow = currentRow + rowCount - 1;
+
+    slots.push({
+      groupIndex: index,
+      group,
+      topRow,
+      bottomRow,
+      rowCount
+    });
+
+    currentRow += rowCount;
+  });
+
+  return slots;
+}
+
+function captureTemplatePairHeights(sheet: any, map: ReturnType<typeof getTemplateSheetMap>): Array<{ top: number; bottom: number }> {
+  const out: Array<{ top: number; bottom: number }> = [];
+  for (let i = 0; i < map.groupCount; i += 1) {
+    const topRow = map.dataStartRow + (i * map.groupHeight);
+    const bottomRow = topRow + 1;
+    const top = Number(sheet.row(topRow).height()) || 15;
+    const bottom = Number(sheet.row(bottomRow).height()) || 15;
+    out.push({ top, bottom });
+  }
+  return out;
+}
+
+function applyRowHeights(
+  sheet: any,
+  slots: DisplaySlot[],
+  pairHeights: Array<{ top: number; bottom: number }>,
+  map: ReturnType<typeof getTemplateSheetMap>
+): void {
+  for (const slot of slots) {
+    const pair = pairHeights[Math.min(slot.groupIndex, map.groupCount - 1)] ?? { top: 15, bottom: 15 };
+    sheet.row(slot.topRow).height(slot.rowCount === 1 ? pair.top + pair.bottom : pair.top);
+    if (slot.rowCount === 2) {
+      sheet.row(slot.bottomRow).height(pair.bottom);
+    }
+  }
 }
 
 function writeHeader(sheet: any, headerTemplate: string, plan: MonthlyPlan): void {
@@ -49,33 +111,85 @@ function writeHeader(sheet: any, headerTemplate: string, plan: MonthlyPlan): voi
   sheet.cell("A1").value(text);
 }
 
-function writeDayColumns(sheet: any, plan: MonthlyPlan, map: ReturnType<typeof getTemplateSheetMap>): void {
-  for (let slot = 0; slot < map.groupCount; slot += 1) {
-    const topRow = map.dataStartRow + (slot * map.groupHeight);
-    const bottomRow = topRow + 1;
+function writeDayColumns(
+  sheet: any,
+  plan: MonthlyPlan,
+  map: ReturnType<typeof getTemplateSheetMap>,
+  slots: DisplaySlot[]
+): void {
+  const weekdaySource = plan.locale === "tr" ? "tr" : map.weekdaySource;
+  const dayRefStyle = getDayStyleReference(sheet, map);
 
-    const group = plan.baseGroups[slot];
-    if (!group) {
-      sheet.cell(`${map.dayNumberColumn}${topRow}`).value("");
-      sheet.cell(`${map.weekdayColumn}${topRow}`).value("");
-      sheet.cell(`${map.dayNumberColumn}${bottomRow}`).value("");
-      sheet.cell(`${map.weekdayColumn}${bottomRow}`).value("");
-      continue;
+  for (const slot of slots) {
+    const startDay = plan.rawDays.find((day) => day.dayOfMonth === slot.group.startDay);
+    const endDay = plan.rawDays.find((day) => day.dayOfMonth === slot.group.endDay);
+
+    sheet.cell(`${map.dayNumberColumn}${slot.topRow}`).value(slot.group.startDay);
+    sheet.cell(`${map.weekdayColumn}${slot.topRow}`).value(pickWeekday(startDay, weekdaySource));
+    normalizeDayCellStyle(sheet, `${map.dayNumberColumn}${slot.topRow}`, dayRefStyle);
+    normalizeDayCellStyle(sheet, `${map.weekdayColumn}${slot.topRow}`, dayRefStyle);
+
+    if (slot.rowCount === 2) {
+      sheet.cell(`${map.dayNumberColumn}${slot.bottomRow}`).value(slot.group.endDay);
+      sheet.cell(`${map.weekdayColumn}${slot.bottomRow}`).value(pickWeekday(endDay, weekdaySource));
+      normalizeDayCellStyle(sheet, `${map.dayNumberColumn}${slot.bottomRow}`, dayRefStyle);
+      normalizeDayCellStyle(sheet, `${map.weekdayColumn}${slot.bottomRow}`, dayRefStyle);
+    }
+  }
+}
+
+function applyGroupStyles(
+  sheet: any,
+  plan: MonthlyPlan,
+  map: ReturnType<typeof getTemplateSheetMap>,
+  slots: DisplaySlot[]
+): void {
+  const theme = Number(plan.month.split("-")[1]) % 2 === 0 ? EVEN_THEME : ODD_THEME;
+  const colorByToken = Object.fromEntries(theme.sequence.map((entry) => [entry.token, entry]));
+
+  for (const slot of slots) {
+    const token = plan.colorByGroupIndex[slot.groupIndex] ?? map.colorTokenOrder[slot.groupIndex % map.colorTokenOrder.length];
+    const palette = colorByToken[token] ?? colorByToken[map.colorTokenOrder[0]!];
+
+    applyRowPalette(sheet, slot.topRow, [map.dayNumberColumn, map.weekdayColumn], palette.fillHex, palette.textHex);
+    if (slot.rowCount === 2) {
+      applyRowPalette(sheet, slot.bottomRow, [map.dayNumberColumn, map.weekdayColumn], palette.fillHex, palette.textHex);
     }
 
-    const startDay = plan.rawDays.find((day) => day.dayOfMonth === group.startDay);
-    const endDay = plan.rawDays.find((day) => day.dayOfMonth === group.endDay);
+    for (const prayer of PRAYERS) {
+      const col = map.prayerColumns[prayer];
+      const cols = enumerateColumns(col.startCol, col.endCol);
+      applyRowPalette(sheet, slot.topRow, cols, palette.fillHex, palette.textHex);
+      if (slot.rowCount === 2) {
+        applyRowPalette(sheet, slot.bottomRow, cols, palette.fillHex, palette.textHex);
+      }
+    }
+  }
+}
 
-    const weekdaySource = plan.locale === "tr" ? "tr" : map.weekdaySource;
-    sheet.cell(`${map.dayNumberColumn}${topRow}`).value(group.startDay);
-    sheet.cell(`${map.weekdayColumn}${topRow}`).value(pickWeekday(startDay, weekdaySource));
+function writePrayerColumns(
+  sheet: any,
+  plan: MonthlyPlan,
+  map: ReturnType<typeof getTemplateSheetMap>,
+  slots: DisplaySlot[]
+): void {
+  for (const prayer of PRAYERS) {
+    const col = map.prayerColumns[prayer];
 
-    if (group.startDay === group.endDay) {
-      sheet.cell(`${map.dayNumberColumn}${bottomRow}`).value("");
-      sheet.cell(`${map.weekdayColumn}${bottomRow}`).value("");
-    } else {
-      sheet.cell(`${map.dayNumberColumn}${bottomRow}`).value(group.endDay);
-      sheet.cell(`${map.weekdayColumn}${bottomRow}`).value(pickWeekday(endDay, weekdaySource));
+    for (const slot of slots) {
+      const value = slot.group.iqamahByPrayer[prayer];
+
+      sheet.cell(`${col.startCol}${slot.topRow}`).value(formatMinutes(value, plan.locale, plan.timeFormat));
+      if (col.endCol !== col.startCol) {
+        sheet.cell(`${col.endCol}${slot.topRow}`).value("");
+      }
+
+      if (slot.rowCount === 2) {
+        sheet.cell(`${col.startCol}${slot.bottomRow}`).value("");
+        if (col.endCol !== col.startCol) {
+          sheet.cell(`${col.endCol}${slot.bottomRow}`).value("");
+        }
+      }
     }
   }
 }
@@ -89,69 +203,23 @@ function keepOnlySelectedSheet(workbook: any, selectedSheetName: string): void {
   }
 }
 
-function applyGroupStyles(sheet: any, plan: MonthlyPlan, map: ReturnType<typeof getTemplateSheetMap>): void {
-  const theme = Number(plan.month.split("-")[1]) % 2 === 0 ? EVEN_THEME : ODD_THEME;
-  const colorByToken = Object.fromEntries(theme.sequence.map((entry) => [entry.token, entry]));
-
-  for (let slot = 0; slot < map.groupCount; slot += 1) {
-    const token = plan.colorByGroupIndex[slot] ?? map.colorTokenOrder[slot % map.colorTokenOrder.length];
-    const palette = colorByToken[token] ?? colorByToken[map.colorTokenOrder[0]!];
-
-    const targetTop = map.dataStartRow + (slot * map.groupHeight);
-    const targetBottom = targetTop + 1;
-
-    applyRowPalette(sheet, targetTop, [map.dayNumberColumn, map.weekdayColumn], palette.fillHex, palette.textHex);
-    applyRowPalette(sheet, targetBottom, [map.dayNumberColumn, map.weekdayColumn], palette.fillHex, palette.textHex);
-
-    for (const prayer of PRAYERS) {
-      const col = map.prayerColumns[prayer];
-      const cols = enumerateColumns(col.startCol, col.endCol);
-      applyRowPalette(sheet, targetTop, cols, palette.fillHex, palette.textHex);
-      applyRowPalette(sheet, targetBottom, cols, palette.fillHex, palette.textHex);
-    }
-  }
-}
-
-function writePrayerColumns(sheet: any, plan: MonthlyPlan, map: ReturnType<typeof getTemplateSheetMap>): void {
-  for (const prayer of PRAYERS) {
-    const col = map.prayerColumns[prayer];
-    const groups = plan.baseGroups.slice(0, map.groupCount);
-
-    for (let slot = 0; slot < map.groupCount; slot += 1) {
-      const rowTop = map.dataStartRow + (slot * map.groupHeight);
-      const rowBottom = rowTop + 1;
-      const value = groups[slot]?.iqamahByPrayer[prayer];
-
-      sheet.cell(`${col.startCol}${rowTop}`).value(
-        value === undefined ? "" : formatMinutes(value, plan.locale, plan.timeFormat)
-      );
-      if (col.endCol !== col.startCol) {
-        sheet.cell(`${col.endCol}${rowTop}`).value("");
-      }
-      sheet.cell(`${col.startCol}${rowBottom}`).value("");
-      if (col.endCol !== col.startCol) {
-        sheet.cell(`${col.endCol}${rowBottom}`).value("");
-      }
-    }
-  }
-}
-
 async function rewritePrayerMergesInXml(
   xlsxPath: string,
   plan: MonthlyPlan,
-  map: ReturnType<typeof getTemplateSheetMap>
+  map: ReturnType<typeof getTemplateSheetMap>,
+  slots: DisplaySlot[]
 ): Promise<void> {
   const { default: JSZip } = await import("jszip");
   const zip = await JSZip.loadAsync(await readFile(xlsxPath));
 
-  const sheetPath = map.sheetName === "Odd" ? "xl/worksheets/sheet2.xml" : "xl/worksheets/sheet3.xml";
+  const sheetPath = map.sheetName === "Odd" ? "xl/worksheets/sheet1.xml" : "xl/worksheets/sheet1.xml";
   const sheetFile = zip.file(sheetPath);
   if (!sheetFile) {
     return;
   }
 
   const xml = await sheetFile.async("string");
-  const dataEndRow = map.dataStartRow + (map.groupCount * map.groupHeight) - 1;
+  const dataEndRow = slots.length > 0 ? slots[slots.length - 1]!.bottomRow : map.dataStartRow;
 
   const existingRefs = extractMergeRefs(xml);
   const keptRefs = existingRefs.filter((ref) => {
@@ -176,7 +244,7 @@ async function rewritePrayerMergesInXml(
     return true;
   });
 
-  const dynamicRefs = buildDynamicPrayerMergeRefs(plan, map);
+  const dynamicRefs = buildDynamicPrayerMergeRefs(map, slots);
   const mergedRefs = [...new Set([...keptRefs, ...dynamicRefs])];
 
   const updatedXml = replaceMergeBlock(xml, mergedRefs);
@@ -185,38 +253,27 @@ async function rewritePrayerMergesInXml(
   await writeFile(xlsxPath, await zip.generateAsync({ type: "nodebuffer" }));
 }
 
-function buildDynamicPrayerMergeRefs(plan: MonthlyPlan, map: ReturnType<typeof getTemplateSheetMap>): string[] {
+function buildDynamicPrayerMergeRefs(map: ReturnType<typeof getTemplateSheetMap>, slots: DisplaySlot[]): string[] {
   const refs: string[] = [];
-  const groups = plan.baseGroups.slice(0, map.groupCount);
 
   for (const prayer of PRAYERS) {
     const col = map.prayerColumns[prayer];
     let i = 0;
 
-    while (i < groups.length) {
+    while (i < slots.length) {
       const runStart = i;
-      const value = groups[i]!.iqamahByPrayer[prayer];
-      const colorToken = plan.colorByGroupIndex[i] ?? "";
+      const value = slots[i]!.group.iqamahByPrayer[prayer];
       i += 1;
 
       while (
-        i < groups.length
-        && groups[i]!.iqamahByPrayer[prayer] === value
-        && (plan.colorByGroupIndex[i] ?? "") === colorToken
+        i < slots.length
+        && slots[i]!.group.iqamahByPrayer[prayer] === value
       ) {
         i += 1;
       }
 
       const runEnd = i - 1;
-      const topRow = map.dataStartRow + (runStart * map.groupHeight);
-      const bottomRow = (map.dataStartRow + (runEnd * map.groupHeight)) + 1;
-      refs.push(`${col.startCol}${topRow}:${col.endCol}${bottomRow}`);
-    }
-
-    for (let slot = groups.length; slot < map.groupCount; slot += 1) {
-      const topRow = map.dataStartRow + (slot * map.groupHeight);
-      const bottomRow = topRow + 1;
-      refs.push(`${col.startCol}${topRow}:${col.endCol}${bottomRow}`);
+      refs.push(`${col.startCol}${slots[runStart]!.topRow}:${col.endCol}${slots[runEnd]!.bottomRow}`);
     }
   }
 
@@ -344,4 +401,58 @@ function toMinutes(hhmm: string): number {
   const h = Number(hRaw);
   const m = Number(mRaw);
   return (h * 60) + m;
+}
+
+type DayStyleRef = {
+  fontFamily: string;
+  fontSize: number;
+};
+
+function getDayStyleReference(sheet: any, map: ReturnType<typeof getTemplateSheetMap>): DayStyleRef {
+  const refCell = sheet.cell(`${map.dayNumberColumn}${map.dataStartRow}`);
+  let fontFamily = "Arial";
+  let fontSize = 20;
+
+  try {
+    const family = refCell.style("fontFamily");
+    if (typeof family === "string" && family.trim()) {
+      fontFamily = family;
+    }
+  } catch {
+    // Keep defaults.
+  }
+  try {
+    const size = Number(refCell.style("fontSize"));
+    if (Number.isFinite(size) && size > 0) {
+      fontSize = size;
+    }
+  } catch {
+    // Keep defaults.
+  }
+
+  return { fontFamily, fontSize };
+}
+
+function normalizeDayCellStyle(sheet: any, address: string, ref: DayStyleRef): void {
+  const cell = sheet.cell(address);
+  try {
+    cell.style("horizontalAlignment", "center");
+  } catch {
+    // Ignore style assignment issues for this cell.
+  }
+  try {
+    cell.style("verticalAlignment", "center");
+  } catch {
+    // Ignore style assignment issues for this cell.
+  }
+  try {
+    cell.style("fontFamily", ref.fontFamily);
+  } catch {
+    // Ignore style assignment issues for this cell.
+  }
+  try {
+    cell.style("fontSize", ref.fontSize);
+  } catch {
+    // Ignore style assignment issues for this cell.
+  }
 }

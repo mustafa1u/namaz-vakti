@@ -8,6 +8,17 @@ const localeSelect = getEl<HTMLSelectElement>("locale");
 const timeFormatSelect = getEl<HTMLSelectElement>("timeFormat");
 const baseGroupSizeSelect = getEl<HTMLSelectElement>("baseGroupSize");
 const logEl = getEl<HTMLElement>("log");
+const LAST_ENTRIES_KEY = "namaz-vakti:last-entries:v1";
+
+type LastEntries = {
+  tsvFolder: string;
+  templateFile: string;
+  outputFolder: string;
+  month: string;
+  locale: GenerationOptions["locale"];
+  timeFormat: GenerationOptions["timeFormat"];
+  baseGroupSize: string;
+};
 
 bootstrap();
 
@@ -18,6 +29,8 @@ function bootstrap(): void {
   }
 
   log(`appApi ready. Methods: ${Object.keys(window.appApi).join(", ")}`);
+  bindPersistence();
+  void restoreLastEntries();
 
   getEl<HTMLButtonElement>("pickTsv").addEventListener("click", async () => {
     try {
@@ -26,6 +39,7 @@ function bootstrap(): void {
       log(`pickTsv result: ${path ?? "<cancelled>"}`);
       if (path) {
         tsvFolderInput.value = path;
+        saveLastEntries();
         await refreshMonths();
       }
     } catch (error) {
@@ -40,6 +54,7 @@ function bootstrap(): void {
       log(`pickTemplate result: ${path ?? "<cancelled>"}`);
       if (path) {
         templateFileInput.value = path;
+        saveLastEntries();
       }
     } catch (error) {
       logError("pickTemplate failed", error);
@@ -53,6 +68,7 @@ function bootstrap(): void {
       log(`pickOutput result: ${path ?? "<cancelled>"}`);
       if (path) {
         outputFolderInput.value = path;
+        saveLastEntries();
       }
     } catch (error) {
       logError("pickOutput failed", error);
@@ -70,6 +86,7 @@ function bootstrap(): void {
   getEl<HTMLButtonElement>("preview").addEventListener("click", async () => {
     try {
       const options = readOptions();
+      saveLastEntries();
       log(`preview clicked for ${options.month}`);
       const preview = await window.appApi.previewMonth(options);
       log(`Preview for ${preview.month} (${preview.dayCount} days)\n${JSON.stringify(preview.groups, null, 2)}`);
@@ -81,6 +98,7 @@ function bootstrap(): void {
   getEl<HTMLButtonElement>("generate").addEventListener("click", async () => {
     try {
       const options = readOptions();
+      saveLastEntries();
       log(`generate clicked for ${options.month}`);
       const result = await window.appApi.generateOutputs(options);
       log(`XLSX: ${result.xlsxPath}\nPNG: ${result.pngPath}\nWarnings: ${result.warnings.join(" | ")}`);
@@ -98,6 +116,7 @@ async function refreshMonths(): Promise<void> {
 
   log(`refreshMonths for ${tsvFolderInput.value}`);
   const months = await window.appApi.listMonths(tsvFolderInput.value);
+  const previousMonth = monthSelect.value;
   monthSelect.innerHTML = "";
 
   months.forEach((month) => {
@@ -110,7 +129,82 @@ async function refreshMonths(): Promise<void> {
   if (months.length === 0) {
     log("No month files found in folder.");
   } else {
+    if (previousMonth && months.includes(previousMonth)) {
+      monthSelect.value = previousMonth;
+    }
+    saveLastEntries();
     log(`Found months: ${months.join(", ")}`);
+  }
+}
+
+function bindPersistence(): void {
+  const save = () => saveLastEntries();
+
+  tsvFolderInput.addEventListener("change", save);
+  templateFileInput.addEventListener("change", save);
+  outputFolderInput.addEventListener("change", save);
+  monthSelect.addEventListener("change", save);
+  localeSelect.addEventListener("change", save);
+  timeFormatSelect.addEventListener("change", save);
+  baseGroupSizeSelect.addEventListener("change", save);
+}
+
+async function restoreLastEntries(): Promise<void> {
+  const saved = loadLastEntries();
+  if (!saved) {
+    return;
+  }
+
+  tsvFolderInput.value = saved.tsvFolder;
+  templateFileInput.value = saved.templateFile;
+  outputFolderInput.value = saved.outputFolder;
+  localeSelect.value = saved.locale;
+  timeFormatSelect.value = saved.timeFormat;
+  baseGroupSizeSelect.value = saved.baseGroupSize;
+
+  if (saved.tsvFolder) {
+    await refreshMonths();
+    if (saved.month && Array.from(monthSelect.options).some((opt) => opt.value === saved.month)) {
+      monthSelect.value = saved.month;
+    }
+  }
+
+  log("Restored last entries.");
+}
+
+function saveLastEntries(): void {
+  const data: LastEntries = {
+    tsvFolder: tsvFolderInput.value.trim(),
+    templateFile: templateFileInput.value.trim(),
+    outputFolder: outputFolderInput.value.trim(),
+    month: monthSelect.value,
+    locale: localeSelect.value as GenerationOptions["locale"],
+    timeFormat: timeFormatSelect.value as GenerationOptions["timeFormat"],
+    baseGroupSize: baseGroupSizeSelect.value
+  };
+
+  localStorage.setItem(LAST_ENTRIES_KEY, JSON.stringify(data));
+}
+
+function loadLastEntries(): LastEntries | null {
+  const raw = localStorage.getItem(LAST_ENTRIES_KEY);
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<LastEntries>;
+    return {
+      tsvFolder: parsed.tsvFolder ?? "",
+      templateFile: parsed.templateFile ?? "",
+      outputFolder: parsed.outputFolder ?? "",
+      month: parsed.month ?? "",
+      locale: parsed.locale === "tr" ? "tr" : "en",
+      timeFormat: parsed.timeFormat === "24h" ? "24h" : "ampm",
+      baseGroupSize: parsed.baseGroupSize ?? "5"
+    };
+  } catch {
+    return null;
   }
 }
 
