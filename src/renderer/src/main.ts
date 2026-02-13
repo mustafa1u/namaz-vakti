@@ -7,6 +7,7 @@ const monthSelect = getEl<HTMLSelectElement>("month");
 const localeSelect = getEl<HTMLSelectElement>("locale");
 const timeFormatSelect = getEl<HTMLSelectElement>("timeFormat");
 const baseGroupSizeSelect = getEl<HTMLSelectElement>("baseGroupSize");
+const ramazanHesabiInput = getEl<HTMLInputElement>("ramazanHesabi");
 const logEl = getEl<HTMLElement>("log");
 const LAST_ENTRIES_KEY = "namaz-vakti:last-entries:v1";
 
@@ -18,6 +19,7 @@ type LastEntries = {
   locale: GenerationOptions["locale"];
   timeFormat: GenerationOptions["timeFormat"];
   baseGroupSize: string;
+  ramazanHesabi: boolean;
 };
 
 bootstrap();
@@ -147,6 +149,7 @@ function bindPersistence(): void {
   localeSelect.addEventListener("change", save);
   timeFormatSelect.addEventListener("change", save);
   baseGroupSizeSelect.addEventListener("change", save);
+  ramazanHesabiInput.addEventListener("change", save);
 }
 
 async function restoreLastEntries(): Promise<void> {
@@ -161,6 +164,7 @@ async function restoreLastEntries(): Promise<void> {
   localeSelect.value = saved.locale;
   timeFormatSelect.value = saved.timeFormat;
   baseGroupSizeSelect.value = saved.baseGroupSize;
+  ramazanHesabiInput.checked = saved.ramazanHesabi;
 
   if (saved.tsvFolder) {
     await refreshMonths();
@@ -180,7 +184,8 @@ function saveLastEntries(): void {
     month: monthSelect.value,
     locale: localeSelect.value as GenerationOptions["locale"],
     timeFormat: timeFormatSelect.value as GenerationOptions["timeFormat"],
-    baseGroupSize: baseGroupSizeSelect.value
+    baseGroupSize: baseGroupSizeSelect.value,
+    ramazanHesabi: ramazanHesabiInput.checked
   };
 
   localStorage.setItem(LAST_ENTRIES_KEY, JSON.stringify(data));
@@ -201,7 +206,8 @@ function loadLastEntries(): LastEntries | null {
       month: parsed.month ?? "",
       locale: parsed.locale === "tr" ? "tr" : "en",
       timeFormat: parsed.timeFormat === "24h" ? "24h" : "ampm",
-      baseGroupSize: parsed.baseGroupSize ?? "5"
+      baseGroupSize: parsed.baseGroupSize ?? "5",
+      ramazanHesabi: parsed.ramazanHesabi === true
     };
   } catch {
     return null;
@@ -217,7 +223,8 @@ function readOptions(): GenerationOptions {
     locale: localeSelect.value as GenerationOptions["locale"],
     timeFormat: timeFormatSelect.value as GenerationOptions["timeFormat"],
     baseGroupSize: Number(baseGroupSizeSelect.value),
-    includeFridayNotes: true
+    includeFridayNotes: true,
+    ramazanHesabi: ramazanHesabiInput.checked
   };
 }
 

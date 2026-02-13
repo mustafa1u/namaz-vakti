@@ -6,6 +6,7 @@ export type RawDailyRecord = {
   weekdayIndex: number;
   weekdayNameTr: string;
   weekdayNameEn: string;
+  hicriDate: string;
   imsak: string;
   gunes: string;
   ogle: string;
@@ -35,6 +36,7 @@ export type GroupResult = {
   startDay: number;
   endDay: number;
   iqamahByPrayer: Record<PrayerKey, number>;
+  displayByPrayer?: Partial<Record<PrayerKey, string>>;
 };
 
 export type ColorTheme = {

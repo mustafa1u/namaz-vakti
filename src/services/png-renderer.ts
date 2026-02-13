@@ -58,9 +58,9 @@ function buildExportHtml(plan: MonthlyPlan): string {
   const slots = buildSlots(plan.baseGroups);
 
   const rows: string[] = [];
-  const prayerRunTables = Object.fromEntries(PRAYERS.map((p) => [p, buildRuns(slots, p)])) as Record<
+  const prayerRunTables = Object.fromEntries(PRAYERS.map((p) => [p, buildRuns(slots, plan, p)])) as Record<
     PrayerKey,
-    Array<{ start: number; end: number; value: number; rowSpan: number }>
+    Array<{ start: number; end: number; displayText: string; displayHtml: string; rowSpan: number }>
   >;
 
   for (let groupIndex = 0; groupIndex < slots.length; groupIndex += 1) {
@@ -82,7 +82,7 @@ function buildExportHtml(plan: MonthlyPlan): string {
       if (!run) {
         continue;
       }
-      rows.push(`<td rowspan="${run.rowSpan}">${formatMinutes(run.value, plan.locale, plan.timeFormat)}</td>`);
+      rows.push(`<td rowspan="${run.rowSpan}">${run.displayHtml}</td>`);
     }
 
     rows.push("</tr>");
@@ -110,6 +110,7 @@ function buildExportHtml(plan: MonthlyPlan): string {
       table { width: 100%; border-collapse: collapse; table-layout: fixed; border: 3px solid #222; }
       th, td { border: 3px solid #222; text-align: center; padding: 8px 6px; font-size: 38px; font-weight: 700; }
       tr.single-day td { padding-top: 0; padding-bottom: 0; line-height: 0.95; }
+      .ramadan-maghrib { font-size: 30px; line-height: 1.05; display: inline-block; }
       th { background: #ececec; color: #000; }
       th.small { width: 8%; }
       th.day { width: 10%; }
@@ -152,27 +153,34 @@ function buildSlots(groups: GroupResult[]): PngSlot[] {
 
 function buildRuns(
   slots: PngSlot[],
+  plan: MonthlyPlan,
   prayer: PrayerKey
-): Array<{ start: number; end: number; value: number; rowSpan: number }> {
+): Array<{ start: number; end: number; displayText: string; displayHtml: string; rowSpan: number }> {
   if (slots.length === 0) {
     return [];
   }
 
-  const runs: Array<{ start: number; end: number; value: number; rowSpan: number }> = [];
+  const runs: Array<{ start: number; end: number; displayText: string; displayHtml: string; rowSpan: number }> = [];
   let start = 0;
-  let value = slots[0]!.group.iqamahByPrayer[prayer];
+  let displayText = getDisplayText(slots[0]!.group, prayer, plan);
 
   for (let i = 1; i < slots.length; i += 1) {
-    const current = slots[i]!.group.iqamahByPrayer[prayer];
-    if (current !== value) {
+    const currentText = getDisplayText(slots[i]!.group, prayer, plan);
+    if (currentText !== displayText) {
       const rowSpan = sumRows(slots, start, i - 1);
-      runs.push({ start, end: i - 1, value, rowSpan });
+      runs.push({ start, end: i - 1, displayText, displayHtml: toHtmlDisplay(displayText), rowSpan });
       start = i;
-      value = current;
+      displayText = currentText;
     }
   }
 
-  runs.push({ start, end: slots.length - 1, value, rowSpan: sumRows(slots, start, slots.length - 1) });
+  runs.push({
+    start,
+    end: slots.length - 1,
+    displayText,
+    displayHtml: toHtmlDisplay(displayText),
+    rowSpan: sumRows(slots, start, slots.length - 1)
+  });
   return runs;
 }
 
@@ -189,4 +197,23 @@ function weekdayLabel(day: RawDailyRecord | undefined, locale: MonthlyPlan["loca
     return "";
   }
   return locale === "tr" ? day.weekdayNameTr : day.weekdayNameEn;
+}
+
+function getDisplayText(group: GroupResult, prayer: PrayerKey, plan: MonthlyPlan): string {
+  const override = group.displayByPrayer?.[prayer];
+  if (override) {
+    return override;
+  }
+  return formatMinutes(group.iqamahByPrayer[prayer], plan.locale, plan.timeFormat);
+}
+
+function toHtmlDisplay(text: string): string {
+  if (text.startsWith("ON TIME\n~")) {
+    const parts = text.split("\n");
+    const line1 = parts[0] ?? "";
+    const line2 = parts[1] ?? "";
+    return `<span class="ramadan-maghrib">${line1}<br/>${line2}</span>`;
+  }
+
+  return text.replace(/\n/g, "<br/>");
 }

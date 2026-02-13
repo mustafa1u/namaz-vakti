@@ -177,9 +177,22 @@ function writePrayerColumns(
     const col = map.prayerColumns[prayer];
 
     for (const slot of slots) {
-      const value = slot.group.iqamahByPrayer[prayer];
-
-      sheet.cell(`${col.startCol}${slot.topRow}`).value(formatMinutes(value, plan.locale, plan.timeFormat));
+      const display = getDisplayText(slot.group, prayer, plan);
+      sheet.cell(`${col.startCol}${slot.topRow}`).value(display);
+      if (display.includes("\n")) {
+        try {
+          sheet.cell(`${col.startCol}${slot.topRow}`).style("wrapText", true);
+        } catch {
+          // Ignore style assignment issues for this cell.
+        }
+      }
+      if (isRamadanMaghribDisplay(display)) {
+        try {
+          sheet.cell(`${col.startCol}${slot.topRow}`).style("fontSize", 15);
+        } catch {
+          // Ignore style assignment issues for this cell.
+        }
+      }
       if (col.endCol !== col.startCol) {
         sheet.cell(`${col.endCol}${slot.topRow}`).value("");
       }
@@ -212,7 +225,7 @@ async function rewritePrayerMergesInXml(
   const { default: JSZip } = await import("jszip");
   const zip = await JSZip.loadAsync(await readFile(xlsxPath));
 
-  const sheetPath = map.sheetName === "Odd" ? "xl/worksheets/sheet1.xml" : "xl/worksheets/sheet1.xml";
+  const sheetPath = await resolveWorksheetPath(zip);
   const sheetFile = zip.file(sheetPath);
   if (!sheetFile) {
     return;
@@ -244,7 +257,7 @@ async function rewritePrayerMergesInXml(
     return true;
   });
 
-  const dynamicRefs = buildDynamicPrayerMergeRefs(map, slots);
+  const dynamicRefs = buildDynamicPrayerMergeRefs(plan, map, slots);
   const mergedRefs = [...new Set([...keptRefs, ...dynamicRefs])];
 
   const updatedXml = replaceMergeBlock(xml, mergedRefs);
@@ -253,7 +266,37 @@ async function rewritePrayerMergesInXml(
   await writeFile(xlsxPath, await zip.generateAsync({ type: "nodebuffer" }));
 }
 
-function buildDynamicPrayerMergeRefs(map: ReturnType<typeof getTemplateSheetMap>, slots: DisplaySlot[]): string[] {
+async function resolveWorksheetPath(zip: any): Promise<string> {
+  const workbook = zip.file("xl/workbook.xml");
+  const rels = zip.file("xl/_rels/workbook.xml.rels");
+  if (!workbook || !rels) {
+    return "xl/worksheets/sheet1.xml";
+  }
+
+  const workbookXml = await workbook.async("string");
+  const relsXml = await rels.async("string");
+
+  const sheetMatch = workbookXml.match(/<sheet[^>]*r:id=\"([^\"]+)\"/);
+  if (!sheetMatch) {
+    return "xl/worksheets/sheet1.xml";
+  }
+
+  const rid = sheetMatch[1]!;
+  const relRegex = new RegExp(`<Relationship[^>]*Id=\"${rid}\"[^>]*Target=\"([^\"]+)\"`, "i");
+  const relMatch = relsXml.match(relRegex);
+  if (!relMatch) {
+    return "xl/worksheets/sheet1.xml";
+  }
+
+  const target = relMatch[1]!.replace(/^\/+/, "");
+  return target.startsWith("xl/") ? target : `xl/${target}`;
+}
+
+function buildDynamicPrayerMergeRefs(
+  plan: MonthlyPlan,
+  map: ReturnType<typeof getTemplateSheetMap>,
+  slots: DisplaySlot[]
+): string[] {
   const refs: string[] = [];
 
   for (const prayer of PRAYERS) {
@@ -262,12 +305,12 @@ function buildDynamicPrayerMergeRefs(map: ReturnType<typeof getTemplateSheetMap>
 
     while (i < slots.length) {
       const runStart = i;
-      const value = slots[i]!.group.iqamahByPrayer[prayer];
+      const display = getDisplayText(slots[i]!.group, prayer, plan);
       i += 1;
 
       while (
         i < slots.length
-        && slots[i]!.group.iqamahByPrayer[prayer] === value
+        && getDisplayText(slots[i]!.group, prayer, plan) === display
       ) {
         i += 1;
       }
@@ -401,6 +444,18 @@ function toMinutes(hhmm: string): number {
   const h = Number(hRaw);
   const m = Number(mRaw);
   return (h * 60) + m;
+}
+
+function getDisplayText(group: GroupResult, prayer: PrayerKey, plan: MonthlyPlan): string {
+  const override = group.displayByPrayer?.[prayer];
+  if (override) {
+    return override;
+  }
+  return formatMinutes(group.iqamahByPrayer[prayer], plan.locale, plan.timeFormat);
+}
+
+function isRamadanMaghribDisplay(display: string): boolean {
+  return display.startsWith("ON TIME\n~");
 }
 
 type DayStyleRef = {

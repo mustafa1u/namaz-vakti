@@ -30,6 +30,7 @@ export function registerIpcHandlers(_getWindow: WindowGetter): void {
       locale: options.locale,
       timeFormat: options.timeFormat,
       baseGroupSize: options.baseGroupSize,
+      ramazanHesabi: options.ramazanHesabi,
       days
     });
 
@@ -57,6 +58,7 @@ export function registerIpcHandlers(_getWindow: WindowGetter): void {
       locale: options.locale,
       timeFormat: options.timeFormat,
       baseGroupSize: options.baseGroupSize,
+      ramazanHesabi: options.ramazanHesabi,
       days
     });
 

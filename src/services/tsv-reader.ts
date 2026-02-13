@@ -62,6 +62,7 @@ export async function readMonthTsv(tsvFolder: string, month: string): Promise<Ra
       weekdayIndex: new Date(`${row.Tarih}T00:00:00`).getDay(),
       weekdayNameTr: weekdayTr,
       weekdayNameEn: WEEKDAY_EN[weekdayTr] ?? weekdayTr,
+      hicriDate: row["Hicri Tarih"] ?? "",
       imsak: row["İmsak"],
       gunes: row["Güneş"],
       ogle: row["Öğle"],

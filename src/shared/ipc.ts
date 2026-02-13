@@ -26,7 +26,8 @@ export const GenerationOptionsSchema = z.object({
   locale: LocaleSchema.default("en"),
   timeFormat: TimeFormatSchema.default("ampm"),
   baseGroupSize: z.number().int().positive().default(5),
-  includeFridayNotes: z.boolean().default(true)
+  includeFridayNotes: z.boolean().default(true),
+  ramazanHesabi: z.boolean().default(false)
 });
 
 export type GenerationOptions = z.infer<typeof GenerationOptionsSchema>;

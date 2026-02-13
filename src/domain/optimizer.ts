@@ -42,11 +42,36 @@ export function optimizeIqamahForPrayer(days: DailyPrayerMinutes[], rule: Iqamah
   return rule.roundedToFiveMinutes ? floorToFive(minAdjusted) : minAdjusted;
 }
 
-export function buildBaseGroups(days: DailyPrayerMinutes[], size: number): Array<{ startDay: number; endDay: number; days: DailyPrayerMinutes[] }> {
+export function buildBaseGroups(
+  days: DailyPrayerMinutes[],
+  size: number,
+  splitStartDays: Set<number> = new Set<number>()
+): Array<{ startDay: number; endDay: number; days: DailyPrayerMinutes[] }> {
   const groups: Array<{ startDay: number; endDay: number; days: DailyPrayerMinutes[] }> = [];
+  let chunk: DailyPrayerMinutes[] = [];
 
-  for (let i = 0; i < days.length; i += size) {
-    const chunk = days.slice(i, i + size);
+  for (const day of days) {
+    if (chunk.length > 0 && splitStartDays.has(day.dayOfMonth)) {
+      groups.push({
+        startDay: chunk[0]!.dayOfMonth,
+        endDay: chunk[chunk.length - 1]!.dayOfMonth,
+        days: chunk
+      });
+      chunk = [];
+    }
+
+    chunk.push(day);
+    if (chunk.length === size) {
+      groups.push({
+        startDay: chunk[0]!.dayOfMonth,
+        endDay: chunk[chunk.length - 1]!.dayOfMonth,
+        days: chunk
+      });
+      chunk = [];
+    }
+  }
+
+  if (chunk.length > 0) {
     groups.push({
       startDay: chunk[0]!.dayOfMonth,
       endDay: chunk[chunk.length - 1]!.dayOfMonth,
