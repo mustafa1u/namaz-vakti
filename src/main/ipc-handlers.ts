@@ -66,11 +66,13 @@ export function registerIpcHandlers(_getWindow: WindowGetter): void {
       writeXlsxFromTemplate({
         outputFolder: options.outputFolder,
         templateFile: options.templateFile,
-        plan
+        plan,
+        announcementMessage: options.announcementMessage
       }),
       renderPng({
         outputFolder: options.outputFolder,
-        plan
+        plan,
+        announcementMessage: options.announcementMessage
       })
     ]);
 

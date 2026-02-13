@@ -33,9 +33,13 @@
       label {
         font-weight: 600;
       }
-      input, select, button {
+      input, select, textarea, button {
         font-size: 14px;
         padding: 0.5rem 0.625rem;
+      }
+      textarea {
+        resize: vertical;
+        min-height: 2.75rem;
       }
       button {
         background: var(--accent);
@@ -109,6 +113,12 @@
       <div class="row">
         <label for="ramazanHesabi">Ramazan hesabı</label>
         <input id="ramazanHesabi" type="checkbox" />
+        <span></span>
+      </div>
+
+      <div class="row">
+        <label for="announcementMessage">Announcement</label>
+        <textarea id="announcementMessage" rows="2" placeholder="Message shown above and below the table"></textarea>
         <span></span>
       </div>
 

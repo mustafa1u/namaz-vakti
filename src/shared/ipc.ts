@@ -23,6 +23,7 @@ export const GenerationOptionsSchema = z.object({
   tsvFolder: z.string().min(1),
   outputFolder: z.string().min(1),
   templateFile: z.string().min(1),
+  announcementMessage: z.string().default(""),
   locale: LocaleSchema.default("en"),
   timeFormat: TimeFormatSchema.default("ampm"),
   baseGroupSize: z.number().int().positive().default(5),

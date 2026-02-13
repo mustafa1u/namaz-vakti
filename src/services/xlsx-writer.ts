@@ -20,6 +20,7 @@ export type XlsxWriteInput = {
   outputFolder: string;
   templateFile: string;
   plan: MonthlyPlan;
+  announcementMessage: string;
 };
 
 export async function writeXlsxFromTemplate(input: XlsxWriteInput): Promise<string> {
@@ -34,8 +35,9 @@ export async function writeXlsxFromTemplate(input: XlsxWriteInput): Promise<stri
 
   const slots = buildDisplaySlots(input.plan.baseGroups, map.dataStartRow);
   const pairHeights = captureTemplatePairHeights(sheet, map);
+  const announcementMessage = normalizeAnnouncementMessage(input.announcementMessage);
 
-  writeHeader(sheet, map.rawHeaderTemplate, input.plan);
+  writeHeader(sheet, map.rawHeaderTemplate, input.plan, announcementMessage, XlsxPopulate);
   applyRowHeights(sheet, slots, pairHeights, map);
   writeDayColumns(sheet, input.plan, map, slots);
   applyGroupStyles(sheet, input.plan, map, slots);
@@ -98,17 +100,31 @@ function applyRowHeights(
   }
 }
 
-function writeHeader(sheet: any, headerTemplate: string, plan: MonthlyPlan): void {
+function writeHeader(
+  sheet: any,
+  headerTemplate: string,
+  plan: MonthlyPlan,
+  announcementMessage: string,
+  xlsxPopulate: any
+): void {
   const monthLabel = formatMonthLabel(plan.month, plan.locale);
   const firstFriday = plan.rawDays.find((day) => day.weekdayNameEn === "Fri" || day.weekdayNameTr === "Cuma");
   const adhan = firstFriday ? formatMinutes(toMinutes(firstFriday.ogle), plan.locale, plan.timeFormat) : "N/A";
 
-  const text = headerTemplate
+  const headerText = headerTemplate
     .replaceAll("[AYIN ADI]", monthLabel.split(",")[0] ?? monthLabel)
     .replaceAll("[YIL]", plan.month.slice(0, 4))
     .replaceAll("[CUMA SAATİ]", adhan);
 
-  sheet.cell("A1").value(text);
+  if (!announcementMessage) {
+    sheet.cell("A1").value(headerText);
+    return;
+  }
+
+  const rich = new xlsxPopulate.RichText();
+  rich.add(`${announcementMessage}\n`, { fontSize: 14 });
+  rich.add(headerText);
+  sheet.cell("A1").value(rich);
 }
 
 function writeDayColumns(
@@ -456,6 +472,10 @@ function getDisplayText(group: GroupResult, prayer: PrayerKey, plan: MonthlyPlan
 
 function isRamadanMaghribDisplay(display: string): boolean {
   return display.startsWith("ON TIME\n~");
+}
+
+function normalizeAnnouncementMessage(input: string): string {
+  return input.replace(/\r\n/g, "\n").trim();
 }
 
 type DayStyleRef = {

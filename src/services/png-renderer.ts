@@ -9,6 +9,7 @@ import { formatMinutes, formatMonthLabel } from "@domain/format";
 type PngRenderInput = {
   outputFolder: string;
   plan: MonthlyPlan;
+  announcementMessage: string;
 };
 
 type PngSlot = {
@@ -20,7 +21,7 @@ type PngSlot = {
 const PRAYERS: PrayerKey[] = ["fajr", "zhuhr", "asr", "maghrib", "isha"];
 
 export async function renderPng(input: PngRenderInput): Promise<string> {
-  const html = buildExportHtml(input.plan);
+  const html = buildExportHtml(input.plan, input.announcementMessage);
   const win = new BrowserWindow({
     width: 1200,
     height: 1800,
@@ -52,7 +53,7 @@ export async function renderPng(input: PngRenderInput): Promise<string> {
   }
 }
 
-function buildExportHtml(plan: MonthlyPlan): string {
+function buildExportHtml(plan: MonthlyPlan, announcementMessage: string): string {
   const theme = Number(plan.month.split("-")[1]) % 2 === 0 ? EVEN_THEME : ODD_THEME;
   const colorByToken = Object.fromEntries(theme.sequence.map((item) => [item.token, item]));
   const slots = buildSlots(plan.baseGroups);
@@ -96,6 +97,7 @@ function buildExportHtml(plan: MonthlyPlan): string {
   }
 
   const headerMonth = formatMonthLabel(plan.month, plan.locale);
+  const announcementHtml = renderAnnouncementHtml(announcementMessage);
 
   return `<!doctype html>
 <html lang="en">
@@ -111,6 +113,14 @@ function buildExportHtml(plan: MonthlyPlan): string {
       th, td { border: 3px solid #222; text-align: center; padding: 8px 6px; font-size: 38px; font-weight: 700; }
       tr.single-day td { padding-top: 0; padding-bottom: 0; line-height: 0.95; }
       .ramadan-maghrib { font-size: 30px; line-height: 1.05; display: inline-block; }
+      .announcement {
+        font-size: 14pt;
+        text-align: center;
+        padding: 10px 16px;
+      }
+      .announcement-top {
+        background: #ececec;
+      }
       th { background: #ececec; color: #000; }
       th.small { width: 8%; }
       th.day { width: 10%; }
@@ -122,6 +132,7 @@ function buildExportHtml(plan: MonthlyPlan): string {
         <h1>Paterson Mevlana Camii</h1>
         <p>${headerMonth}</p>
       </div>
+      ${announcementHtml ? `<div class="announcement announcement-top">${announcementHtml}</div>` : ""}
       <table>
         <thead>
           <tr>
@@ -216,4 +227,22 @@ function toHtmlDisplay(text: string): string {
   }
 
   return text.replace(/\n/g, "<br/>");
+}
+
+function renderAnnouncementHtml(message: string): string {
+  const trimmed = message.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  return escapeHtml(trimmed).replace(/\r?\n/g, "<br/>");
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("'", "&#39;");
 }
