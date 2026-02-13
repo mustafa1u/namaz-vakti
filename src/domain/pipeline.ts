@@ -87,7 +87,7 @@ export function buildMonthlyPlan(input: BuildMonthlyPlanInput): MonthlyPlan {
   applyJumahNoteMarkers(baseGroups, jumahNotes, input.locale, input.timeFormat);
 
   const collapsedGroups = collapseAdjacentSameGroups(baseGroups);
-  const colorByGroupIndex = assignColorTokens(baseGroups, theme);
+  const colorByGroupIndex = assignColorTokens(baseGroups, theme, input.locale, input.timeFormat);
 
   return {
     month: input.month,

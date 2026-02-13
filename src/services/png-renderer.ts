@@ -74,24 +74,24 @@ function buildExportHtml(plan: MonthlyPlan, announcementMessage: string): string
     const endDay = plan.rawDays.find((day) => day.dayOfMonth === group.endDay);
 
     const rowClass = slot.rowCount === 1 ? "single-day" : "";
-    rows.push(`<tr class="${rowClass}" style="background:${color.fillHex};color:${color.textHex}">`);
-    rows.push(`<td>${group.startDay}</td>`);
-    rows.push(`<td>${weekdayLabel(startDay, plan.locale)}</td>`);
+    rows.push(`<tr class="${rowClass}">`);
+    rows.push(`<td style="background:${color.fillHex};color:${color.textHex}">${group.startDay}</td>`);
+    rows.push(`<td style="background:${color.fillHex};color:${color.textHex}">${weekdayLabel(startDay, plan.locale)}</td>`);
 
     for (const prayer of PRAYERS) {
       const run = prayerRunTables[prayer].find((entry) => entry.start === groupIndex);
       if (!run) {
         continue;
       }
-      rows.push(`<td rowspan="${run.rowSpan}">${run.displayHtml}</td>`);
+      rows.push(`<td rowspan="${run.rowSpan}" style="background:${color.fillHex};color:${color.textHex}">${run.displayHtml}</td>`);
     }
 
     rows.push("</tr>");
 
     if (slot.rowCount === 2) {
-      rows.push(`<tr style="background:${color.fillHex};color:${color.textHex}">`);
-      rows.push(`<td>${group.endDay}</td>`);
-      rows.push(`<td>${weekdayLabel(endDay, plan.locale)}</td>`);
+      rows.push("<tr>");
+      rows.push(`<td style="background:${color.fillHex};color:${color.textHex}">${group.endDay}</td>`);
+      rows.push(`<td style="background:${color.fillHex};color:${color.textHex}">${weekdayLabel(endDay, plan.locale)}</td>`);
       rows.push("</tr>");
     }
   }
