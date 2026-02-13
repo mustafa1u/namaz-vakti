@@ -107,14 +107,7 @@ function writeHeader(
   announcementMessage: string,
   xlsxPopulate: any
 ): void {
-  const monthLabel = formatMonthLabel(plan.month, plan.locale);
-  const firstFriday = plan.rawDays.find((day) => day.weekdayNameEn === "Fri" || day.weekdayNameTr === "Cuma");
-  const adhan = firstFriday ? formatMinutes(toMinutes(firstFriday.ogle), plan.locale, plan.timeFormat) : "N/A";
-
-  const headerText = headerTemplate
-    .replaceAll("[AYIN ADI]", monthLabel.split(",")[0] ?? monthLabel)
-    .replaceAll("[YIL]", plan.month.slice(0, 4))
-    .replaceAll("[CUMA SAATİ]", adhan);
+  const headerText = buildHeaderText(headerTemplate, plan);
 
   if (!announcementMessage) {
     sheet.cell("A1").value(headerText);
@@ -125,6 +118,47 @@ function writeHeader(
   rich.add(`${announcementMessage}\n`, { fontSize: 14 });
   rich.add(headerText);
   sheet.cell("A1").value(rich);
+}
+
+function buildHeaderText(headerTemplate: string, plan: MonthlyPlan): string {
+  const monthLabel = formatMonthLabel(plan.month, plan.locale);
+  const lines = headerTemplate.split(/\r?\n/);
+  const titleLine = lines[0] ?? "Paterson Mevlana Camii";
+  const addressLine = lines[1] ?? "";
+  const monthLineTemplate = lines[2] ?? "[AYIN ADI], [YIL]";
+  const monthLine = monthLineTemplate
+    .replaceAll("[AYIN ADI]", monthLabel.split(",")[0] ?? monthLabel)
+    .replaceAll("[YIL]", plan.month.slice(0, 4));
+
+  const jumahLines = buildJumahHeaderLines(plan);
+  return [titleLine, addressLine, monthLine, "", ...jumahLines].join("\n");
+}
+
+function buildJumahHeaderLines(plan: MonthlyPlan): string[] {
+  const notes = plan.jumahNotes;
+  const out: string[] = [];
+
+  if (notes.length === 0) {
+    const firstFriday = plan.rawDays.find((day) => day.weekdayNameEn === "Fri" || day.weekdayNameTr === "Cuma");
+    const fallback = firstFriday ? formatMinutes(toMinutes(firstFriday.ogle), plan.locale, plan.timeFormat) : "N/A";
+    out.push(`(*)FRIDAY (JUM'AH): Adzan of Jum'ah is called at ${fallback}.`);
+    out.push("Iqamah is 20-25 MINS later");
+    return out;
+  }
+
+  if (notes.length === 1) {
+    out.push(`(*)FRIDAY (JUM'AH): Adzan of Jum'ah is called at ${formatMinutes(notes[0]!.adhanMinutes, plan.locale, plan.timeFormat)}.`);
+    out.push("Iqamah is 20-25 MINS later");
+    return out;
+  }
+
+  for (const note of notes) {
+    const range = note.startDay === note.endDay ? `Day ${note.startDay}` : `Days ${note.startDay}-${note.endDay}`;
+    const time = formatMinutes(note.adhanMinutes, plan.locale, plan.timeFormat);
+    out.push(`(${note.marker})FRIDAY (JUM'AH): ${range}. Adzan of Jum'ah is called at ${time}.`);
+  }
+  out.push("Iqamah is 20-25 MINS later");
+  return out;
 }
 
 function writeDayColumns(

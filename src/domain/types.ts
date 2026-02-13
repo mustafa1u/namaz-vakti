@@ -48,6 +48,14 @@ export type ColorTheme = {
   }>;
 };
 
+export type JumahNote = {
+  marker: string;
+  startDay: number;
+  endDay: number;
+  adhanMinutes: number;
+  regionType: "standard" | "daylight";
+};
+
 export type MonthlyPlan = {
   month: string;
   locale: "en" | "tr";
@@ -56,4 +64,5 @@ export type MonthlyPlan = {
   baseGroups: GroupResult[];
   collapsedGroups: GroupResult[];
   colorByGroupIndex: string[];
+  jumahNotes: JumahNote[];
 };

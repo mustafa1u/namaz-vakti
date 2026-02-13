@@ -1,5 +1,5 @@
 ﻿import type { Locale, TimeFormat } from "@shared/ipc";
-import type { ColorTheme, DailyPrayerMinutes, MonthlyPlan, RawDailyRecord } from "./types";
+import type { ColorTheme, DailyPrayerMinutes, JumahNote, MonthlyPlan, RawDailyRecord } from "./types";
 import { DEFAULT_IQAMAH_RULES, validateBaseGroupSize } from "./iqamah-rules";
 import { buildBaseGroups, optimizeGroups } from "./optimizer";
 import { assignColorTokens, collapseAdjacentSameGroups } from "./grouping";
@@ -67,7 +67,8 @@ export function buildMonthlyPlan(input: BuildMonthlyPlanInput): MonthlyPlan {
     ramazanInfo.set(day.dayOfMonth, parseHicriInfo(day.hicriDate));
   });
 
-  const splitStartDays = getDstSplitStartDays(normalizedDays);
+  const dstSplitStartDays = getDstSplitStartDays(normalizedDays);
+  const splitStartDays = new Set<number>(dstSplitStartDays);
   if (input.ramazanHesabi) {
     for (const day of getRamazanSplitStartDays(input.days, ramazanInfo)) {
       splitStartDays.add(day);
@@ -82,6 +83,8 @@ export function buildMonthlyPlan(input: BuildMonthlyPlanInput): MonthlyPlan {
   if (input.ramazanHesabi) {
     applyRamazanOverrides(baseGroups, baseBuckets, ramazanInfo, input.locale, input.timeFormat);
   }
+  const jumahNotes = buildJumahNotes(input.days, normalizedDays, dstSplitStartDays);
+  applyJumahNoteMarkers(baseGroups, jumahNotes, input.locale, input.timeFormat);
 
   const collapsedGroups = collapseAdjacentSameGroups(baseGroups);
   const colorByGroupIndex = assignColorTokens(baseGroups, theme);
@@ -93,7 +96,8 @@ export function buildMonthlyPlan(input: BuildMonthlyPlanInput): MonthlyPlan {
     rawDays: input.days,
     baseGroups,
     collapsedGroups,
-    colorByGroupIndex
+    colorByGroupIndex,
+    jumahNotes
   };
 }
 
@@ -157,6 +161,85 @@ function applyRamazanOverrides(
   });
 }
 
+function applyJumahNoteMarkers(
+  groups: MonthlyPlan["baseGroups"],
+  jumahNotes: JumahNote[],
+  locale: Locale,
+  timeFormat: TimeFormat
+): void {
+  if (jumahNotes.length === 0) {
+    return;
+  }
+
+  for (const group of groups) {
+    const note = jumahNotes.find((entry) => group.startDay >= entry.startDay && group.startDay <= entry.endDay);
+    if (!note) {
+      continue;
+    }
+
+    const zhuhrDisplay = formatMinutes(group.iqamahByPrayer.zhuhr, locale, timeFormat);
+    const suffix = jumahNotes.length > 1 ? `(See ${note.marker})` : `(${note.marker})`;
+    group.displayByPrayer = {
+      ...(group.displayByPrayer ?? {}),
+      zhuhr: `${zhuhrDisplay}\n${suffix}`
+    };
+  }
+}
+
+function buildJumahNotes(
+  rawDays: RawDailyRecord[],
+  days: DailyPrayerMinutes[],
+  dstSplitStartDays: Set<number>
+): JumahNote[] {
+  if (rawDays.length === 0 || days.length === 0) {
+    return [];
+  }
+
+  const dayMap = new Map<number, RawDailyRecord>(rawDays.map((day) => [day.dayOfMonth, day]));
+  const lastDay = rawDays[rawDays.length - 1]!.dayOfMonth;
+
+  const starts = [...new Set([1, ...[...dstSplitStartDays].filter((d) => d >= 1 && d <= lastDay)])].sort((a, b) => a - b);
+  const notes: Omit<JumahNote, "marker">[] = [];
+
+  for (let i = 0; i < starts.length; i += 1) {
+    const startDay = starts[i]!;
+    const endDay = i < starts.length - 1 ? (starts[i + 1]! - 1) : lastDay;
+    const regionDays = days.filter((day) => day.dayOfMonth >= startDay && day.dayOfMonth <= endDay);
+    if (regionDays.length === 0) {
+      continue;
+    }
+
+    const fridayZhuhr = regionDays
+      .filter((day) => dayMap.get(day.dayOfMonth)?.weekdayNameEn === "Fri")
+      .map((day) => day.zhuhrStart);
+    if (fridayZhuhr.length === 0) {
+      continue;
+    }
+
+    const regionMedianZhuhr = medianMinutes(regionDays.map((day) => day.zhuhrStart));
+    const standardAnchor = (12 * 60) + 15;
+    const daylightAnchor = (13 * 60) + 15;
+    const regionType = Math.abs(regionMedianZhuhr - standardAnchor) <= Math.abs(regionMedianZhuhr - daylightAnchor)
+      ? "standard"
+      : "daylight";
+    const baseline = regionType === "standard" ? standardAnchor : daylightAnchor;
+    const latestFridayZhuhr = Math.max(...fridayZhuhr);
+    const adhanMinutes = ceilToFive(Math.max(latestFridayZhuhr, baseline));
+
+    notes.push({
+      startDay,
+      endDay,
+      adhanMinutes,
+      regionType
+    });
+  }
+
+  return notes.map((note, idx) => ({
+    ...note,
+    marker: "*".repeat(idx + 1)
+  }));
+}
+
 function medianMinutes(values: number[]): number {
   if (values.length === 0) {
     return 0;
@@ -169,6 +252,10 @@ function medianMinutes(values: number[]): number {
   }
 
   return Math.floor((sorted[mid - 1]! + sorted[mid]!) / 2);
+}
+
+function ceilToFive(minutes: number): number {
+  return Math.ceil(minutes / 5) * 5;
 }
 
 function splitBucketsAtDays(

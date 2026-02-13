@@ -98,6 +98,7 @@ function buildExportHtml(plan: MonthlyPlan, announcementMessage: string): string
 
   const headerMonth = formatMonthLabel(plan.month, plan.locale);
   const announcementHtml = renderAnnouncementHtml(announcementMessage);
+  const jumahNotesHtml = renderJumahNotesHtml(plan);
 
   return `<!doctype html>
 <html lang="en">
@@ -109,6 +110,8 @@ function buildExportHtml(plan: MonthlyPlan, announcementMessage: string): string
       .header { background: #ececec; text-align: center; padding: 24px 20px 10px; }
       .header h1 { margin: 0 0 8px; font-size: 54px; }
       .header p { margin: 0 0 8px; font-size: 30px; }
+      .jumah-note { margin: 6px 0; font-size: 24px; font-weight: 700; }
+      .jumah-foot { margin: 6px 0 0; font-size: 18px; font-weight: 600; }
       table { width: 100%; border-collapse: collapse; table-layout: fixed; border: 3px solid #222; }
       th, td { border: 3px solid #222; text-align: center; padding: 8px 6px; font-size: 38px; font-weight: 700; }
       tr.single-day td { padding-top: 0; padding-bottom: 0; line-height: 0.95; }
@@ -131,6 +134,7 @@ function buildExportHtml(plan: MonthlyPlan, announcementMessage: string): string
       <div class="header">
         <h1>Paterson Mevlana Camii</h1>
         <p>${headerMonth}</p>
+        ${jumahNotesHtml}
       </div>
       ${announcementHtml ? `<div class="announcement announcement-top">${announcementHtml}</div>` : ""}
       <table>
@@ -229,6 +233,30 @@ function toHtmlDisplay(text: string): string {
   return text.replace(/\n/g, "<br/>");
 }
 
+function renderJumahNotesHtml(plan: MonthlyPlan): string {
+  const notes = plan.jumahNotes;
+  if (notes.length === 0) {
+    const firstFriday = plan.rawDays.find((day) => day.weekdayNameEn === "Fri" || day.weekdayNameTr === "Cuma");
+    const fallback = firstFriday ? formatMinutes(toMinutes(firstFriday.ogle), plan.locale, plan.timeFormat) : "N/A";
+    return `<div class="jumah-note">(*)FRIDAY (JUM'AH): Adzan of Jum'ah is called at ${escapeHtml(fallback)}.</div><div class="jumah-foot">Iqamah is 20-25 MINS later</div>`;
+  }
+
+  if (notes.length === 1) {
+    const time = formatMinutes(notes[0]!.adhanMinutes, plan.locale, plan.timeFormat);
+    return `<div class="jumah-note">(*)FRIDAY (JUM'AH): Adzan of Jum'ah is called at ${escapeHtml(time)}.</div><div class="jumah-foot">Iqamah is 20-25 MINS later</div>`;
+  }
+
+  const lines = notes
+    .map((note) => {
+      const range = note.startDay === note.endDay ? `Day ${note.startDay}` : `Days ${note.startDay}-${note.endDay}`;
+      const time = formatMinutes(note.adhanMinutes, plan.locale, plan.timeFormat);
+      return `<div class="jumah-note">(${escapeHtml(note.marker)})FRIDAY (JUM'AH): ${escapeHtml(range)}. Adzan of Jum'ah is called at ${escapeHtml(time)}.</div>`;
+    })
+    .join("");
+
+  return `${lines}<div class="jumah-foot">Iqamah is 20-25 MINS later</div>`;
+}
+
 function renderAnnouncementHtml(message: string): string {
   const trimmed = message.trim();
   if (!trimmed) {
@@ -245,4 +273,11 @@ function escapeHtml(value: string): string {
     .replaceAll(">", "&gt;")
     .replaceAll("\"", "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function toMinutes(hhmm: string): number {
+  const [hRaw, mRaw] = hhmm.split(":");
+  const h = Number(hRaw);
+  const m = Number(mRaw);
+  return (h * 60) + m;
 }
