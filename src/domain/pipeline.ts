@@ -55,7 +55,12 @@ export function buildMonthlyPlan(input: BuildMonthlyPlanInput): MonthlyPlan {
     ramazanInfo.set(day.dayOfMonth, parseRamazanInfo(day.hicriDate));
   });
 
-  const splitStartDays = input.ramazanHesabi ? getRamazanSplitStartDays(input.days, ramazanInfo) : new Set<number>();
+  const splitStartDays = getDstSplitStartDays(normalizedDays);
+  if (input.ramazanHesabi) {
+    for (const day of getRamazanSplitStartDays(input.days, ramazanInfo)) {
+      splitStartDays.add(day);
+    }
+  }
   const initialBuckets = buildBaseGroups(normalizedDays, input.baseGroupSize);
   const baseBuckets = splitBucketsAtDays(initialBuckets, splitStartDays);
   const baseGroups = optimizeGroups(baseBuckets, DEFAULT_IQAMAH_RULES);
@@ -175,26 +180,53 @@ function splitBucketsAtDays(
 
   const out: Array<{ startDay: number; endDay: number; days: DailyPrayerMinutes[] }> = [];
   for (const bucket of buckets) {
-    const splitIndex = bucket.days.findIndex((d, idx) => idx > 0 && splitDays.has(d.dayOfMonth));
-    if (splitIndex <= 0) {
+    const splitIndexes = bucket.days
+      .map((d, idx) => (idx > 0 && splitDays.has(d.dayOfMonth) ? idx : -1))
+      .filter((idx) => idx > 0);
+
+    if (splitIndexes.length === 0) {
       out.push(bucket);
       continue;
     }
 
-    const left = bucket.days.slice(0, splitIndex);
-    const right = bucket.days.slice(splitIndex);
-    out.push({
-      startDay: left[0]!.dayOfMonth,
-      endDay: left[left.length - 1]!.dayOfMonth,
-      days: left
-    });
-    out.push({
-      startDay: right[0]!.dayOfMonth,
-      endDay: right[right.length - 1]!.dayOfMonth,
-      days: right
-    });
+    let start = 0;
+    for (const splitIndex of splitIndexes) {
+      const part = bucket.days.slice(start, splitIndex);
+      if (part.length > 0) {
+        out.push({
+          startDay: part[0]!.dayOfMonth,
+          endDay: part[part.length - 1]!.dayOfMonth,
+          days: part
+        });
+      }
+      start = splitIndex;
+    }
+
+    const tail = bucket.days.slice(start);
+    if (tail.length > 0) {
+      out.push({
+        startDay: tail[0]!.dayOfMonth,
+        endDay: tail[tail.length - 1]!.dayOfMonth,
+        days: tail
+      });
+    }
   }
   return out;
+}
+
+function getDstSplitStartDays(days: DailyPrayerMinutes[]): Set<number> {
+  const splitDays = new Set<number>();
+  for (let i = 0; i < days.length - 1; i += 1) {
+    const current = days[i]!;
+    const next = days[i + 1]!;
+    const delta = next.zhuhrStart - current.zhuhrStart;
+
+    // If difference exceeds 50 minutes, infer DST/standard-time boundary.
+    if (Math.abs(delta) > 50) {
+      splitDays.add(next.dayOfMonth);
+    }
+  }
+  return splitDays;
 }
 
 function toMinutes(hhmm: string): number {
