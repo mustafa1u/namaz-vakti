@@ -68,7 +68,8 @@ export function buildMonthlyPlan(input: BuildMonthlyPlanInput): MonthlyPlan {
     }
   }
   const initialBuckets = buildBaseGroups(normalizedDays, input.baseGroupSize);
-  const baseBuckets = splitBucketsAtDays(initialBuckets, splitStartDays);
+  const splitBuckets = splitBucketsAtDays(initialBuckets, splitStartDays);
+  const baseBuckets = mergeTrailingSingletonByDefault(splitBuckets, splitStartDays);
   const baseGroups = optimizeGroups(baseBuckets, DEFAULT_IQAMAH_RULES);
 
   if (input.ramazanHesabi) {
@@ -205,6 +206,36 @@ function splitBucketsAtDays(
     }
   }
   return out;
+}
+
+function mergeTrailingSingletonByDefault(
+  buckets: Array<{ startDay: number; endDay: number; days: DailyPrayerMinutes[] }>,
+  splitDays: Set<number>
+): Array<{ startDay: number; endDay: number; days: DailyPrayerMinutes[] }> {
+  if (buckets.length < 2) {
+    return buckets;
+  }
+
+  const lastBucket = buckets[buckets.length - 1]!;
+  if (lastBucket.days.length !== 1 || lastBucket.startDay !== lastBucket.endDay) {
+    return buckets;
+  }
+
+  const lastDay = lastBucket.startDay;
+
+  // If any rule explicitly forces a split at the last day (e.g., DST boundary), keep it standalone.
+  if (splitDays.has(lastDay)) {
+    return buckets;
+  }
+
+  const prevBucket = buckets[buckets.length - 2]!;
+  const merged = {
+    startDay: prevBucket.startDay,
+    endDay: lastDay,
+    days: [...prevBucket.days, ...lastBucket.days]
+  };
+
+  return [...buckets.slice(0, -2), merged];
 }
 
 function getDstSplitStartDays(days: DailyPrayerMinutes[]): Set<number> {
