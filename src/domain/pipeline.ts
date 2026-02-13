@@ -34,6 +34,12 @@ export type BuildMonthlyPlanInput = {
   days: RawDailyRecord[];
 };
 
+type HicriInfo = {
+  isRamazan: boolean;
+  isSevval: boolean;
+  hicriDay: number | null;
+};
+
 export function buildMonthlyPlan(input: BuildMonthlyPlanInput): MonthlyPlan {
   validateBaseGroupSize(input.baseGroupSize);
 
@@ -50,9 +56,9 @@ export function buildMonthlyPlan(input: BuildMonthlyPlanInput): MonthlyPlan {
     ishaStart: toMinutes(day.yatsi)
   }));
 
-  const ramazanInfo = new Map<number, { isRamazan: boolean; ramazanDay: number | null }>();
+  const ramazanInfo = new Map<number, HicriInfo>();
   input.days.forEach((day) => {
-    ramazanInfo.set(day.dayOfMonth, parseRamazanInfo(day.hicriDate));
+    ramazanInfo.set(day.dayOfMonth, parseHicriInfo(day.hicriDate));
   });
 
   const splitStartDays = getDstSplitStartDays(normalizedDays);
@@ -83,48 +89,35 @@ export function buildMonthlyPlan(input: BuildMonthlyPlanInput): MonthlyPlan {
   };
 }
 
-function parseRamazanInfo(hicriDate: string): { isRamazan: boolean; ramazanDay: number | null } {
+function parseHicriInfo(hicriDate: string): HicriInfo {
   const cleaned = hicriDate.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const isRamazan = cleaned.includes("ramazan") || cleaned.includes("ramadan");
-  if (!isRamazan) {
-    return { isRamazan: false, ramazanDay: null };
-  }
-
+  const isSevval = cleaned.includes("sevval") || cleaned.includes("shawwal");
   const dayMatch = cleaned.match(/^\s*(\d{1,2})\s+/);
-  if (!dayMatch) {
-    return { isRamazan: true, ramazanDay: null };
-  }
-
-  return { isRamazan: true, ramazanDay: Number(dayMatch[1]) };
+  const hicriDay = dayMatch ? Number(dayMatch[1]) : null;
+  return { isRamazan, isSevval, hicriDay };
 }
 
 function getRamazanSplitStartDays(
   days: RawDailyRecord[],
-  ramazanInfo: Map<number, { isRamazan: boolean; ramazanDay: number | null }>
+  ramazanInfo: Map<number, HicriInfo>
 ): Set<number> {
   const splitDays = new Set<number>();
 
   const ramazanStart = days.find((day) => {
     const info = ramazanInfo.get(day.dayOfMonth);
-    return info?.isRamazan && info.ramazanDay === 1;
+    return info?.isRamazan && info.hicriDay === 1;
   });
   if (ramazanStart) {
     splitDays.add(ramazanStart.dayOfMonth);
   }
 
-  const ramazan30 = days.find((day) => {
+  const sevvalStart = days.find((day) => {
     const info = ramazanInfo.get(day.dayOfMonth);
-    return info?.isRamazan && info.ramazanDay === 30;
+    return info?.isSevval && info.hicriDay === 1;
   });
-  const ramazan29 = days.find((day) => {
-    const info = ramazanInfo.get(day.dayOfMonth);
-    return info?.isRamazan && info.ramazanDay === 29;
-  });
-
-  if (ramazan30) {
-    splitDays.add(ramazan30.dayOfMonth);
-  } else if (ramazan29) {
-    splitDays.add(ramazan29.dayOfMonth);
+  if (sevvalStart) {
+    splitDays.add(sevvalStart.dayOfMonth);
   }
 
   return splitDays;
@@ -133,7 +126,7 @@ function getRamazanSplitStartDays(
 function applyRamazanOverrides(
   groups: MonthlyPlan["baseGroups"],
   baseBuckets: Array<{ startDay: number; endDay: number; days: DailyPrayerMinutes[] }>,
-  ramazanInfo: Map<number, { isRamazan: boolean; ramazanDay: number | null }>,
+  ramazanInfo: Map<number, HicriInfo>,
   locale: Locale,
   timeFormat: TimeFormat
 ): void {
