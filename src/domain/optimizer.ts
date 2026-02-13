@@ -1,4 +1,4 @@
-﻿import type { DailyPrayerMinutes, GroupResult, IqamahRule } from "./types";
+import type { DailyPrayerMinutes, GroupResult, IqamahRule } from "./types";
 import type { PrayerKey } from "@shared/ipc";
 
 function ceilToFive(minutes: number): number {
@@ -9,8 +9,8 @@ function floorToFive(minutes: number): number {
   return Math.floor(minutes / 5) * 5;
 }
 
-function getAdjustedCandidateMinutes(day: DailyPrayerMinutes, rule: IqamahRule): number {
-  const baseByPrayer: Record<PrayerKey, number> = {
+function getAnchorMinutes(day: DailyPrayerMinutes, prayer: PrayerKey): number {
+  const anchorByPrayer: Record<PrayerKey, number> = {
     fajr: day.fajrEnd,
     zhuhr: day.zhuhrStart,
     asr: day.asrStart,
@@ -18,28 +18,27 @@ function getAdjustedCandidateMinutes(day: DailyPrayerMinutes, rule: IqamahRule):
     isha: day.ishaStart
   };
 
-  const base = baseByPrayer[rule.prayer];
-  return rule.direction === "after" ? base + rule.offsetMinutes : base - rule.offsetMinutes;
+  return anchorByPrayer[prayer];
 }
 
 export function optimizeIqamahForPrayer(days: DailyPrayerMinutes[], rule: IqamahRule): number {
   if (days.length === 0) {
-    throw new Error("Cannot optimize iqamah for empty day list.");
+    throw new Error("Cannot calculate iqamah for empty day list.");
   }
 
-  const adjusted = days.map((day) => getAdjustedCandidateMinutes(day, rule));
-  const minAdjusted = Math.min(...adjusted);
-  const maxAdjusted = Math.max(...adjusted);
-
-  // Constraint model:
-  // - "after": q must be >= each adjusted minute -> q >= max(adjusted)
-  // - "before": q must be <= each adjusted minute -> q <= min(adjusted)
-  // Under L1 objective, optimal q is the nearest boundary that satisfies constraints.
+  // Hard-gap model (no minimization):
+  // - after x minutes: use latest anchor + x.
+  // - before x minutes: use earliest anchor - x.
+  // When 5-minute multiples are required, round conservatively so the minimum gap remains valid.
   if (rule.direction === "after") {
-    return rule.roundedToFiveMinutes ? ceilToFive(maxAdjusted) : maxAdjusted;
+    const latestAnchor = Math.max(...days.map((day) => getAnchorMinutes(day, rule.prayer)));
+    const threshold = latestAnchor + rule.offsetMinutes;
+    return rule.roundedToFiveMinutes ? ceilToFive(threshold) : threshold;
   }
 
-  return rule.roundedToFiveMinutes ? floorToFive(minAdjusted) : minAdjusted;
+  const earliestAnchor = Math.min(...days.map((day) => getAnchorMinutes(day, rule.prayer)));
+  const threshold = earliestAnchor - rule.offsetMinutes;
+  return rule.roundedToFiveMinutes ? floorToFive(threshold) : threshold;
 }
 
 export function buildBaseGroups(
