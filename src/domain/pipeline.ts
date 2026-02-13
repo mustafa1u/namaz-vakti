@@ -40,6 +40,12 @@ type HicriInfo = {
   hicriDay: number | null;
 };
 
+type DayBucket = {
+  startDay: number;
+  endDay: number;
+  days: DailyPrayerMinutes[];
+};
+
 export function buildMonthlyPlan(input: BuildMonthlyPlanInput): MonthlyPlan {
   validateBaseGroupSize(input.baseGroupSize);
 
@@ -69,7 +75,8 @@ export function buildMonthlyPlan(input: BuildMonthlyPlanInput): MonthlyPlan {
   }
   const initialBuckets = buildBaseGroups(normalizedDays, input.baseGroupSize);
   const splitBuckets = splitBucketsAtDays(initialBuckets, splitStartDays);
-  const baseBuckets = mergeTrailingSingletonByDefault(splitBuckets, splitStartDays);
+  const normalizedSplitBuckets = mergeSplitSingletons(splitBuckets, splitStartDays);
+  const baseBuckets = mergeTrailingSingletonByDefault(normalizedSplitBuckets, splitStartDays);
   const baseGroups = optimizeGroups(baseBuckets, DEFAULT_IQAMAH_RULES);
 
   if (input.ramazanHesabi) {
@@ -165,14 +172,14 @@ function medianMinutes(values: number[]): number {
 }
 
 function splitBucketsAtDays(
-  buckets: Array<{ startDay: number; endDay: number; days: DailyPrayerMinutes[] }>,
+  buckets: DayBucket[],
   splitDays: Set<number>
-): Array<{ startDay: number; endDay: number; days: DailyPrayerMinutes[] }> {
+): DayBucket[] {
   if (splitDays.size === 0) {
     return buckets;
   }
 
-  const out: Array<{ startDay: number; endDay: number; days: DailyPrayerMinutes[] }> = [];
+  const out: DayBucket[] = [];
   for (const bucket of buckets) {
     const splitIndexes = bucket.days
       .map((d, idx) => (idx > 0 && splitDays.has(d.dayOfMonth) ? idx : -1))
@@ -208,10 +215,73 @@ function splitBucketsAtDays(
   return out;
 }
 
+function mergeSplitSingletons(buckets: DayBucket[], splitDays: Set<number>): DayBucket[] {
+  const out = [...buckets];
+
+  let i = 0;
+  while (i < out.length) {
+    const current = out[i]!;
+    if (current.days.length !== 1) {
+      i += 1;
+      continue;
+    }
+
+    const day = current.startDay;
+    const isLowerHalfSingleton = splitDays.has(day);
+    const isUpperHalfSingleton = splitDays.has(day + 1);
+
+    // Not created by a split boundary.
+    if (!isLowerHalfSingleton && !isUpperHalfSingleton) {
+      i += 1;
+      continue;
+    }
+
+    // Between two consecutive split boundaries: allow standalone singleton.
+    if (isLowerHalfSingleton && isUpperHalfSingleton) {
+      i += 1;
+      continue;
+    }
+
+    // Upper half of split: prefer joining the group above.
+    if (isUpperHalfSingleton) {
+      if (i === 0) {
+        i += 1;
+        continue;
+      }
+
+      const prev = out[i - 1]!;
+      const mergedDays = [...prev.days, ...current.days];
+      out.splice(i - 1, 2, {
+        startDay: mergedDays[0]!.dayOfMonth,
+        endDay: mergedDays[mergedDays.length - 1]!.dayOfMonth,
+        days: mergedDays
+      });
+      i = Math.max(0, i - 1);
+      continue;
+    }
+
+    // Lower half of split: prefer joining the group below.
+    if (i === out.length - 1) {
+      i += 1;
+      continue;
+    }
+
+    const next = out[i + 1]!;
+    const mergedDays = [...current.days, ...next.days];
+    out.splice(i, 2, {
+      startDay: mergedDays[0]!.dayOfMonth,
+      endDay: mergedDays[mergedDays.length - 1]!.dayOfMonth,
+      days: mergedDays
+    });
+  }
+
+  return out;
+}
+
 function mergeTrailingSingletonByDefault(
-  buckets: Array<{ startDay: number; endDay: number; days: DailyPrayerMinutes[] }>,
+  buckets: DayBucket[],
   splitDays: Set<number>
-): Array<{ startDay: number; endDay: number; days: DailyPrayerMinutes[] }> {
+): DayBucket[] {
   if (buckets.length < 2) {
     return buckets;
   }
