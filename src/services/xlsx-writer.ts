@@ -169,23 +169,91 @@ function writeDayColumns(
 ): void {
   const weekdaySource = plan.locale === "tr" ? "tr" : map.weekdaySource;
   const dayRefStyle = getDayStyleReference(sheet, map);
+  const runByGroupIndex = buildRunMap(plan.colorByGroupIndex);
+  const processedRuns = new Set<string>();
 
   for (const slot of slots) {
-    const startDay = plan.rawDays.find((day) => day.dayOfMonth === slot.group.startDay);
-    const endDay = plan.rawDays.find((day) => day.dayOfMonth === slot.group.endDay);
-
-    sheet.cell(`${map.dayNumberColumn}${slot.topRow}`).value(slot.group.startDay);
-    sheet.cell(`${map.weekdayColumn}${slot.topRow}`).value(pickWeekday(startDay, weekdaySource));
+    // Clear rendered rows first; run values are written in a second pass.
+    sheet.cell(`${map.dayNumberColumn}${slot.topRow}`).value("");
+    sheet.cell(`${map.weekdayColumn}${slot.topRow}`).value("");
     normalizeDayCellStyle(sheet, `${map.dayNumberColumn}${slot.topRow}`, dayRefStyle);
     normalizeDayCellStyle(sheet, `${map.weekdayColumn}${slot.topRow}`, dayRefStyle);
 
     if (slot.rowCount === 2) {
-      sheet.cell(`${map.dayNumberColumn}${slot.bottomRow}`).value(slot.group.endDay);
-      sheet.cell(`${map.weekdayColumn}${slot.bottomRow}`).value(pickWeekday(endDay, weekdaySource));
+      sheet.cell(`${map.dayNumberColumn}${slot.bottomRow}`).value("");
+      sheet.cell(`${map.weekdayColumn}${slot.bottomRow}`).value("");
       normalizeDayCellStyle(sheet, `${map.dayNumberColumn}${slot.bottomRow}`, dayRefStyle);
       normalizeDayCellStyle(sheet, `${map.weekdayColumn}${slot.bottomRow}`, dayRefStyle);
     }
   }
+
+  for (const slot of slots) {
+    const run = runByGroupIndex.get(slot.groupIndex) ?? { start: slot.groupIndex, end: slot.groupIndex };
+    const runKey = `${run.start}-${run.end}`;
+    if (processedRuns.has(runKey)) {
+      continue;
+    }
+    processedRuns.add(runKey);
+
+    const runStartSlot = slots[run.start]!;
+    const runEndSlot = slots[run.end]!;
+    const runStartDay = plan.rawDays.find((day) => day.dayOfMonth === runStartSlot.group.startDay);
+    const runEndDay = plan.rawDays.find((day) => day.dayOfMonth === runEndSlot.group.endDay);
+
+    const startRow = runStartSlot.topRow;
+    const endRow = runEndSlot.bottomRow;
+    const upperEndRow = endRow - 1;
+
+    sheet.cell(`${map.dayNumberColumn}${startRow}`).value(runStartSlot.group.startDay);
+    sheet.cell(`${map.weekdayColumn}${startRow}`).value(pickWeekday(runStartDay, weekdaySource));
+
+    if (run.start === run.end) {
+      if (runStartSlot.rowCount === 2) {
+        sheet.cell(`${map.dayNumberColumn}${runStartSlot.bottomRow}`).value(runStartSlot.group.endDay);
+        sheet.cell(`${map.weekdayColumn}${runStartSlot.bottomRow}`).value(pickWeekday(runEndDay, weekdaySource));
+      }
+      continue;
+    }
+
+    sheet.cell(`${map.dayNumberColumn}${endRow}`).value(runEndSlot.group.endDay);
+    sheet.cell(`${map.weekdayColumn}${endRow}`).value(pickWeekday(runEndDay, weekdaySource));
+
+    if (upperEndRow > startRow) {
+      try {
+        sheet.range(`${map.dayNumberColumn}${startRow}:${map.dayNumberColumn}${upperEndRow}`).merged(true);
+      } catch {
+        // Ignore merge conflicts for day-number column.
+      }
+      try {
+        sheet.range(`${map.weekdayColumn}${startRow}:${map.weekdayColumn}${upperEndRow}`).merged(true);
+      } catch {
+        // Ignore merge conflicts for weekday column.
+      }
+    }
+  }
+}
+
+function buildRunMap(tokens: string[]): Map<number, { start: number; end: number }> {
+  const map = new Map<number, { start: number; end: number }>();
+  if (tokens.length === 0) {
+    return map;
+  }
+
+  let start = 0;
+  for (let i = 1; i <= tokens.length; i += 1) {
+    const ended = i === tokens.length || tokens[i] !== tokens[i - 1];
+    if (!ended) {
+      continue;
+    }
+
+    const run = { start, end: i - 1 };
+    for (let idx = start; idx <= i - 1; idx += 1) {
+      map.set(idx, run);
+    }
+    start = i;
+  }
+
+  return map;
 }
 
 function applyGroupStyles(

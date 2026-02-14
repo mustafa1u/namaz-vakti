@@ -95,6 +95,19 @@ export function assignColorTokens(
       safety += 1;
     }
 
+    if (stepChanged && candidate === prevToken) {
+      let tries = 0;
+      let p = order.indexOf(candidate);
+      if (p < 0) {
+        p = 0;
+      }
+      while (tries < order.length && candidate === prevToken) {
+        p = (p + 1) % order.length;
+        candidate = order[p]!;
+        tries += 1;
+      }
+    }
+
     tokens.push(candidate);
 
     for (const prayer of PRAYERS) {

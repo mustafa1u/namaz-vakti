@@ -57,6 +57,7 @@ function buildExportHtml(plan: MonthlyPlan, announcementMessage: string): string
   const theme = Number(plan.month.split("-")[1]) % 2 === 0 ? EVEN_THEME : ODD_THEME;
   const colorByToken = Object.fromEntries(theme.sequence.map((item) => [item.token, item]));
   const slots = buildSlots(plan.baseGroups);
+  const runByGroupIndex = buildRunMap(plan.colorByGroupIndex);
 
   const rows: string[] = [];
   const prayerRunTables = Object.fromEntries(PRAYERS.map((p) => [p, buildRuns(slots, plan, p)])) as Record<
@@ -70,13 +71,27 @@ function buildExportHtml(plan: MonthlyPlan, announcementMessage: string): string
     const token = plan.colorByGroupIndex[slot.groupIndex] ?? theme.sequence[0]!.token;
     const color = colorByToken[token] ?? theme.sequence[0]!;
 
+    const run = runByGroupIndex.get(slot.groupIndex) ?? { start: slot.groupIndex, end: slot.groupIndex };
+    const isRunStart = slot.groupIndex === run.start;
+    const isRunEnd = slot.groupIndex === run.end;
+    const runRows = sumRows(slots, run.start, run.end);
+    const upperSpan = Math.max(1, runRows - 1);
+
     const startDay = plan.rawDays.find((day) => day.dayOfMonth === group.startDay);
     const endDay = plan.rawDays.find((day) => day.dayOfMonth === group.endDay);
 
     const rowClass = slot.rowCount === 1 ? "single-day" : "";
     rows.push(`<tr class="${rowClass}">`);
-    rows.push(`<td style="background:${color.fillHex};color:${color.textHex}">${group.startDay}</td>`);
-    rows.push(`<td style="background:${color.fillHex};color:${color.textHex}">${weekdayLabel(startDay, plan.locale)}</td>`);
+    if (run.start === run.end) {
+      rows.push(`<td style="background:${color.fillHex};color:${color.textHex}">${group.startDay}</td>`);
+      rows.push(`<td style="background:${color.fillHex};color:${color.textHex}">${weekdayLabel(startDay, plan.locale)}</td>`);
+    } else if (isRunStart) {
+      rows.push(`<td rowspan="${upperSpan}" style="background:${color.fillHex};color:${color.textHex}">${group.startDay}</td>`);
+      rows.push(`<td rowspan="${upperSpan}" style="background:${color.fillHex};color:${color.textHex}">${weekdayLabel(startDay, plan.locale)}</td>`);
+    } else if (isRunEnd && slot.rowCount === 1) {
+      rows.push(`<td style="background:${color.fillHex};color:${color.textHex}">${group.endDay}</td>`);
+      rows.push(`<td style="background:${color.fillHex};color:${color.textHex}">${weekdayLabel(endDay, plan.locale)}</td>`);
+    }
 
     for (const prayer of PRAYERS) {
       const run = prayerRunTables[prayer].find((entry) => entry.start === groupIndex);
@@ -90,8 +105,13 @@ function buildExportHtml(plan: MonthlyPlan, announcementMessage: string): string
 
     if (slot.rowCount === 2) {
       rows.push("<tr>");
-      rows.push(`<td style="background:${color.fillHex};color:${color.textHex}">${group.endDay}</td>`);
-      rows.push(`<td style="background:${color.fillHex};color:${color.textHex}">${weekdayLabel(endDay, plan.locale)}</td>`);
+      if (run.start === run.end) {
+        rows.push(`<td style="background:${color.fillHex};color:${color.textHex}">${group.endDay}</td>`);
+        rows.push(`<td style="background:${color.fillHex};color:${color.textHex}">${weekdayLabel(endDay, plan.locale)}</td>`);
+      } else if (isRunEnd) {
+        rows.push(`<td style="background:${color.fillHex};color:${color.textHex}">${group.endDay}</td>`);
+        rows.push(`<td style="background:${color.fillHex};color:${color.textHex}">${weekdayLabel(endDay, plan.locale)}</td>`);
+      }
       rows.push("</tr>");
     }
   }
@@ -231,6 +251,29 @@ function toHtmlDisplay(text: string): string {
   }
 
   return text.replace(/\n/g, "<br/>");
+}
+
+function buildRunMap(tokens: string[]): Map<number, { start: number; end: number }> {
+  const map = new Map<number, { start: number; end: number }>();
+  if (tokens.length === 0) {
+    return map;
+  }
+
+  let start = 0;
+  for (let i = 1; i <= tokens.length; i += 1) {
+    const ended = i === tokens.length || tokens[i] !== tokens[i - 1];
+    if (!ended) {
+      continue;
+    }
+
+    const run = { start, end: i - 1 };
+    for (let idx = start; idx <= i - 1; idx += 1) {
+      map.set(idx, run);
+    }
+    start = i;
+  }
+
+  return map;
 }
 
 function renderJumahNotesHtml(plan: MonthlyPlan): string {
