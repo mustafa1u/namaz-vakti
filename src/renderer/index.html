@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Namaz Vakti Desktop</title>
+    <title data-i18n="app.windowTitle">Namaz Vakti Desktop</title>
     <style>
       :root {
         --bg: #f3f1eb;
@@ -89,46 +89,52 @@
   </head>
   <body>
     <main class="shell">
-      <h1>Iqamah Schedule Generator</h1>
+      <h1 data-i18n="app.heading">Iqamah Schedule Generator</h1>
 
       <div class="row">
-        <label for="tsvFolder">TSV Folder</label>
+        <label for="switchUiLanguage" data-i18n="labels.uiLanguage">Application Language</label>
+        <span id="uiLanguageValue">English</span>
+        <button id="switchUiLanguage" type="button">Türkçe</button>
+      </div>
+
+      <div class="row">
+        <label for="tsvFolder" data-i18n="labels.tsvFolder">TSV Folder</label>
         <input id="tsvFolder" type="text" />
-        <button id="pickTsv" type="button">Browse</button>
+        <button id="pickTsv" type="button" data-i18n="buttons.browse">Browse</button>
       </div>
 
       <div class="row">
-        <label for="outputFolder">Output Folder</label>
+        <label for="outputFolder" data-i18n="labels.outputFolder">Output Folder</label>
         <input id="outputFolder" type="text" />
-        <button id="pickOutput" type="button">Browse</button>
+        <button id="pickOutput" type="button" data-i18n="buttons.browse">Browse</button>
       </div>
 
       <div class="row">
-        <label for="month">Month</label>
+        <label for="month" data-i18n="labels.month">Month</label>
         <select id="month"></select>
-        <button id="refreshMonths" type="button">Refresh</button>
+        <button id="refreshMonths" type="button" data-i18n="buttons.refresh">Refresh</button>
       </div>
 
       <div class="row">
-        <label for="locale">Locale</label>
+        <label for="locale" data-i18n="labels.outputLocale">Output Language (Generated Content)</label>
         <select id="locale">
-          <option value="en">English</option>
-          <option value="tr">Turkish</option>
+          <option value="en" data-i18n="options.outputLocale.en">English</option>
+          <option value="tr" data-i18n="options.outputLocale.tr">Turkish</option>
         </select>
         <span></span>
       </div>
 
       <div class="row">
-        <label for="timeFormat">Time Format</label>
+        <label for="timeFormat" data-i18n="labels.timeFormat">Time Format</label>
         <select id="timeFormat">
-          <option value="ampm">AM/PM</option>
-          <option value="24h">24h</option>
+          <option value="ampm" data-i18n="options.timeFormat.ampm">AM/PM</option>
+          <option value="24h" data-i18n="options.timeFormat.h24">24h</option>
         </select>
         <span></span>
       </div>
 
       <div class="row">
-        <label for="baseGroupSize">Base Group Size</label>
+        <label for="baseGroupSize" data-i18n="labels.baseGroupSize">Base Group Size</label>
         <select id="baseGroupSize">
           <option value="5">5</option>
           <option value="10">10</option>
@@ -138,13 +144,13 @@
       </div>
 
       <div class="row">
-        <label for="ramazanHesabi">Ramazan hesabı</label>
+        <label for="ramazanHesabi" data-i18n="labels.ramazanHesabi">Ramazan hesabi</label>
         <input id="ramazanHesabi" type="checkbox" />
         <span></span>
       </div>
 
       <div class="row">
-        <label for="fajrLatestLimitEnabled">Fajr no later than</label>
+        <label for="fajrLatestLimitEnabled" data-i18n="labels.fajrLatestLimitEnabled">Fajr no later than</label>
         <div class="time-control">
           <input id="fajrLatestLimitEnabled" type="checkbox" />
           <button id="fajrHourDec" class="tiny" type="button">-</button>
@@ -160,21 +166,21 @@
       </div>
 
       <div class="row">
-        <label for="zhuhrEarliestLimitEnabled">Zhuhr no earlier than</label>
+        <label for="zhuhrEarliestLimitEnabled" data-i18n="labels.zhuhrEarliestLimitEnabled">Zhuhr no earlier than</label>
         <div class="time-control">
           <input id="zhuhrEarliestLimitEnabled" type="checkbox" />
           <select id="zhuhrLimitMode">
-            <option value="single">Single limit</option>
-            <option value="std-dst">Standard/daylight</option>
+            <option value="single" data-i18n="options.zhuhrLimitMode.single">Single limit</option>
+            <option value="std-dst" data-i18n="options.zhuhrLimitMode.stdDst">Standard/daylight</option>
           </select>
         </div>
         <span></span>
       </div>
 
       <div class="row">
-        <label for="zhuhrSingleHour">Zhuhr single limit</label>
+        <label for="zhuhrSingleHour" data-i18n="labels.zhuhrSingleLimit">Zhuhr single limit</label>
         <div id="zhuhrSingleGroup" class="time-group">
-          <span class="group-label">Single</span>
+          <span class="group-label" data-i18n="options.zhuhrGroup.single">Single</span>
           <button id="zhuhrSingleHourDec" class="tiny" type="button">-</button>
           <input id="zhuhrSingleHour" type="text" inputmode="numeric" />
           <button id="zhuhrSingleHourInc" class="tiny" type="button">+</button>
@@ -188,10 +194,10 @@
       </div>
 
       <div class="row">
-        <label for="zhuhrStdHour">Zhuhr standard/daylight limits</label>
+        <label for="zhuhrStdHour" data-i18n="labels.zhuhrStdDstLimits">Zhuhr standard/daylight limits</label>
         <div id="zhuhrDualGroup" class="time-control">
           <div class="time-group">
-            <span class="group-label">Standard</span>
+            <span class="group-label" data-i18n="options.zhuhrGroup.standard">Standard</span>
             <button id="zhuhrStdHourDec" class="tiny" type="button">-</button>
             <input id="zhuhrStdHour" type="text" inputmode="numeric" />
             <button id="zhuhrStdHourInc" class="tiny" type="button">+</button>
@@ -202,7 +208,7 @@
             <span id="zhuhrStdAmPm" class="ampm-label">PM</span>
           </div>
           <div class="time-group">
-            <span class="group-label">Daylight</span>
+            <span class="group-label" data-i18n="options.zhuhrGroup.daylight">Daylight</span>
             <button id="zhuhrDstHourDec" class="tiny" type="button">-</button>
             <input id="zhuhrDstHour" type="text" inputmode="numeric" />
             <button id="zhuhrDstHourInc" class="tiny" type="button">+</button>
@@ -217,15 +223,15 @@
       </div>
 
       <div class="row">
-        <label for="announcementMessage">Announcement</label>
-        <textarea id="announcementMessage" rows="2" placeholder="Message shown above and below the table"></textarea>
+        <label for="announcementMessage" data-i18n="labels.announcementMessage">Announcement</label>
+        <textarea id="announcementMessage" rows="2" data-i18n-placeholder="placeholders.announcementMessage" placeholder="Message shown above and below the table"></textarea>
         <span></span>
       </div>
 
       <div class="row">
         <label></label>
-        <button id="preview" type="button">Preview</button>
-        <button id="generate" type="button">Generate XLSX + PNG</button>
+        <button id="preview" type="button" data-i18n="buttons.preview">Preview</button>
+        <button id="generate" type="button" data-i18n="buttons.generate">Generate XLSX + PNG</button>
       </div>
 
       <pre id="log"></pre>

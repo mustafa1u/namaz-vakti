@@ -1,0 +1,88 @@
+{
+  "app": {
+    "windowTitle": "Namaz Vakti Masaüstü",
+    "heading": "Kametleme Çizelgesi Oluşturucu"
+  },
+  "labels": {
+    "uiLanguage": "Uygulama dili",
+    "tsvFolder": "TSV klasörü",
+    "outputFolder": "Çıktı klasörü",
+    "month": "Ay",
+    "outputLocale": "Çıktı dili (üretilen içerik)",
+    "timeFormat": "Saat biçimi",
+    "baseGroupSize": "Temel grup boyutu",
+    "ramazanHesabi": "Ramazan hesabı",
+    "fajrLatestLimitEnabled": "Fajr en geç",
+    "zhuhrEarliestLimitEnabled": "Zuhr en erken",
+    "zhuhrSingleLimit": "Zuhr tek limit",
+    "zhuhrStdDstLimits": "Zuhr standart/yaz saati limitleri",
+    "announcementMessage": "Duyuru"
+  },
+  "buttons": {
+    "browse": "Gözat",
+    "refresh": "Yenile",
+    "preview": "Önizleme",
+    "generate": "XLSX + PNG üret",
+    "switchToEnglish": "English",
+    "switchToTurkish": "Türkçe"
+  },
+  "options": {
+    "outputLocale": {
+      "en": "İngilizce",
+      "tr": "Türkçe"
+    },
+    "timeFormat": {
+      "ampm": "AM/PM",
+      "h24": "24 saat"
+    },
+    "zhuhrLimitMode": {
+      "single": "Tek limit",
+      "stdDst": "Standart/yaz saati"
+    },
+    "zhuhrGroup": {
+      "single": "Tek",
+      "standard": "Standart",
+      "daylight": "Yaz saati"
+    }
+  },
+  "placeholders": {
+    "announcementMessage": "Tablonun üstünde ve altında gösterilen mesaj"
+  },
+  "languages": {
+    "en": "English",
+    "tr": "Türkçe"
+  },
+  "time": {
+    "am": "AM",
+    "pm": "PM"
+  },
+  "errors": {
+    "pickTsvFailed": "TSV klasörü seçimi başarısız",
+    "pickOutputFailed": "Çıktı klasörü seçimi başarısız",
+    "refreshMonthsFailed": "Ay yenileme başarısız",
+    "previewFailed": "Önizleme başarısız",
+    "generateFailed": "Üretim başarısız"
+  },
+  "logs": {
+    "preloadMissing": "HATA: window.appApi tanımsız. Preload yüklenmedi.",
+    "appApiReady": "appApi hazır. Yöntemler: {{methods}}",
+    "pickTsvClicked": "TSV seçimi düğmesine tıklandı",
+    "pickTsvResult": "TSV seçimi sonucu: {{path}}",
+    "pickOutputClicked": "Çıktı klasörü seçimi düğmesine tıklandı",
+    "pickOutputResult": "Çıktı klasörü seçimi sonucu: {{path}}",
+    "previewClicked": "{{month}} için önizleme tıklandı",
+    "generateClicked": "{{month}} için üret tıklandı",
+    "setTsvFolderFirst": "Önce TSV klasörünü seçin.",
+    "refreshMonthsFor": "{{folder}} için aylar yenileniyor",
+    "noMonthFilesFound": "Klasörde ay dosyası bulunamadı.",
+    "foundMonths": "Bulunan aylar: {{months}}",
+    "restoredLastEntries": "Son girişler geri yüklendi.",
+    "previewResult": "{{month}} önizleme ({{dayCount}} gün)\n{{groups}}",
+    "generateResult": "XLSX: {{xlsxPath}}\nPNG: {{pngPath}}\nUyarılar: {{warnings}}",
+    "errorWithDetails": "HATA: {{prefix}} -> {{details}}"
+  },
+  "common": {
+    "cancelled": "<iptal edildi>",
+    "none": "yok"
+  }
+}

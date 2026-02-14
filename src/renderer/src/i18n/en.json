@@ -1,0 +1,88 @@
+{
+  "app": {
+    "windowTitle": "Namaz Vakti Desktop",
+    "heading": "Iqamah Schedule Generator"
+  },
+  "labels": {
+    "uiLanguage": "Application Language",
+    "tsvFolder": "TSV Folder",
+    "outputFolder": "Output Folder",
+    "month": "Month",
+    "outputLocale": "Output Language (Generated Content)",
+    "timeFormat": "Time Format",
+    "baseGroupSize": "Base Group Size",
+    "ramazanHesabi": "Ramadan calculation",
+    "fajrLatestLimitEnabled": "Fajr no later than",
+    "zhuhrEarliestLimitEnabled": "Zhuhr no earlier than",
+    "zhuhrSingleLimit": "Zhuhr single limit",
+    "zhuhrStdDstLimits": "Zhuhr standard/daylight limits",
+    "announcementMessage": "Announcement"
+  },
+  "buttons": {
+    "browse": "Browse",
+    "refresh": "Refresh",
+    "preview": "Preview",
+    "generate": "Generate XLSX + PNG",
+    "switchToEnglish": "English",
+    "switchToTurkish": "Türkçe"
+  },
+  "options": {
+    "outputLocale": {
+      "en": "English",
+      "tr": "Turkish"
+    },
+    "timeFormat": {
+      "ampm": "AM/PM",
+      "h24": "24h"
+    },
+    "zhuhrLimitMode": {
+      "single": "Single limit",
+      "stdDst": "Standard/daylight"
+    },
+    "zhuhrGroup": {
+      "single": "Single",
+      "standard": "Standard",
+      "daylight": "Daylight"
+    }
+  },
+  "placeholders": {
+    "announcementMessage": "Message shown above and below the table"
+  },
+  "languages": {
+    "en": "English",
+    "tr": "Türkçe"
+  },
+  "time": {
+    "am": "AM",
+    "pm": "PM"
+  },
+  "errors": {
+    "pickTsvFailed": "pickTsv failed",
+    "pickOutputFailed": "pickOutput failed",
+    "refreshMonthsFailed": "refreshMonths failed",
+    "previewFailed": "preview failed",
+    "generateFailed": "generate failed"
+  },
+  "logs": {
+    "preloadMissing": "ERROR: window.appApi is undefined. Preload did not load.",
+    "appApiReady": "appApi ready. Methods: {{methods}}",
+    "pickTsvClicked": "pickTsv clicked",
+    "pickTsvResult": "pickTsv result: {{path}}",
+    "pickOutputClicked": "pickOutput clicked",
+    "pickOutputResult": "pickOutput result: {{path}}",
+    "previewClicked": "preview clicked for {{month}}",
+    "generateClicked": "generate clicked for {{month}}",
+    "setTsvFolderFirst": "Set TSV folder first.",
+    "refreshMonthsFor": "refreshMonths for {{folder}}",
+    "noMonthFilesFound": "No month files found in folder.",
+    "foundMonths": "Found months: {{months}}",
+    "restoredLastEntries": "Restored last entries.",
+    "previewResult": "Preview for {{month}} ({{dayCount}} days)\n{{groups}}",
+    "generateResult": "XLSX: {{xlsxPath}}\nPNG: {{pngPath}}\nWarnings: {{warnings}}",
+    "errorWithDetails": "ERROR: {{prefix}} -> {{details}}"
+  },
+  "common": {
+    "cancelled": "<cancelled>",
+    "none": "none"
+  }
+}

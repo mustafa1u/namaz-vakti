@@ -1,7 +1,19 @@
 ﻿import type { GenerationOptions } from "@shared/ipc";
 
+import {
+  UI_LANGUAGE_STORAGE_KEY,
+  getNextUiLanguage,
+  getUiLanguage,
+  initializeI18n,
+  setUiLanguage,
+  t,
+  translateStaticDocumentText
+} from "./i18n";
+
 const tsvFolderInput = getEl<HTMLInputElement>("tsvFolder");
 const outputFolderInput = getEl<HTMLInputElement>("outputFolder");
+const uiLanguageValue = getEl<HTMLElement>("uiLanguageValue");
+const switchUiLanguageButton = getEl<HTMLButtonElement>("switchUiLanguage");
 const monthSelect = getEl<HTMLSelectElement>("month");
 const localeSelect = getEl<HTMLSelectElement>("locale");
 const timeFormatSelect = getEl<HTMLSelectElement>("timeFormat");
@@ -50,48 +62,54 @@ type LastEntries = {
   zhuhrDaylightEarliestLimitMinutes: number;
 };
 
-bootstrap();
+void bootstrap();
 
-function bootstrap(): void {
+async function bootstrap(): Promise<void> {
+  const savedUiLanguage = localStorage.getItem(UI_LANGUAGE_STORAGE_KEY);
+  await initializeI18n(savedUiLanguage);
+  applyUiTranslations();
+
   if (!window.appApi) {
-    log("ERROR: window.appApi is undefined. Preload did not load.");
+    log(t("logs.preloadMissing"));
     return;
   }
 
-  log(`appApi ready. Methods: ${Object.keys(window.appApi).join(", ")}`);
   bindPersistence();
-  void restoreLastEntries();
+  bindUiLanguageSwitch();
+  await restoreLastEntries();
   bindFajrLimitControls();
   bindZhuhrLimitControls();
   syncFajrLimitUi();
   syncZhuhrLimitUi();
 
+  log(t("logs.appApiReady", { methods: Object.keys(window.appApi).join(", ") }));
+
   getEl<HTMLButtonElement>("pickTsv").addEventListener("click", async () => {
     try {
-      log("pickTsv clicked");
+      log(t("logs.pickTsvClicked"));
       const path = await window.appApi.selectTsvFolder();
-      log(`pickTsv result: ${path ?? "<cancelled>"}`);
+      log(t("logs.pickTsvResult", { path: path ?? t("common.cancelled") }));
       if (path) {
         tsvFolderInput.value = path;
         saveLastEntries();
         await refreshMonths();
       }
     } catch (error) {
-      logError("pickTsv failed", error);
+      logError("errors.pickTsvFailed", error);
     }
   });
 
   getEl<HTMLButtonElement>("pickOutput").addEventListener("click", async () => {
     try {
-      log("pickOutput clicked");
+      log(t("logs.pickOutputClicked"));
       const path = await window.appApi.selectOutputFolder();
-      log(`pickOutput result: ${path ?? "<cancelled>"}`);
+      log(t("logs.pickOutputResult", { path: path ?? t("common.cancelled") }));
       if (path) {
         outputFolderInput.value = path;
         saveLastEntries();
       }
     } catch (error) {
-      logError("pickOutput failed", error);
+      logError("errors.pickOutputFailed", error);
     }
   });
 
@@ -99,7 +117,7 @@ function bootstrap(): void {
     try {
       await refreshMonths();
     } catch (error) {
-      logError("refreshMonths failed", error);
+      logError("errors.refreshMonthsFailed", error);
     }
   });
 
@@ -107,11 +125,15 @@ function bootstrap(): void {
     try {
       const options = readOptions();
       saveLastEntries();
-      log(`preview clicked for ${options.month}`);
+      log(t("logs.previewClicked", { month: options.month }));
       const preview = await window.appApi.previewMonth(options);
-      log(`Preview for ${preview.month} (${preview.dayCount} days)\n${JSON.stringify(preview.groups, null, 2)}`);
+      log(t("logs.previewResult", {
+        month: preview.month,
+        dayCount: preview.dayCount,
+        groups: JSON.stringify(preview.groups, null, 2)
+      }));
     } catch (error) {
-      logError("preview failed", error);
+      logError("errors.previewFailed", error);
     }
   });
 
@@ -119,22 +141,23 @@ function bootstrap(): void {
     try {
       const options = readOptions();
       saveLastEntries();
-      log(`generate clicked for ${options.month}`);
+      log(t("logs.generateClicked", { month: options.month }));
       const result = await window.appApi.generateOutputs(options);
-      log(`XLSX: ${result.xlsxPath}\nPNG: ${result.pngPath}\nWarnings: ${result.warnings.join(" | ")}`);
+      const warnings = result.warnings.length > 0 ? result.warnings.join(" | ") : t("common.none");
+      log(t("logs.generateResult", { xlsxPath: result.xlsxPath, pngPath: result.pngPath, warnings }));
     } catch (error) {
-      logError("generate failed", error);
+      logError("errors.generateFailed", error);
     }
   });
 }
 
 async function refreshMonths(): Promise<void> {
   if (!tsvFolderInput.value) {
-    log("Set TSV folder first.");
+    log(t("logs.setTsvFolderFirst"));
     return;
   }
 
-  log(`refreshMonths for ${tsvFolderInput.value}`);
+  log(t("logs.refreshMonthsFor", { folder: tsvFolderInput.value }));
   const months = await window.appApi.listMonths(tsvFolderInput.value);
   const previousMonth = monthSelect.value;
   monthSelect.innerHTML = "";
@@ -147,13 +170,13 @@ async function refreshMonths(): Promise<void> {
   });
 
   if (months.length === 0) {
-    log("No month files found in folder.");
+    log(t("logs.noMonthFilesFound"));
   } else {
     if (previousMonth && months.includes(previousMonth)) {
       monthSelect.value = previousMonth;
     }
     saveLastEntries();
-    log(`Found months: ${months.join(", ")}`);
+    log(t("logs.foundMonths", { months: months.join(", ") }));
   }
 }
 
@@ -187,6 +210,26 @@ function bindPersistence(): void {
   });
 }
 
+function bindUiLanguageSwitch(): void {
+  switchUiLanguageButton.addEventListener("click", async () => {
+    const nextLanguage = getNextUiLanguage();
+    await setUiLanguage(nextLanguage);
+    localStorage.setItem(UI_LANGUAGE_STORAGE_KEY, nextLanguage);
+    applyUiTranslations();
+    syncFajrLimitUi();
+    syncZhuhrLimitUi();
+  });
+}
+
+function applyUiTranslations(): void {
+  translateStaticDocumentText();
+  const currentLanguage = getUiLanguage();
+  uiLanguageValue.textContent = t(`languages.${currentLanguage}`);
+  switchUiLanguageButton.textContent = currentLanguage === "en"
+    ? t("buttons.switchToTurkish")
+    : t("buttons.switchToEnglish");
+}
+
 async function restoreLastEntries(): Promise<void> {
   const saved = loadLastEntries();
   if (!saved) {
@@ -217,7 +260,7 @@ async function restoreLastEntries(): Promise<void> {
     }
   }
 
-  log("Restored last entries.");
+  log(t("logs.restoredLastEntries"));
 }
 
 function saveLastEntries(): void {
@@ -615,7 +658,7 @@ function clampDayMinute(value: number): number {
 function formatLimitForUi(
   minutes: number,
   timeFormat: GenerationOptions["timeFormat"]
-): { hour: number; minute: number; suffix: "AM" | "PM" | "" } {
+): { hour: number; minute: number; suffix: string } {
   const mm = clampDayMinute(minutes);
   const hour24 = Math.floor(mm / 60);
   const minute = mm % 60;
@@ -624,7 +667,7 @@ function formatLimitForUi(
     return { hour: hour24, minute, suffix: "" };
   }
 
-  const suffix = hour24 < 12 ? "AM" : "PM";
+  const suffix = hour24 < 12 ? t("time.am") : t("time.pm");
   const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
   return { hour: hour12, minute, suffix };
 }
@@ -634,10 +677,11 @@ function log(message: string): void {
   logEl.textContent = `${new Date().toISOString()}\n${message}`;
 }
 
-function logError(prefix: string, error: unknown): void {
+function logError(prefixKey: string, error: unknown): void {
   const details = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  const prefix = t(prefixKey);
   console.error(`[renderer] ${prefix}`, error);
-  log(`ERROR: ${prefix} -> ${details}`);
+  log(t("logs.errorWithDetails", { prefix, details }));
 }
 
 function getEl<T extends HTMLElement>(id: string): T {

@@ -9,10 +9,12 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "i18n:check": "node scripts/check-i18n-keys.mjs"
   },
   "dependencies": {
     "csv-parse": "^5.5.6",
+    "i18next": "^25.8.7",
     "xlsx-populate": "^1.21.0",
     "zod": "^3.24.1"
   },
