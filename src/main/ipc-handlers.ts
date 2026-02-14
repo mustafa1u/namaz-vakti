@@ -31,6 +31,13 @@ export function registerIpcHandlers(_getWindow: WindowGetter): void {
       timeFormat: options.timeFormat,
       baseGroupSize: options.baseGroupSize,
       ramazanHesabi: options.ramazanHesabi,
+      fajrLatestLimitEnabled: options.fajrLatestLimitEnabled,
+      fajrLatestLimitMinutes: options.fajrLatestLimitMinutes,
+      zhuhrEarliestLimitEnabled: options.zhuhrEarliestLimitEnabled,
+      zhuhrUseStandardDaylightLimits: options.zhuhrUseStandardDaylightLimits,
+      zhuhrEarliestLimitMinutes: options.zhuhrEarliestLimitMinutes,
+      zhuhrStandardEarliestLimitMinutes: options.zhuhrStandardEarliestLimitMinutes,
+      zhuhrDaylightEarliestLimitMinutes: options.zhuhrDaylightEarliestLimitMinutes,
       days
     });
 
@@ -59,6 +66,13 @@ export function registerIpcHandlers(_getWindow: WindowGetter): void {
       timeFormat: options.timeFormat,
       baseGroupSize: options.baseGroupSize,
       ramazanHesabi: options.ramazanHesabi,
+      fajrLatestLimitEnabled: options.fajrLatestLimitEnabled,
+      fajrLatestLimitMinutes: options.fajrLatestLimitMinutes,
+      zhuhrEarliestLimitEnabled: options.zhuhrEarliestLimitEnabled,
+      zhuhrUseStandardDaylightLimits: options.zhuhrUseStandardDaylightLimits,
+      zhuhrEarliestLimitMinutes: options.zhuhrEarliestLimitMinutes,
+      zhuhrStandardEarliestLimitMinutes: options.zhuhrStandardEarliestLimitMinutes,
+      zhuhrDaylightEarliestLimitMinutes: options.zhuhrDaylightEarliestLimitMinutes,
       days
     });
 

@@ -30,6 +30,39 @@
         grid-template-columns: 190px 1fr auto;
         margin-bottom: 0.75rem;
       }
+      .time-control {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .time-control input {
+        width: 64px;
+        text-align: center;
+      }
+      .tiny {
+        padding: 0.25rem 0.45rem;
+        line-height: 1;
+        min-width: 28px;
+      }
+      .ampm-label {
+        min-width: 44px;
+        font-weight: 600;
+      }
+      .time-group {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+      }
+      .time-group input {
+        width: 64px;
+        text-align: center;
+      }
+      .time-group .group-label {
+        min-width: 68px;
+        font-weight: 600;
+      }
       label {
         font-weight: 600;
       }
@@ -113,6 +146,79 @@
       <div class="row">
         <label for="ramazanHesabi">Ramazan hesabı</label>
         <input id="ramazanHesabi" type="checkbox" />
+        <span></span>
+      </div>
+
+      <div class="row">
+        <label for="fajrLatestLimitEnabled">Fajr no later than</label>
+        <div class="time-control">
+          <input id="fajrLatestLimitEnabled" type="checkbox" />
+          <button id="fajrHourDec" class="tiny" type="button">-</button>
+          <input id="fajrHour" type="text" inputmode="numeric" />
+          <button id="fajrHourInc" class="tiny" type="button">+</button>
+          <span>:</span>
+          <button id="fajrMinuteDec" class="tiny" type="button">-</button>
+          <input id="fajrMinute" type="text" inputmode="numeric" />
+          <button id="fajrMinuteInc" class="tiny" type="button">+</button>
+          <span id="fajrAmPm" class="ampm-label">AM</span>
+        </div>
+        <span></span>
+      </div>
+
+      <div class="row">
+        <label for="zhuhrEarliestLimitEnabled">Zhuhr no earlier than</label>
+        <div class="time-control">
+          <input id="zhuhrEarliestLimitEnabled" type="checkbox" />
+          <select id="zhuhrLimitMode">
+            <option value="single">Single limit</option>
+            <option value="std-dst">Standard/daylight</option>
+          </select>
+        </div>
+        <span></span>
+      </div>
+
+      <div class="row">
+        <label for="zhuhrSingleHour">Zhuhr single limit</label>
+        <div id="zhuhrSingleGroup" class="time-group">
+          <span class="group-label">Single</span>
+          <button id="zhuhrSingleHourDec" class="tiny" type="button">-</button>
+          <input id="zhuhrSingleHour" type="text" inputmode="numeric" />
+          <button id="zhuhrSingleHourInc" class="tiny" type="button">+</button>
+          <span>:</span>
+          <button id="zhuhrSingleMinuteDec" class="tiny" type="button">-</button>
+          <input id="zhuhrSingleMinute" type="text" inputmode="numeric" />
+          <button id="zhuhrSingleMinuteInc" class="tiny" type="button">+</button>
+          <span id="zhuhrSingleAmPm" class="ampm-label">PM</span>
+        </div>
+        <span></span>
+      </div>
+
+      <div class="row">
+        <label for="zhuhrStdHour">Zhuhr standard/daylight limits</label>
+        <div id="zhuhrDualGroup" class="time-control">
+          <div class="time-group">
+            <span class="group-label">Standard</span>
+            <button id="zhuhrStdHourDec" class="tiny" type="button">-</button>
+            <input id="zhuhrStdHour" type="text" inputmode="numeric" />
+            <button id="zhuhrStdHourInc" class="tiny" type="button">+</button>
+            <span>:</span>
+            <button id="zhuhrStdMinuteDec" class="tiny" type="button">-</button>
+            <input id="zhuhrStdMinute" type="text" inputmode="numeric" />
+            <button id="zhuhrStdMinuteInc" class="tiny" type="button">+</button>
+            <span id="zhuhrStdAmPm" class="ampm-label">PM</span>
+          </div>
+          <div class="time-group">
+            <span class="group-label">Daylight</span>
+            <button id="zhuhrDstHourDec" class="tiny" type="button">-</button>
+            <input id="zhuhrDstHour" type="text" inputmode="numeric" />
+            <button id="zhuhrDstHourInc" class="tiny" type="button">+</button>
+            <span>:</span>
+            <button id="zhuhrDstMinuteDec" class="tiny" type="button">-</button>
+            <input id="zhuhrDstMinute" type="text" inputmode="numeric" />
+            <button id="zhuhrDstMinuteInc" class="tiny" type="button">+</button>
+            <span id="zhuhrDstAmPm" class="ampm-label">PM</span>
+          </div>
+        </div>
         <span></span>
       </div>
 
