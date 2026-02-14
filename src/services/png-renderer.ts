@@ -19,6 +19,22 @@ type PngSlot = {
 };
 
 const PRAYERS: PrayerKey[] = ["fajr", "zhuhr", "asr", "maghrib", "isha"];
+const PRAYER_LABELS: Record<MonthlyPlan["locale"], Record<PrayerKey, string>> = {
+  en: {
+    fajr: "Fajr",
+    zhuhr: "Zhuhr",
+    asr: "Asr",
+    maghrib: "Maghrib",
+    isha: "Isha"
+  },
+  tr: {
+    fajr: "Sabah",
+    zhuhr: "Öğle",
+    asr: "İkindi",
+    maghrib: "Akşam",
+    isha: "Yatsı"
+  }
+};
 
 export async function renderPng(input: PngRenderInput): Promise<string> {
   const html = buildExportHtml(input.plan, input.announcementMessage);
@@ -119,6 +135,7 @@ function buildExportHtml(plan: MonthlyPlan, announcementMessage: string): string
   const headerMonth = formatMonthLabel(plan.month, plan.locale);
   const announcementHtml = renderAnnouncementHtml(announcementMessage);
   const jumahNotesHtml = renderJumahNotesHtml(plan);
+  const prayerLabels = PRAYER_LABELS[plan.locale];
 
   return `<!doctype html>
 <html lang="en">
@@ -162,11 +179,11 @@ function buildExportHtml(plan: MonthlyPlan, announcementMessage: string): string
           <tr>
             <th class="small">#</th>
             <th class="day">Day</th>
-            <th>Fajr</th>
-            <th>Zhuhr</th>
-            <th>Asr</th>
-            <th>Maghrib</th>
-            <th>Isha</th>
+            <th>${prayerLabels.fajr}</th>
+            <th>${prayerLabels.zhuhr}</th>
+            <th>${prayerLabels.asr}</th>
+            <th>${prayerLabels.maghrib}</th>
+            <th>${prayerLabels.isha}</th>
           </tr>
         </thead>
         <tbody>

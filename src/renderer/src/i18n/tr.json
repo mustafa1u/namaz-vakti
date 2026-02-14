@@ -13,11 +13,12 @@
     "timeFormat": "Saat biçimi",
     "baseGroupSize": "Temel grup boyutu",
     "ramazanHesabi": "Ramazan hesabı",
-    "fajrLatestLimitEnabled": "Fajr en geç",
-    "zhuhrEarliestLimitEnabled": "Zuhr en erken",
-    "zhuhrSingleLimit": "Zuhr tek limit",
-    "zhuhrStdDstLimits": "Zuhr standart/yaz saati limitleri",
-    "announcementMessage": "Duyuru"
+    "fajrLatestLimitEnabled": "Sabah en geç",
+    "zhuhrEarliestLimitEnabled": "Öğle en erken",
+    "zhuhrSingleLimit": "Öğle tek sınır",
+    "zhuhrStdDstLimits": "Öğle kış/yaz saati sınırları",
+    "announcementMessage": "Duyuru",
+    "generatePane": "Üret"
   },
   "buttons": {
     "browse": "Gözat",
@@ -38,17 +39,17 @@
       "h24": "24 saat"
     },
     "zhuhrLimitMode": {
-      "single": "Tek limit",
-      "stdDst": "Standart/yaz saati"
+      "single": "Tek sınır",
+      "stdDst": "Kış/yaz saati"
     },
     "zhuhrGroup": {
       "single": "Tek",
-      "standard": "Standart",
+      "standard": "Kış saati",
       "daylight": "Yaz saati"
     }
   },
   "placeholders": {
-    "announcementMessage": "Tablonun üstünde ve altında gösterilen mesaj"
+    "announcementMessage": "Tablonun üstünde gösterilen mesaj"
   },
   "languages": {
     "en": "English",

@@ -17,7 +17,8 @@
     "zhuhrEarliestLimitEnabled": "Zhuhr no earlier than",
     "zhuhrSingleLimit": "Zhuhr single limit",
     "zhuhrStdDstLimits": "Zhuhr standard/daylight limits",
-    "announcementMessage": "Announcement"
+    "announcementMessage": "Announcement",
+    "generatePane": "Generate"
   },
   "buttons": {
     "browse": "Browse",
@@ -48,7 +49,7 @@
     }
   },
   "placeholders": {
-    "announcementMessage": "Message shown above and below the table"
+    "announcementMessage": "Message shown above the table"
   },
   "languages": {
     "en": "English",

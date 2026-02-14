@@ -7,6 +7,22 @@ import { EVEN_THEME, ODD_THEME } from "@domain/pipeline";
 import { getTemplateSheetMap } from "./template-map";
 
 const PRAYERS: PrayerKey[] = ["fajr", "zhuhr", "asr", "maghrib", "isha"];
+const PRAYER_LABELS: Record<MonthlyPlan["locale"], Record<PrayerKey, string>> = {
+  en: {
+    fajr: "Fajr",
+    zhuhr: "Zhuhr",
+    asr: "Asr",
+    maghrib: "Maghrib",
+    isha: "Isha"
+  },
+  tr: {
+    fajr: "Sabah",
+    zhuhr: "Öğle",
+    asr: "İkindi",
+    maghrib: "Akşam",
+    isha: "Yatsı"
+  }
+};
 
 type DisplaySlot = {
   groupIndex: number;
@@ -38,6 +54,7 @@ export async function writeXlsxFromTemplate(input: XlsxWriteInput): Promise<stri
   const announcementMessage = normalizeAnnouncementMessage(input.announcementMessage);
 
   writeHeader(sheet, map.rawHeaderTemplate, input.plan, announcementMessage, XlsxPopulate);
+  writePrayerHeaders(sheet, input.plan, map);
   applyRowHeights(sheet, slots, pairHeights, map);
   writeDayColumns(sheet, input.plan, map, slots);
   applyGroupStyles(sheet, input.plan, map, slots);
@@ -159,6 +176,20 @@ function buildJumahHeaderLines(plan: MonthlyPlan): string[] {
   }
   out.push("Iqamah is 20-25 MINS later");
   return out;
+}
+
+function writePrayerHeaders(
+  sheet: any,
+  plan: MonthlyPlan,
+  map: ReturnType<typeof getTemplateSheetMap>
+): void {
+  const headerRow = map.dataStartRow - 1;
+  const labels = PRAYER_LABELS[plan.locale];
+
+  for (const prayer of PRAYERS) {
+    const col = map.prayerColumns[prayer];
+    sheet.cell(`${col.startCol}${headerRow}`).value(labels[prayer]);
+  }
 }
 
 function writeDayColumns(
