@@ -5,8 +5,7 @@ export const APP_CHANNELS = {
   PREVIEW_MONTH: "app:preview-month",
   GENERATE_OUTPUTS: "app:generate-outputs",
   SELECT_TSV_FOLDER: "app:select-tsv-folder",
-  SELECT_OUTPUT_FOLDER: "app:select-output-folder",
-  SELECT_TEMPLATE_FILE: "app:select-template-file"
+  SELECT_OUTPUT_FOLDER: "app:select-output-folder"
 } as const;
 
 export const LocaleSchema = z.enum(["en", "tr"]);
@@ -22,7 +21,6 @@ export const GenerationOptionsSchema = z.object({
   month: z.string().regex(/^\d{4}-\d{2}$/),
   tsvFolder: z.string().min(1),
   outputFolder: z.string().min(1),
-  templateFile: z.string().min(1),
   announcementMessage: z.string().default(""),
   fajrLatestLimitEnabled: z.boolean().default(false),
   fajrLatestLimitMinutes: z.number().int().min(0).max(1439).default(390),
@@ -72,5 +70,4 @@ export type DesktopApi = {
   generateOutputs: (options: GenerationOptions) => Promise<GenerateOutputsResponse>;
   selectTsvFolder: () => Promise<string | null>;
   selectOutputFolder: () => Promise<string | null>;
-  selectTemplateFile: () => Promise<string | null>;
 };

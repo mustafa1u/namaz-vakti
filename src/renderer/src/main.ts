@@ -1,7 +1,6 @@
 ﻿import type { GenerationOptions } from "@shared/ipc";
 
 const tsvFolderInput = getEl<HTMLInputElement>("tsvFolder");
-const templateFileInput = getEl<HTMLInputElement>("templateFile");
 const outputFolderInput = getEl<HTMLInputElement>("outputFolder");
 const monthSelect = getEl<HTMLSelectElement>("month");
 const localeSelect = getEl<HTMLSelectElement>("locale");
@@ -35,7 +34,6 @@ let zhuhrDaylightLimitMinutesState = 810;
 
 type LastEntries = {
   tsvFolder: string;
-  templateFile: string;
   outputFolder: string;
   month: string;
   locale: GenerationOptions["locale"];
@@ -80,20 +78,6 @@ function bootstrap(): void {
       }
     } catch (error) {
       logError("pickTsv failed", error);
-    }
-  });
-
-  getEl<HTMLButtonElement>("pickTemplate").addEventListener("click", async () => {
-    try {
-      log("pickTemplate clicked");
-      const path = await window.appApi.selectTemplateFile();
-      log(`pickTemplate result: ${path ?? "<cancelled>"}`);
-      if (path) {
-        templateFileInput.value = path;
-        saveLastEntries();
-      }
-    } catch (error) {
-      logError("pickTemplate failed", error);
     }
   });
 
@@ -177,7 +161,6 @@ function bindPersistence(): void {
   const save = () => saveLastEntries();
 
   tsvFolderInput.addEventListener("change", save);
-  templateFileInput.addEventListener("change", save);
   outputFolderInput.addEventListener("change", save);
   monthSelect.addEventListener("change", save);
   localeSelect.addEventListener("change", save);
@@ -211,7 +194,6 @@ async function restoreLastEntries(): Promise<void> {
   }
 
   tsvFolderInput.value = saved.tsvFolder;
-  templateFileInput.value = saved.templateFile;
   outputFolderInput.value = saved.outputFolder;
   localeSelect.value = saved.locale;
   timeFormatSelect.value = saved.timeFormat;
@@ -241,7 +223,6 @@ async function restoreLastEntries(): Promise<void> {
 function saveLastEntries(): void {
   const data: LastEntries = {
     tsvFolder: tsvFolderInput.value.trim(),
-    templateFile: templateFileInput.value.trim(),
     outputFolder: outputFolderInput.value.trim(),
     month: monthSelect.value,
     locale: localeSelect.value as GenerationOptions["locale"],
@@ -271,7 +252,6 @@ function loadLastEntries(): LastEntries | null {
     const parsed = JSON.parse(raw) as Partial<LastEntries>;
     return {
       tsvFolder: parsed.tsvFolder ?? "",
-      templateFile: parsed.templateFile ?? "",
       outputFolder: parsed.outputFolder ?? "",
       month: parsed.month ?? "",
       locale: parsed.locale === "tr" ? "tr" : "en",
@@ -297,7 +277,6 @@ function readOptions(): GenerationOptions {
     month: monthSelect.value,
     tsvFolder: tsvFolderInput.value,
     outputFolder: outputFolderInput.value,
-    templateFile: templateFileInput.value,
     announcementMessage: announcementMessageInput.value,
     fajrLatestLimitEnabled: fajrLatestLimitEnabledInput.checked,
     fajrLatestLimitMinutes: fajrLatestLimitMinutesState,

@@ -24,10 +24,6 @@ const api: DesktopApi = {
   selectOutputFolder: () => {
     console.log("[preload] invoke selectOutputFolder");
     return ipcRenderer.invoke(APP_CHANNELS.SELECT_OUTPUT_FOLDER);
-  },
-  selectTemplateFile: () => {
-    console.log("[preload] invoke selectTemplateFile");
-    return ipcRenderer.invoke(APP_CHANNELS.SELECT_TEMPLATE_FILE);
   }
 };
 
