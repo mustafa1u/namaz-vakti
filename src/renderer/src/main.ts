@@ -1,4 +1,4 @@
-﻿import type { GenerationOptions } from "@shared/ipc";
+import type { GenerationOptions, GenerateTarget } from "@shared/ipc";
 
 import {
   UI_LANGUAGE_STORAGE_KEY,
@@ -37,12 +37,16 @@ const zhuhrStdAmPmLabel = getEl<HTMLElement>("zhuhrStdAmPm");
 const zhuhrDstHourInput = getEl<HTMLInputElement>("zhuhrDstHour");
 const zhuhrDstMinuteInput = getEl<HTMLInputElement>("zhuhrDstMinute");
 const zhuhrDstAmPmLabel = getEl<HTMLElement>("zhuhrDstAmPm");
-const logEl = getEl<HTMLElement>("log");
-const LAST_ENTRIES_KEY = "namaz-vakti:last-entries:v1";
+const statusMessageEl = getEl<HTMLElement>("statusMessage");
+const generatePngButton = getEl<HTMLButtonElement>("generatePng");
+const generateXlsxButton = getEl<HTMLButtonElement>("generateXlsx");
+const DEFAULT_TSV_FOLDER = "assets/out_monthly";
+const LAST_ENTRIES_KEY = "namaz-vakti:last-entries:v2";
 let fajrLatestLimitMinutesState = 390;
-let zhuhrSingleLimitMinutesState = 750;
+let zhuhrSingleLimitMinutesState = 730;
 let zhuhrStandardLimitMinutesState = 750;
 let zhuhrDaylightLimitMinutesState = 810;
+let isGenerating = false;
 
 type LastEntries = {
   tsvFolder: string;
@@ -121,33 +125,12 @@ async function bootstrap(): Promise<void> {
     }
   });
 
-  getEl<HTMLButtonElement>("preview").addEventListener("click", async () => {
-    try {
-      const options = readOptions();
-      saveLastEntries();
-      log(t("logs.previewClicked", { month: options.month }));
-      const preview = await window.appApi.previewMonth(options);
-      log(t("logs.previewResult", {
-        month: preview.month,
-        dayCount: preview.dayCount,
-        groups: JSON.stringify(preview.groups, null, 2)
-      }));
-    } catch (error) {
-      logError("errors.previewFailed", error);
-    }
+  generatePngButton.addEventListener("click", async () => {
+    await generateForTarget("png");
   });
 
-  getEl<HTMLButtonElement>("generate").addEventListener("click", async () => {
-    try {
-      const options = readOptions();
-      saveLastEntries();
-      log(t("logs.generateClicked", { month: options.month }));
-      const result = await window.appApi.generateOutputs(options);
-      const warnings = result.warnings.length > 0 ? result.warnings.join(" | ") : t("common.none");
-      log(t("logs.generateResult", { xlsxPath: result.xlsxPath, pngPath: result.pngPath, warnings }));
-    } catch (error) {
-      logError("errors.generateFailed", error);
-    }
+  generateXlsxButton.addEventListener("click", async () => {
+    await generateForTarget("xlsx");
   });
 }
 
@@ -233,10 +216,14 @@ function applyUiTranslations(): void {
 async function restoreLastEntries(): Promise<void> {
   const saved = loadLastEntries();
   if (!saved) {
+    applyFreshDefaults();
+    syncFajrLimitUi();
+    syncZhuhrLimitUi();
+    await refreshMonths();
     return;
   }
 
-  tsvFolderInput.value = saved.tsvFolder;
+  tsvFolderInput.value = saved.tsvFolder.trim() || DEFAULT_TSV_FOLDER;
   outputFolderInput.value = saved.outputFolder;
   localeSelect.value = saved.locale;
   timeFormatSelect.value = saved.timeFormat;
@@ -253,11 +240,12 @@ async function restoreLastEntries(): Promise<void> {
   syncFajrLimitUi();
   syncZhuhrLimitUi();
 
-  if (saved.tsvFolder) {
+  if (tsvFolderInput.value.trim()) {
     await refreshMonths();
     if (saved.month && Array.from(monthSelect.options).some((opt) => opt.value === saved.month)) {
       monthSelect.value = saved.month;
     }
+    saveLastEntries();
   }
 
   log(t("logs.restoredLastEntries"));
@@ -293,20 +281,21 @@ function loadLastEntries(): LastEntries | null {
 
   try {
     const parsed = JSON.parse(raw) as Partial<LastEntries>;
+    const normalizedTsvFolder = parsed.tsvFolder?.trim() || DEFAULT_TSV_FOLDER;
     return {
-      tsvFolder: parsed.tsvFolder ?? "",
+      tsvFolder: normalizedTsvFolder,
       outputFolder: parsed.outputFolder ?? "",
       month: parsed.month ?? "",
       locale: parsed.locale === "tr" ? "tr" : "en",
       timeFormat: parsed.timeFormat === "24h" ? "24h" : "ampm",
       baseGroupSize: parsed.baseGroupSize ?? "5",
-      ramazanHesabi: parsed.ramazanHesabi === true,
+      ramazanHesabi: parsed.ramazanHesabi !== false,
       announcementMessage: parsed.announcementMessage ?? "",
-      fajrLatestLimitEnabled: parsed.fajrLatestLimitEnabled === true,
+      fajrLatestLimitEnabled: parsed.fajrLatestLimitEnabled !== false,
       fajrLatestLimitMinutes: Number.isFinite(parsed.fajrLatestLimitMinutes) ? Number(parsed.fajrLatestLimitMinutes) : 390,
-      zhuhrEarliestLimitEnabled: parsed.zhuhrEarliestLimitEnabled === true,
+      zhuhrEarliestLimitEnabled: parsed.zhuhrEarliestLimitEnabled !== false,
       zhuhrUseStandardDaylightLimits: parsed.zhuhrUseStandardDaylightLimits === true,
-      zhuhrEarliestLimitMinutes: Number.isFinite(parsed.zhuhrEarliestLimitMinutes) ? Number(parsed.zhuhrEarliestLimitMinutes) : 750,
+      zhuhrEarliestLimitMinutes: Number.isFinite(parsed.zhuhrEarliestLimitMinutes) ? Number(parsed.zhuhrEarliestLimitMinutes) : 730,
       zhuhrStandardEarliestLimitMinutes: Number.isFinite(parsed.zhuhrStandardEarliestLimitMinutes) ? Number(parsed.zhuhrStandardEarliestLimitMinutes) : 750,
       zhuhrDaylightEarliestLimitMinutes: Number.isFinite(parsed.zhuhrDaylightEarliestLimitMinutes) ? Number(parsed.zhuhrDaylightEarliestLimitMinutes) : 810
     };
@@ -318,8 +307,8 @@ function loadLastEntries(): LastEntries | null {
 function readOptions(): GenerationOptions {
   return {
     month: monthSelect.value,
-    tsvFolder: tsvFolderInput.value,
-    outputFolder: outputFolderInput.value,
+    tsvFolder: tsvFolderInput.value.trim(),
+    outputFolder: outputFolderInput.value.trim(),
     announcementMessage: announcementMessageInput.value,
     fajrLatestLimitEnabled: fajrLatestLimitEnabledInput.checked,
     fajrLatestLimitMinutes: fajrLatestLimitMinutesState,
@@ -334,6 +323,78 @@ function readOptions(): GenerationOptions {
     includeFridayNotes: true,
     ramazanHesabi: ramazanHesabiInput.checked
   };
+}
+
+function applyFreshDefaults(): void {
+  tsvFolderInput.value = DEFAULT_TSV_FOLDER;
+  localeSelect.value = "en";
+  timeFormatSelect.value = "ampm";
+  baseGroupSizeSelect.value = "5";
+  ramazanHesabiInput.checked = true;
+  fajrLatestLimitEnabledInput.checked = true;
+  fajrLatestLimitMinutesState = 390;
+  zhuhrEarliestLimitEnabledInput.checked = true;
+  zhuhrLimitModeSelect.value = "single";
+  zhuhrSingleLimitMinutesState = 730;
+  zhuhrStandardLimitMinutesState = 750;
+  zhuhrDaylightLimitMinutesState = 810;
+}
+
+function validateBeforeGenerate(options: GenerationOptions): string[] {
+  const errors: string[] = [];
+  if (!options.month) {
+    errors.push(t("validation.monthRequired"));
+  }
+  if (!options.outputFolder.trim()) {
+    errors.push(t("validation.outputFolderRequired"));
+  }
+  if (!options.tsvFolder.trim()) {
+    errors.push(t("validation.tsvFolderRequired"));
+  }
+  return errors;
+}
+
+function setGenerateButtonsDisabled(disabled: boolean): void {
+  generatePngButton.disabled = disabled;
+  generateXlsxButton.disabled = disabled;
+}
+
+async function generateForTarget(target: GenerateTarget): Promise<void> {
+  if (isGenerating) {
+    return;
+  }
+
+  const options = readOptions();
+  const validationErrors = validateBeforeGenerate(options);
+  if (validationErrors.length > 0) {
+    showStatus(t("status.validationFailed", { details: validationErrors.join(" ") }));
+    return;
+  }
+
+  isGenerating = true;
+  setGenerateButtonsDisabled(true);
+  saveLastEntries();
+  const targetLabel = target === "png" ? "PNG" : "XLSX";
+
+  try {
+    log(t("logs.generateClicked", { month: options.month, target: targetLabel }));
+    const result = await window.appApi.generateOutputs({ options, targets: [target] });
+    const warnings = result.warnings.length > 0 ? result.warnings.join(" | ") : t("common.none");
+
+    if (target === "png") {
+      showStatus(t("status.generatePngSuccess", { pngPath: result.pngPath ?? "-", warnings }));
+      return;
+    }
+
+    showStatus(t("status.generateXlsxSuccess", { xlsxPath: result.xlsxPath ?? "-", warnings }));
+  } catch (error) {
+    const details = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    showStatus(t("status.generateFailed", { target: targetLabel, details }));
+    logError("errors.generateFailed", error);
+  } finally {
+    isGenerating = false;
+    setGenerateButtonsDisabled(false);
+  }
 }
 
 function bindFajrLimitControls(): void {
@@ -674,14 +735,17 @@ function formatLimitForUi(
 
 function log(message: string): void {
   console.log(`[renderer] ${message}`);
-  logEl.textContent = `${new Date().toISOString()}\n${message}`;
+}
+
+function showStatus(message: string): void {
+  statusMessageEl.textContent = message;
 }
 
 function logError(prefixKey: string, error: unknown): void {
   const details = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
   const prefix = t(prefixKey);
   console.error(`[renderer] ${prefix}`, error);
-  log(t("logs.errorWithDetails", { prefix, details }));
+  showStatus(t("logs.errorWithDetails", { prefix, details }));
 }
 
 function getEl<T extends HTMLElement>(id: string): T {

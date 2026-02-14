@@ -9,13 +9,9 @@ const api: DesktopApi = {
     console.log("[preload] invoke listMonths", tsvFolder);
     return ipcRenderer.invoke(APP_CHANNELS.LIST_MONTHS, tsvFolder);
   },
-  previewMonth: (options) => {
-    console.log("[preload] invoke previewMonth", options.month);
-    return ipcRenderer.invoke(APP_CHANNELS.PREVIEW_MONTH, options);
-  },
-  generateOutputs: (options) => {
-    console.log("[preload] invoke generateOutputs", options.month);
-    return ipcRenderer.invoke(APP_CHANNELS.GENERATE_OUTPUTS, options);
+  generateOutputs: (request) => {
+    console.log("[preload] invoke generateOutputs", request.options.month, request.targets.join(","));
+    return ipcRenderer.invoke(APP_CHANNELS.GENERATE_OUTPUTS, request);
   },
   selectTsvFolder: () => {
     console.log("[preload] invoke selectTsvFolder");

@@ -2,7 +2,6 @@
 
 export const APP_CHANNELS = {
   LIST_MONTHS: "app:list-months",
-  PREVIEW_MONTH: "app:preview-month",
   GENERATE_OUTPUTS: "app:generate-outputs",
   SELECT_TSV_FOLDER: "app:select-tsv-folder",
   SELECT_OUTPUT_FOLDER: "app:select-output-folder"
@@ -22,21 +21,28 @@ export const GenerationOptionsSchema = z.object({
   tsvFolder: z.string().min(1),
   outputFolder: z.string().min(1),
   announcementMessage: z.string().default(""),
-  fajrLatestLimitEnabled: z.boolean().default(false),
+  fajrLatestLimitEnabled: z.boolean().default(true),
   fajrLatestLimitMinutes: z.number().int().min(0).max(1439).default(390),
-  zhuhrEarliestLimitEnabled: z.boolean().default(false),
+  zhuhrEarliestLimitEnabled: z.boolean().default(true),
   zhuhrUseStandardDaylightLimits: z.boolean().default(false),
-  zhuhrEarliestLimitMinutes: z.number().int().min(0).max(1439).default(750),
+  zhuhrEarliestLimitMinutes: z.number().int().min(0).max(1439).default(730),
   zhuhrStandardEarliestLimitMinutes: z.number().int().min(0).max(1439).default(750),
   zhuhrDaylightEarliestLimitMinutes: z.number().int().min(0).max(1439).default(810),
   locale: LocaleSchema.default("en"),
   timeFormat: TimeFormatSchema.default("ampm"),
   baseGroupSize: z.number().int().positive().default(5),
   includeFridayNotes: z.boolean().default(true),
-  ramazanHesabi: z.boolean().default(false)
+  ramazanHesabi: z.boolean().default(true)
 });
 
 export type GenerationOptions = z.infer<typeof GenerationOptionsSchema>;
+export const GenerateTargetSchema = z.enum(["png", "xlsx"]);
+export type GenerateTarget = z.infer<typeof GenerateTargetSchema>;
+export const GenerateOutputsRequestSchema = z.object({
+  options: GenerationOptionsSchema,
+  targets: z.array(GenerateTargetSchema).min(1)
+});
+export type GenerateOutputsRequest = z.infer<typeof GenerateOutputsRequestSchema>;
 
 export const IqamahSummarySchema = z.object({
   prayer: PrayerKeySchema,
@@ -48,17 +54,9 @@ export const IqamahSummarySchema = z.object({
 
 export type IqamahSummary = z.infer<typeof IqamahSummarySchema>;
 
-export const PreviewMonthResponseSchema = z.object({
-  month: z.string(),
-  dayCount: z.number().int().positive(),
-  groups: z.array(IqamahSummarySchema)
-});
-
-export type PreviewMonthResponse = z.infer<typeof PreviewMonthResponseSchema>;
-
 export const GenerateOutputsResponseSchema = z.object({
-  xlsxPath: z.string(),
-  pngPath: z.string(),
+  xlsxPath: z.string().nullable(),
+  pngPath: z.string().nullable(),
   warnings: z.array(z.string())
 });
 
@@ -66,8 +64,7 @@ export type GenerateOutputsResponse = z.infer<typeof GenerateOutputsResponseSche
 
 export type DesktopApi = {
   listMonths: (tsvFolder: string) => Promise<string[]>;
-  previewMonth: (options: GenerationOptions) => Promise<PreviewMonthResponse>;
-  generateOutputs: (options: GenerationOptions) => Promise<GenerateOutputsResponse>;
+  generateOutputs: (request: GenerateOutputsRequest) => Promise<GenerateOutputsResponse>;
   selectTsvFolder: () => Promise<string | null>;
   selectOutputFolder: () => Promise<string | null>;
 };

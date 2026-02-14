@@ -21,8 +21,9 @@
   "buttons": {
     "browse": "Browse",
     "refresh": "Refresh",
-    "preview": "Preview",
-    "generate": "Generate XLSX + PNG",
+    "advanced": "Advanced...",
+    "generatePng": "Generate PNG",
+    "generateXlsx": "Generate XLSX",
     "switchToEnglish": "English",
     "switchToTurkish": "Türkçe"
   },
@@ -60,7 +61,6 @@
     "pickTsvFailed": "pickTsv failed",
     "pickOutputFailed": "pickOutput failed",
     "refreshMonthsFailed": "refreshMonths failed",
-    "previewFailed": "preview failed",
     "generateFailed": "generate failed"
   },
   "logs": {
@@ -70,16 +70,24 @@
     "pickTsvResult": "pickTsv result: {{path}}",
     "pickOutputClicked": "pickOutput clicked",
     "pickOutputResult": "pickOutput result: {{path}}",
-    "previewClicked": "preview clicked for {{month}}",
-    "generateClicked": "generate clicked for {{month}}",
+    "generateClicked": "generate {{target}} clicked for {{month}}",
     "setTsvFolderFirst": "Set TSV folder first.",
     "refreshMonthsFor": "refreshMonths for {{folder}}",
     "noMonthFilesFound": "No month files found in folder.",
     "foundMonths": "Found months: {{months}}",
     "restoredLastEntries": "Restored last entries.",
-    "previewResult": "Preview for {{month}} ({{dayCount}} days)\n{{groups}}",
-    "generateResult": "XLSX: {{xlsxPath}}\nPNG: {{pngPath}}\nWarnings: {{warnings}}",
     "errorWithDetails": "ERROR: {{prefix}} -> {{details}}"
+  },
+  "validation": {
+    "monthRequired": "Month is required.",
+    "outputFolderRequired": "Output folder is required.",
+    "tsvFolderRequired": "TSV folder is required."
+  },
+  "status": {
+    "validationFailed": "Cannot generate. {{details}}",
+    "generatePngSuccess": "PNG generated: {{pngPath}} | Warnings: {{warnings}}",
+    "generateXlsxSuccess": "XLSX generated: {{xlsxPath}} | Warnings: {{warnings}}",
+    "generateFailed": "Generate {{target}} failed: {{details}}"
   },
   "common": {
     "cancelled": "<cancelled>",

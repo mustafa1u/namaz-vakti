@@ -21,8 +21,9 @@
   "buttons": {
     "browse": "Gözat",
     "refresh": "Yenile",
-    "preview": "Önizleme",
-    "generate": "XLSX + PNG üret",
+    "advanced": "Gelişmiş...",
+    "generatePng": "PNG üret",
+    "generateXlsx": "XLSX üret",
     "switchToEnglish": "English",
     "switchToTurkish": "Türkçe"
   },
@@ -60,7 +61,6 @@
     "pickTsvFailed": "TSV klasörü seçimi başarısız",
     "pickOutputFailed": "Çıktı klasörü seçimi başarısız",
     "refreshMonthsFailed": "Ay yenileme başarısız",
-    "previewFailed": "Önizleme başarısız",
     "generateFailed": "Üretim başarısız"
   },
   "logs": {
@@ -70,16 +70,24 @@
     "pickTsvResult": "TSV seçimi sonucu: {{path}}",
     "pickOutputClicked": "Çıktı klasörü seçimi düğmesine tıklandı",
     "pickOutputResult": "Çıktı klasörü seçimi sonucu: {{path}}",
-    "previewClicked": "{{month}} için önizleme tıklandı",
-    "generateClicked": "{{month}} için üret tıklandı",
+    "generateClicked": "{{month}} için {{target}} üret tıklandı",
     "setTsvFolderFirst": "Önce TSV klasörünü seçin.",
     "refreshMonthsFor": "{{folder}} için aylar yenileniyor",
     "noMonthFilesFound": "Klasörde ay dosyası bulunamadı.",
     "foundMonths": "Bulunan aylar: {{months}}",
     "restoredLastEntries": "Son girişler geri yüklendi.",
-    "previewResult": "{{month}} önizleme ({{dayCount}} gün)\n{{groups}}",
-    "generateResult": "XLSX: {{xlsxPath}}\nPNG: {{pngPath}}\nUyarılar: {{warnings}}",
     "errorWithDetails": "HATA: {{prefix}} -> {{details}}"
+  },
+  "validation": {
+    "monthRequired": "Ay seçimi zorunludur.",
+    "outputFolderRequired": "Çıktı klasörü zorunludur.",
+    "tsvFolderRequired": "TSV klasörü zorunludur."
+  },
+  "status": {
+    "validationFailed": "Üretim başlatılamadı. {{details}}",
+    "generatePngSuccess": "PNG üretildi: {{pngPath}} | Uyarılar: {{warnings}}",
+    "generateXlsxSuccess": "XLSX üretildi: {{xlsxPath}} | Uyarılar: {{warnings}}",
+    "generateFailed": "{{target}} üretimi başarısız: {{details}}"
   },
   "common": {
     "cancelled": "<iptal edildi>",

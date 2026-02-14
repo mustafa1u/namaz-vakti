@@ -1,11 +1,10 @@
 import { app, dialog, ipcMain } from "electron";
 import type { BrowserWindow } from "electron";
 import { existsSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import {
   APP_CHANNELS,
-  GenerationOptionsSchema,
-  PreviewMonthResponseSchema,
+  GenerateOutputsRequestSchema,
   GenerateOutputsResponseSchema
 } from "@shared/ipc";
 import { listAvailableMonths, readMonthTsv } from "@services/tsv-reader";
@@ -31,54 +30,43 @@ function resolveFixedTemplateFile(): string {
   return found;
 }
 
+function resolveTsvFolderPath(tsvFolder: string): string {
+  const trimmed = tsvFolder.trim();
+  if (trimmed.length === 0) {
+    return trimmed;
+  }
+
+  if (isAbsolute(trimmed)) {
+    return trimmed;
+  }
+
+  const candidates = [
+    join(process.resourcesPath, trimmed),
+    join(app.getAppPath(), trimmed),
+    join(app.getAppPath(), "..", trimmed),
+    resolve(process.cwd(), trimmed)
+  ].map((candidate) => resolve(candidate));
+
+  const found = candidates.find((candidate) => existsSync(candidate));
+  return found ?? resolve(process.cwd(), trimmed);
+}
+
 export function registerIpcHandlers(_getWindow: WindowGetter): void {
   console.log("[main] registering IPC handlers");
 
   ipcMain.handle(APP_CHANNELS.LIST_MONTHS, async (_event, tsvFolder: string) => {
-    console.log("[ipc] LIST_MONTHS", tsvFolder);
-    return listAvailableMonths(tsvFolder);
+    const resolvedTsvFolder = resolveTsvFolderPath(tsvFolder);
+    console.log("[ipc] LIST_MONTHS", tsvFolder, "->", resolvedTsvFolder);
+    return listAvailableMonths(resolvedTsvFolder);
   });
 
-  ipcMain.handle(APP_CHANNELS.PREVIEW_MONTH, async (_event, rawOptions) => {
-    const options = GenerationOptionsSchema.parse(rawOptions);
-    console.log("[ipc] PREVIEW_MONTH", options.month);
-    const days = await readMonthTsv(options.tsvFolder, options.month);
-    const plan = buildMonthlyPlan({
-      month: options.month,
-      locale: options.locale,
-      timeFormat: options.timeFormat,
-      baseGroupSize: options.baseGroupSize,
-      ramazanHesabi: options.ramazanHesabi,
-      fajrLatestLimitEnabled: options.fajrLatestLimitEnabled,
-      fajrLatestLimitMinutes: options.fajrLatestLimitMinutes,
-      zhuhrEarliestLimitEnabled: options.zhuhrEarliestLimitEnabled,
-      zhuhrUseStandardDaylightLimits: options.zhuhrUseStandardDaylightLimits,
-      zhuhrEarliestLimitMinutes: options.zhuhrEarliestLimitMinutes,
-      zhuhrStandardEarliestLimitMinutes: options.zhuhrStandardEarliestLimitMinutes,
-      zhuhrDaylightEarliestLimitMinutes: options.zhuhrDaylightEarliestLimitMinutes,
-      days
-    });
-
-    return PreviewMonthResponseSchema.parse({
-      month: options.month,
-      dayCount: days.length,
-      groups: plan.baseGroups.flatMap((group, groupIndex) =>
-        Object.entries(group.iqamahByPrayer).map(([prayer, iqamahMinutes]) => ({
-          prayer,
-          startDay: group.startDay,
-          endDay: group.endDay,
-          iqamahMinutes,
-          colorToken: plan.colorByGroupIndex[groupIndex] ?? "a-light"
-        }))
-      )
-    });
-  });
-
-  ipcMain.handle(APP_CHANNELS.GENERATE_OUTPUTS, async (_event, rawOptions) => {
-    const options = GenerationOptionsSchema.parse(rawOptions);
-    console.log("[ipc] GENERATE_OUTPUTS", options.month);
+  ipcMain.handle(APP_CHANNELS.GENERATE_OUTPUTS, async (_event, rawRequest) => {
+    const request = GenerateOutputsRequestSchema.parse(rawRequest);
+    const { options, targets } = request;
+    const resolvedTsvFolder = resolveTsvFolderPath(options.tsvFolder);
+    console.log("[ipc] GENERATE_OUTPUTS", options.month, targets.join(","), resolvedTsvFolder);
     const templateFile = resolveFixedTemplateFile();
-    const days = await readMonthTsv(options.tsvFolder, options.month);
+    const days = await readMonthTsv(resolvedTsvFolder, options.month);
     const plan = buildMonthlyPlan({
       month: options.month,
       locale: options.locale,
@@ -95,23 +83,32 @@ export function registerIpcHandlers(_getWindow: WindowGetter): void {
       days
     });
 
-    const [xlsxPath, pngPath] = await Promise.all([
-      writeXlsxFromTemplate({
-        outputFolder: options.outputFolder,
-        templateFile,
-        plan,
-        announcementMessage: options.announcementMessage
-      }),
-      renderPng({
-        outputFolder: options.outputFolder,
-        plan,
-        announcementMessage: options.announcementMessage
-      })
-    ]);
+    const writes: Array<Promise<["xlsx" | "png", string]>> = [];
+    if (targets.includes("xlsx")) {
+      writes.push(
+        writeXlsxFromTemplate({
+          outputFolder: options.outputFolder,
+          templateFile,
+          plan,
+          announcementMessage: options.announcementMessage
+        }).then((value) => ["xlsx", value] as const)
+      );
+    }
+    if (targets.includes("png")) {
+      writes.push(
+        renderPng({
+          outputFolder: options.outputFolder,
+          plan,
+          announcementMessage: options.announcementMessage
+        }).then((value) => ["png", value] as const)
+      );
+    }
+    const completed = await Promise.all(writes);
+    const byTarget = new Map(completed);
 
     return GenerateOutputsResponseSchema.parse({
-      xlsxPath,
-      pngPath,
+      xlsxPath: byTarget.get("xlsx") ?? null,
+      pngPath: byTarget.get("png") ?? null,
       warnings: []
     });
   });
