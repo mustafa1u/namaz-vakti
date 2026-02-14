@@ -34,7 +34,7 @@
       "tr": "Türkçe"
     },
     "timeFormat": {
-      "ampm": "AM/PM",
+      "ampm": "ÖÖ/ÖS",
       "h24": "24 saat"
     },
     "zhuhrLimitMode": {
@@ -55,8 +55,8 @@
     "tr": "Türkçe"
   },
   "time": {
-    "am": "AM",
-    "pm": "PM"
+    "am": "ÖÖ",
+    "pm": "ÖS"
   },
   "errors": {
     "pickTsvFailed": "TSV klasörü seçimi başarısız",

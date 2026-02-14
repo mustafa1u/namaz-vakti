@@ -82,9 +82,9 @@
         gap: 0.5rem;
         flex-wrap: wrap;
       }
-      .checkbox-spacer {
-        width: 14px;
-        flex: 0 0 14px;
+      .control-indent {
+        width: 46px;
+        flex: 0 0 46px;
       }
       .time-control input {
         width: 64px;
@@ -134,9 +134,42 @@
         background: var(--accent);
         color: #fff;
         border: 0;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: transform 60ms ease, filter 120ms ease, box-shadow 120ms ease;
+      }
+      button:hover:not(:disabled) {
+        filter: brightness(0.95);
+      }
+      button:active:not(:disabled) {
+        transform: translateY(1px) scale(0.99);
+        filter: brightness(0.88);
+      }
+      button:focus-visible {
+        outline: 2px solid #183947;
+        outline-offset: 2px;
+        box-shadow: 0 0 0 2px rgba(24, 57, 71, 0.25);
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
       }
       .generate-btn {
         width: 140px;
+      }
+      .generate-pane {
+        display: inline-block;
+        background: #e9eef1;
+        border: 1px solid #c8d1d7;
+        padding: 0.75rem;
+      }
+      .generate-pane h2 {
+        margin: 0 0 0.6rem;
+        font-size: 16px;
+      }
+      .generate-actions {
+        display: flex;
+        gap: 0.5rem;
       }
       .status {
         min-height: 1.5rem;
@@ -218,6 +251,7 @@
             <label for="fajrLatestLimitEnabled" data-i18n="labels.fajrLatestLimitEnabled">Fajr no later than</label>
             <div class="time-control">
               <input id="fajrLatestLimitEnabled" type="checkbox" />
+              <span class="control-indent" aria-hidden="true"></span>
               <button id="fajrHourDec" class="tiny" type="button">-</button>
               <input id="fajrHour" type="text" inputmode="numeric" />
               <button id="fajrHourInc" class="tiny" type="button">+</button>
@@ -234,6 +268,7 @@
             <label for="zhuhrEarliestLimitEnabled" data-i18n="labels.zhuhrEarliestLimitEnabled">Zhuhr no earlier than</label>
             <div class="time-control">
               <input id="zhuhrEarliestLimitEnabled" type="checkbox" />
+              <span class="control-indent" aria-hidden="true"></span>
               <select id="zhuhrLimitMode">
                 <option value="single" data-i18n="options.zhuhrLimitMode.single">Single limit</option>
                 <option value="std-dst" data-i18n="options.zhuhrLimitMode.stdDst">Standard/daylight</option>
@@ -245,7 +280,7 @@
           <div class="row">
             <label for="zhuhrSingleHour" data-i18n="labels.zhuhrSingleLimit">Zhuhr single limit</label>
             <div id="zhuhrSingleGroup" class="time-control">
-              <span class="checkbox-spacer" aria-hidden="true"></span>
+              <span class="control-indent" aria-hidden="true"></span>
               <button id="zhuhrSingleHourDec" class="tiny" type="button">-</button>
               <input id="zhuhrSingleHour" type="text" inputmode="numeric" />
               <button id="zhuhrSingleHourInc" class="tiny" type="button">+</button>
@@ -291,10 +326,12 @@
 
       <p class="status" id="statusMessage" aria-live="polite"></p>
 
-      <div class="row">
-        <label></label>
-        <button id="generatePng" class="generate-btn" type="button" data-i18n="buttons.generatePng">Generate PNG</button>
-        <button id="generateXlsx" class="generate-btn" type="button" data-i18n="buttons.generateXlsx">Generate XLSX</button>
+      <div class="generate-pane">
+        <h2>Generate</h2>
+        <div class="generate-actions">
+          <button id="generatePng" class="generate-btn" type="button">PNG</button>
+          <button id="generateXlsx" class="generate-btn" type="button">Excel (.xlsx)</button>
+        </div>
       </div>
     </main>
 
