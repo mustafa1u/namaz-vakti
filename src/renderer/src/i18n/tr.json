@@ -5,6 +5,7 @@
   },
   "labels": {
     "uiLanguage": "Uygulama dili",
+    "uiLanguageShort": "Dil",
     "tsvFolder": "TSV klasörü",
     "outputFolder": "Çıktı klasörü",
     "month": "Ay",

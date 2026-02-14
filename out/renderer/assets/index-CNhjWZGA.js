@@ -2219,7 +2219,7 @@ instance.hasLoadedNamespace;
 instance.loadNamespaces;
 instance.loadLanguages;
 const app$1 = { "windowTitle": "Namaz Vakti Desktop", "heading": "Iqamah Schedule Generator" };
-const labels$1 = { "uiLanguage": "Application Language", "tsvFolder": "TSV Folder", "outputFolder": "Output Folder", "month": "Month", "outputLocale": "Output Language (Generated Content)", "timeFormat": "Time Format", "baseGroupSize": "Base Group Size", "ramazanHesabi": "Ramadan calculation", "fajrLatestLimitEnabled": "Fajr no later than", "zhuhrEarliestLimitEnabled": "Zhuhr no earlier than", "zhuhrSingleLimit": "Zhuhr single limit", "zhuhrStdDstLimits": "Zhuhr standard/daylight limits", "announcementMessage": "Announcement" };
+const labels$1 = { "uiLanguage": "Application Language", "uiLanguageShort": "Language", "tsvFolder": "TSV Folder", "outputFolder": "Output Folder", "month": "Month", "outputLocale": "Output Language (Generated Content)", "timeFormat": "Time Format", "baseGroupSize": "Base Group Size", "ramazanHesabi": "Ramadan calculation", "fajrLatestLimitEnabled": "Fajr no later than", "zhuhrEarliestLimitEnabled": "Zhuhr no earlier than", "zhuhrSingleLimit": "Zhuhr single limit", "zhuhrStdDstLimits": "Zhuhr standard/daylight limits", "announcementMessage": "Announcement" };
 const buttons$1 = { "browse": "Browse", "refresh": "Refresh", "advanced": "Advanced...", "generatePng": "Generate PNG", "generateXlsx": "Generate XLSX", "switchToEnglish": "English", "switchToTurkish": "Türkçe" };
 const options$1 = { "outputLocale": { "en": "English", "tr": "Turkish" }, "timeFormat": { "ampm": "AM/PM", "h24": "24h" }, "zhuhrLimitMode": { "single": "Single limit", "stdDst": "Standard/daylight" }, "zhuhrGroup": { "single": "Single", "standard": "Standard", "daylight": "Daylight" } };
 const placeholders$1 = { "announcementMessage": "Message shown above and below the table" };
@@ -2245,7 +2245,7 @@ const en = {
   common: common$1
 };
 const app = { "windowTitle": "Namaz Vakti Masaüstü", "heading": "Kametleme Çizelgesi Oluşturucu" };
-const labels = { "uiLanguage": "Uygulama dili", "tsvFolder": "TSV klasörü", "outputFolder": "Çıktı klasörü", "month": "Ay", "outputLocale": "Çıktı dili (üretilen içerik)", "timeFormat": "Saat biçimi", "baseGroupSize": "Temel grup boyutu", "ramazanHesabi": "Ramazan hesabı", "fajrLatestLimitEnabled": "Fajr en geç", "zhuhrEarliestLimitEnabled": "Zuhr en erken", "zhuhrSingleLimit": "Zuhr tek limit", "zhuhrStdDstLimits": "Zuhr standart/yaz saati limitleri", "announcementMessage": "Duyuru" };
+const labels = { "uiLanguage": "Uygulama dili", "uiLanguageShort": "Dil", "tsvFolder": "TSV klasörü", "outputFolder": "Çıktı klasörü", "month": "Ay", "outputLocale": "Çıktı dili (üretilen içerik)", "timeFormat": "Saat biçimi", "baseGroupSize": "Temel grup boyutu", "ramazanHesabi": "Ramazan hesabı", "fajrLatestLimitEnabled": "Fajr en geç", "zhuhrEarliestLimitEnabled": "Zuhr en erken", "zhuhrSingleLimit": "Zuhr tek limit", "zhuhrStdDstLimits": "Zuhr standart/yaz saati limitleri", "announcementMessage": "Duyuru" };
 const buttons = { "browse": "Gözat", "refresh": "Yenile", "advanced": "Gelişmiş...", "generatePng": "PNG üret", "generateXlsx": "XLSX üret", "switchToEnglish": "English", "switchToTurkish": "Türkçe" };
 const options = { "outputLocale": { "en": "İngilizce", "tr": "Türkçe" }, "timeFormat": { "ampm": "AM/PM", "h24": "24 saat" }, "zhuhrLimitMode": { "single": "Tek limit", "stdDst": "Standart/yaz saati" }, "zhuhrGroup": { "single": "Tek", "standard": "Standart", "daylight": "Yaz saati" } };
 const placeholders = { "announcementMessage": "Tablonun üstünde ve altında gösterilen mesaj" };
@@ -2318,7 +2318,6 @@ function translateStaticDocumentText() {
 }
 const tsvFolderInput = getEl("tsvFolder");
 const outputFolderInput = getEl("outputFolder");
-const uiLanguageValue = getEl("uiLanguageValue");
 const switchUiLanguageButton = getEl("switchUiLanguage");
 const monthSelect = getEl("month");
 const localeSelect = getEl("locale");
@@ -2332,6 +2331,7 @@ const fajrMinuteInput = getEl("fajrMinute");
 const fajrAmPmLabel = getEl("fajrAmPm");
 const zhuhrEarliestLimitEnabledInput = getEl("zhuhrEarliestLimitEnabled");
 const zhuhrLimitModeSelect = getEl("zhuhrLimitMode");
+const zhuhrStdDstRow = getEl("zhuhrStdDstRow");
 const zhuhrSingleGroup = getEl("zhuhrSingleGroup");
 const zhuhrDualGroup = getEl("zhuhrDualGroup");
 const zhuhrSingleHourInput = getEl("zhuhrSingleHour");
@@ -2477,7 +2477,6 @@ function bindUiLanguageSwitch() {
 function applyUiTranslations() {
   translateStaticDocumentText();
   const currentLanguage = getUiLanguage();
-  uiLanguageValue.textContent = t(`languages.${currentLanguage}`);
   switchUiLanguageButton.textContent = currentLanguage === "en" ? t("buttons.switchToTurkish") : t("buttons.switchToEnglish");
 }
 async function restoreLastEntries() {
@@ -2630,13 +2629,12 @@ async function generateForTarget(target) {
   const targetLabel = target === "png" ? "PNG" : "XLSX";
   try {
     log(t("logs.generateClicked", { month: options2.month, target: targetLabel }));
-    const result = await window.appApi.generateOutputs({ options: options2, targets: [target] });
-    const warnings = result.warnings.length > 0 ? result.warnings.join(" | ") : t("common.none");
+    await window.appApi.generateOutputs({ options: options2, targets: [target] });
     if (target === "png") {
-      showStatus(t("status.generatePngSuccess", { pngPath: result.pngPath ?? "-", warnings }));
+      showStatus("");
       return;
     }
-    showStatus(t("status.generateXlsxSuccess", { xlsxPath: result.xlsxPath ?? "-", warnings }));
+    showStatus("");
   } catch (error) {
     const details = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
     showStatus(t("status.generateFailed", { target: targetLabel, details }));
@@ -2834,6 +2832,7 @@ function syncZhuhrLimitUi() {
   zhuhrDstAmPmLabel.style.visibility = ampmVisibility;
   zhuhrSingleGroup.style.display = useDualMode ? "none" : "flex";
   zhuhrDualGroup.style.display = useDualMode ? "flex" : "none";
+  zhuhrStdDstRow.style.display = useDualMode ? "grid" : "none";
   zhuhrLimitModeSelect.disabled = !enabled;
   setZhuhrGroupDisabled("single", !enabled || useDualMode);
   setZhuhrGroupDisabled("standard", !enabled || !useDualMode);

@@ -12,7 +12,6 @@ import {
 
 const tsvFolderInput = getEl<HTMLInputElement>("tsvFolder");
 const outputFolderInput = getEl<HTMLInputElement>("outputFolder");
-const uiLanguageValue = getEl<HTMLElement>("uiLanguageValue");
 const switchUiLanguageButton = getEl<HTMLButtonElement>("switchUiLanguage");
 const monthSelect = getEl<HTMLSelectElement>("month");
 const localeSelect = getEl<HTMLSelectElement>("locale");
@@ -26,6 +25,7 @@ const fajrMinuteInput = getEl<HTMLInputElement>("fajrMinute");
 const fajrAmPmLabel = getEl<HTMLElement>("fajrAmPm");
 const zhuhrEarliestLimitEnabledInput = getEl<HTMLInputElement>("zhuhrEarliestLimitEnabled");
 const zhuhrLimitModeSelect = getEl<HTMLSelectElement>("zhuhrLimitMode");
+const zhuhrStdDstRow = getEl<HTMLElement>("zhuhrStdDstRow");
 const zhuhrSingleGroup = getEl<HTMLElement>("zhuhrSingleGroup");
 const zhuhrDualGroup = getEl<HTMLElement>("zhuhrDualGroup");
 const zhuhrSingleHourInput = getEl<HTMLInputElement>("zhuhrSingleHour");
@@ -207,7 +207,6 @@ function bindUiLanguageSwitch(): void {
 function applyUiTranslations(): void {
   translateStaticDocumentText();
   const currentLanguage = getUiLanguage();
-  uiLanguageValue.textContent = t(`languages.${currentLanguage}`);
   switchUiLanguageButton.textContent = currentLanguage === "en"
     ? t("buttons.switchToTurkish")
     : t("buttons.switchToEnglish");
@@ -378,15 +377,14 @@ async function generateForTarget(target: GenerateTarget): Promise<void> {
 
   try {
     log(t("logs.generateClicked", { month: options.month, target: targetLabel }));
-    const result = await window.appApi.generateOutputs({ options, targets: [target] });
-    const warnings = result.warnings.length > 0 ? result.warnings.join(" | ") : t("common.none");
+    await window.appApi.generateOutputs({ options, targets: [target] });
 
     if (target === "png") {
-      showStatus(t("status.generatePngSuccess", { pngPath: result.pngPath ?? "-", warnings }));
+      showStatus("");
       return;
     }
 
-    showStatus(t("status.generateXlsxSuccess", { xlsxPath: result.xlsxPath ?? "-", warnings }));
+    showStatus("");
   } catch (error) {
     const details = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
     showStatus(t("status.generateFailed", { target: targetLabel, details }));
@@ -605,6 +603,7 @@ function syncZhuhrLimitUi(): void {
 
   zhuhrSingleGroup.style.display = useDualMode ? "none" : "flex";
   zhuhrDualGroup.style.display = useDualMode ? "flex" : "none";
+  zhuhrStdDstRow.style.display = useDualMode ? "grid" : "none";
 
   zhuhrLimitModeSelect.disabled = !enabled;
 

@@ -24,11 +24,45 @@
         background: var(--panel);
         border: 1px solid #d5d5d5;
       }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+      }
+      .topbar h1 {
+        margin: 0;
+      }
+      .language-control {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
       .row {
         display: grid;
         gap: 0.75rem;
         grid-template-columns: 190px 1fr auto;
         margin-bottom: 0.75rem;
+      }
+      .row-inline .field-inline {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .advanced-inline {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .compact-select {
+        width: 110px;
+      }
+      .compact-select-locale {
+        width: 120px;
+      }
+      .compact-select-base {
+        width: 70px;
       }
       details.advanced {
         border: 1px solid #d5d5d5;
@@ -47,6 +81,10 @@
         align-items: center;
         gap: 0.5rem;
         flex-wrap: wrap;
+      }
+      .checkbox-spacer {
+        width: 14px;
+        flex: 0 0 14px;
       }
       .time-control input {
         width: 64px;
@@ -82,6 +120,12 @@
         font-size: 14px;
         padding: 0.5rem 0.625rem;
       }
+      input[type="checkbox"] {
+        width: auto;
+        height: auto;
+        margin: 0;
+        padding: 0;
+      }
       textarea {
         resize: vertical;
         min-height: 2.75rem;
@@ -91,6 +135,9 @@
         color: #fff;
         border: 0;
       }
+      .generate-btn {
+        width: 140px;
+      }
       .status {
         min-height: 1.5rem;
         margin: 0.25rem 0 0.75rem;
@@ -99,12 +146,12 @@
   </head>
   <body>
     <main class="shell">
-      <h1 data-i18n="app.heading">Iqamah Schedule Generator</h1>
-
-      <div class="row">
-        <label for="switchUiLanguage" data-i18n="labels.uiLanguage">Application Language</label>
-        <span id="uiLanguageValue">English</span>
-        <button id="switchUiLanguage" type="button">Türkçe</button>
+      <div class="topbar">
+        <h1 data-i18n="app.heading">Iqamah Schedule Generator</h1>
+        <div class="language-control">
+          <span data-i18n="labels.uiLanguageShort">Language</span>
+          <button id="switchUiLanguage" type="button">Türkçe</button>
+        </div>
       </div>
 
       <div class="row">
@@ -113,18 +160,17 @@
         <button id="pickOutput" type="button" data-i18n="buttons.browse">Browse</button>
       </div>
 
-      <div class="row">
+      <div class="row row-inline">
         <label for="month" data-i18n="labels.month">Month</label>
-        <select id="month"></select>
-        <button id="refreshMonths" type="button" data-i18n="buttons.refresh">Refresh</button>
-      </div>
-
-      <div class="row">
-        <label for="timeFormat" data-i18n="labels.timeFormat">Time Format</label>
-        <select id="timeFormat">
-          <option value="ampm" data-i18n="options.timeFormat.ampm">AM/PM</option>
-          <option value="24h" data-i18n="options.timeFormat.h24">24h</option>
-        </select>
+        <div class="field-inline">
+          <select id="month" class="compact-select"></select>
+          <button id="refreshMonths" type="button" data-i18n="buttons.refresh">Refresh</button>
+          <label for="timeFormat" data-i18n="labels.timeFormat">Time Format</label>
+          <select id="timeFormat" class="compact-select">
+            <option value="ampm" data-i18n="options.timeFormat.ampm">AM/PM</option>
+            <option value="24h" data-i18n="options.timeFormat.h24">24h</option>
+          </select>
+        </div>
         <span></span>
       </div>
 
@@ -145,26 +191,26 @@
 
           <div class="row">
             <label for="locale" data-i18n="labels.outputLocale">Output Language (Generated Content)</label>
-            <select id="locale">
-              <option value="en" data-i18n="options.outputLocale.en">English</option>
-              <option value="tr" data-i18n="options.outputLocale.tr">Turkish</option>
-            </select>
-            <span></span>
-          </div>
-
-          <div class="row">
-            <label for="baseGroupSize" data-i18n="labels.baseGroupSize">Base Group Size</label>
-            <select id="baseGroupSize">
-              <option value="5">5</option>
-              <option value="10">10</option>
-              <option value="15">15</option>
-            </select>
+            <div class="advanced-inline">
+              <select id="locale" class="compact-select-locale">
+                <option value="en" data-i18n="options.outputLocale.en">English</option>
+                <option value="tr" data-i18n="options.outputLocale.tr">Turkish</option>
+              </select>
+              <label for="baseGroupSize" data-i18n="labels.baseGroupSize">Base Group Size</label>
+              <select id="baseGroupSize" class="compact-select-base">
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="15">15</option>
+              </select>
+            </div>
             <span></span>
           </div>
 
           <div class="row">
             <label for="ramazanHesabi" data-i18n="labels.ramazanHesabi">Ramazan hesabi</label>
-            <input id="ramazanHesabi" type="checkbox" />
+            <div class="time-control">
+              <input id="ramazanHesabi" type="checkbox" />
+            </div>
             <span></span>
           </div>
 
@@ -198,8 +244,8 @@
 
           <div class="row">
             <label for="zhuhrSingleHour" data-i18n="labels.zhuhrSingleLimit">Zhuhr single limit</label>
-            <div id="zhuhrSingleGroup" class="time-group">
-              <span class="group-label" data-i18n="options.zhuhrGroup.single">Single</span>
+            <div id="zhuhrSingleGroup" class="time-control">
+              <span class="checkbox-spacer" aria-hidden="true"></span>
               <button id="zhuhrSingleHourDec" class="tiny" type="button">-</button>
               <input id="zhuhrSingleHour" type="text" inputmode="numeric" />
               <button id="zhuhrSingleHourInc" class="tiny" type="button">+</button>
@@ -212,7 +258,7 @@
             <span></span>
           </div>
 
-          <div class="row">
+          <div class="row" id="zhuhrStdDstRow">
             <label for="zhuhrStdHour" data-i18n="labels.zhuhrStdDstLimits">Zhuhr standard/daylight limits</label>
             <div id="zhuhrDualGroup" class="time-control">
               <div class="time-group">
@@ -247,8 +293,8 @@
 
       <div class="row">
         <label></label>
-        <button id="generatePng" type="button" data-i18n="buttons.generatePng">Generate PNG</button>
-        <button id="generateXlsx" type="button" data-i18n="buttons.generateXlsx">Generate XLSX</button>
+        <button id="generatePng" class="generate-btn" type="button" data-i18n="buttons.generatePng">Generate PNG</button>
+        <button id="generateXlsx" class="generate-btn" type="button" data-i18n="buttons.generateXlsx">Generate XLSX</button>
       </div>
     </main>
 

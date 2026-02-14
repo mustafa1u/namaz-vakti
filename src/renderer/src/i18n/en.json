@@ -5,6 +5,7 @@
   },
   "labels": {
     "uiLanguage": "Application Language",
+    "uiLanguageShort": "Language",
     "tsvFolder": "TSV Folder",
     "outputFolder": "Output Folder",
     "month": "Month",
