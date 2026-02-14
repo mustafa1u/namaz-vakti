@@ -26,6 +26,7 @@
     "advanced": "Gelişmiş...",
     "generatePng": "PNG üret",
     "generateXlsx": "XLSX üret",
+    "resetDefaults": "Varsayılanlara dön",
     "switchToEnglish": "English",
     "switchToTurkish": "Türkçe"
   },
@@ -89,7 +90,8 @@
     "validationFailed": "Üretim başlatılamadı. {{details}}",
     "generatePngSuccess": "PNG üretildi: {{pngPath}} | Uyarılar: {{warnings}}",
     "generateXlsxSuccess": "XLSX üretildi: {{xlsxPath}} | Uyarılar: {{warnings}}",
-    "generateFailed": "{{target}} üretimi başarısız: {{details}}"
+    "generateFailed": "{{target}} üretimi başarısız: {{details}}",
+    "defaultsRestored": "Varsayılanlar yüklendi."
   },
   "common": {
     "cancelled": "<iptal edildi>",

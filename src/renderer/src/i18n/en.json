@@ -26,6 +26,7 @@
     "advanced": "Advanced...",
     "generatePng": "Generate PNG",
     "generateXlsx": "Generate XLSX",
+    "resetDefaults": "Reset to defaults",
     "switchToEnglish": "English",
     "switchToTurkish": "Türkçe"
   },
@@ -89,7 +90,8 @@
     "validationFailed": "Cannot generate. {{details}}",
     "generatePngSuccess": "PNG generated: {{pngPath}} | Warnings: {{warnings}}",
     "generateXlsxSuccess": "XLSX generated: {{xlsxPath}} | Warnings: {{warnings}}",
-    "generateFailed": "Generate {{target}} failed: {{details}}"
+    "generateFailed": "Generate {{target}} failed: {{details}}",
+    "defaultsRestored": "Defaults restored."
   },
   "common": {
     "cancelled": "<cancelled>",

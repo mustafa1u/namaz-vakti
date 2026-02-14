@@ -40,6 +40,7 @@ const zhuhrDstAmPmLabel = getEl<HTMLElement>("zhuhrDstAmPm");
 const statusMessageEl = getEl<HTMLElement>("statusMessage");
 const generatePngButton = getEl<HTMLButtonElement>("generatePng");
 const generateXlsxButton = getEl<HTMLButtonElement>("generateXlsx");
+const resetDefaultsButton = getEl<HTMLButtonElement>("resetDefaults");
 const DEFAULT_TSV_FOLDER = "assets/out_monthly";
 const LAST_ENTRIES_KEY = "namaz-vakti:last-entries:v2";
 let fajrLatestLimitMinutesState = 390;
@@ -131,6 +132,14 @@ async function bootstrap(): Promise<void> {
 
   generateXlsxButton.addEventListener("click", async () => {
     await generateForTarget("xlsx");
+  });
+
+  resetDefaultsButton.addEventListener("click", async () => {
+    try {
+      await resetToDefaults();
+    } catch (error) {
+      logError("errors.refreshMonthsFailed", error);
+    }
   });
 }
 
@@ -326,10 +335,13 @@ function readOptions(): GenerationOptions {
 
 function applyFreshDefaults(): void {
   tsvFolderInput.value = DEFAULT_TSV_FOLDER;
+  outputFolderInput.value = "";
+  monthSelect.value = "";
   localeSelect.value = "en";
   timeFormatSelect.value = "ampm";
   baseGroupSizeSelect.value = "5";
   ramazanHesabiInput.checked = true;
+  announcementMessageInput.value = "";
   fajrLatestLimitEnabledInput.checked = true;
   fajrLatestLimitMinutesState = 390;
   zhuhrEarliestLimitEnabledInput.checked = true;
@@ -337,6 +349,16 @@ function applyFreshDefaults(): void {
   zhuhrSingleLimitMinutesState = 730;
   zhuhrStandardLimitMinutesState = 750;
   zhuhrDaylightLimitMinutesState = 810;
+}
+
+async function resetToDefaults(): Promise<void> {
+  localStorage.removeItem(LAST_ENTRIES_KEY);
+  applyFreshDefaults();
+  syncFajrLimitUi();
+  syncZhuhrLimitUi();
+  await refreshMonths();
+  saveLastEntries();
+  showStatus(t("status.defaultsRestored"));
 }
 
 function validateBeforeGenerate(options: GenerationOptions): string[] {
