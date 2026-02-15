@@ -1,12 +1,18 @@
 import type { DailyPrayerMinutes, GroupResult, IqamahRule } from "./types";
 import type { PrayerKey } from "@shared/ipc";
 
-function ceilToFive(minutes: number): number {
-  return Math.ceil(minutes / 5) * 5;
+function ceilToMultiple(minutes: number, multiple: 1 | 5 | 10): number {
+  if (multiple === 1) {
+    return minutes;
+  }
+  return Math.ceil(minutes / multiple) * multiple;
 }
 
-function floorToFive(minutes: number): number {
-  return Math.floor(minutes / 5) * 5;
+function floorToMultiple(minutes: number, multiple: 1 | 5 | 10): number {
+  if (multiple === 1) {
+    return minutes;
+  }
+  return Math.floor(minutes / multiple) * multiple;
 }
 
 function getAnchorMinutes(day: DailyPrayerMinutes, prayer: PrayerKey): number {
@@ -29,16 +35,16 @@ export function optimizeIqamahForPrayer(days: DailyPrayerMinutes[], rule: Iqamah
   // Hard-gap model (no minimization):
   // - after x minutes: use latest anchor + x.
   // - before x minutes: use earliest anchor - x.
-  // When 5-minute multiples are required, round conservatively so the minimum gap remains valid.
+  // Rounding is conservative so minimum gap remains valid.
   if (rule.direction === "after") {
     const latestAnchor = Math.max(...days.map((day) => getAnchorMinutes(day, rule.prayer)));
     const threshold = latestAnchor + rule.offsetMinutes;
-    return rule.roundedToFiveMinutes ? ceilToFive(threshold) : threshold;
+    return ceilToMultiple(threshold, rule.minuteMultiple);
   }
 
   const earliestAnchor = Math.min(...days.map((day) => getAnchorMinutes(day, rule.prayer)));
   const threshold = earliestAnchor - rule.offsetMinutes;
-  return rule.roundedToFiveMinutes ? floorToFive(threshold) : threshold;
+  return floorToMultiple(threshold, rule.minuteMultiple);
 }
 
 export function buildBaseGroups(

@@ -1,4 +1,14 @@
-import type { GenerationOptions, GenerateTarget } from "@shared/ipc";
+﻿
+import {
+  CustomizationSchema,
+  DEFAULT_CUSTOMIZATION,
+  type Customization,
+  type GenerationOptions,
+  type GenerateTarget,
+  type LimitMode,
+  type MinuteMultiple,
+  type PrayerKey
+} from "@shared/ipc";
 
 import {
   UI_LANGUAGE_STORAGE_KEY,
@@ -19,35 +29,28 @@ const timeFormatSelect = getEl<HTMLSelectElement>("timeFormat");
 const baseGroupSizeSelect = getEl<HTMLSelectElement>("baseGroupSize");
 const ramazanHesabiInput = getEl<HTMLInputElement>("ramazanHesabi");
 const announcementMessageInput = getEl<HTMLTextAreaElement>("announcementMessage");
-const fajrLatestLimitEnabledInput = getEl<HTMLInputElement>("fajrLatestLimitEnabled");
-const fajrHourInput = getEl<HTMLInputElement>("fajrHour");
-const fajrMinuteInput = getEl<HTMLInputElement>("fajrMinute");
-const fajrAmPmLabel = getEl<HTMLElement>("fajrAmPm");
-const zhuhrEarliestLimitEnabledInput = getEl<HTMLInputElement>("zhuhrEarliestLimitEnabled");
-const zhuhrLimitModeSelect = getEl<HTMLSelectElement>("zhuhrLimitMode");
-const zhuhrStdDstRow = getEl<HTMLElement>("zhuhrStdDstRow");
-const zhuhrSingleGroup = getEl<HTMLElement>("zhuhrSingleGroup");
-const zhuhrDualGroup = getEl<HTMLElement>("zhuhrDualGroup");
-const zhuhrSingleHourInput = getEl<HTMLInputElement>("zhuhrSingleHour");
-const zhuhrSingleMinuteInput = getEl<HTMLInputElement>("zhuhrSingleMinute");
-const zhuhrSingleAmPmLabel = getEl<HTMLElement>("zhuhrSingleAmPm");
-const zhuhrStdHourInput = getEl<HTMLInputElement>("zhuhrStdHour");
-const zhuhrStdMinuteInput = getEl<HTMLInputElement>("zhuhrStdMinute");
-const zhuhrStdAmPmLabel = getEl<HTMLElement>("zhuhrStdAmPm");
-const zhuhrDstHourInput = getEl<HTMLInputElement>("zhuhrDstHour");
-const zhuhrDstMinuteInput = getEl<HTMLInputElement>("zhuhrDstMinute");
-const zhuhrDstAmPmLabel = getEl<HTMLElement>("zhuhrDstAmPm");
+const advancedLimitRowsEl = getEl<HTMLElement>("advancedLimitRows");
+const openCustomizeButton = getEl<HTMLButtonElement>("openCustomize");
+const customizeModal = getEl<HTMLElement>("customizeModal");
+const customizePrayers = getEl<HTMLElement>("customizePrayers");
+const saveCustomizeButton = getEl<HTMLButtonElement>("saveCustomize");
+const cancelCustomizeButton = getEl<HTMLButtonElement>("cancelCustomize");
 const statusMessageEl = getEl<HTMLElement>("statusMessage");
 const generatePngButton = getEl<HTMLButtonElement>("generatePng");
 const generateXlsxButton = getEl<HTMLButtonElement>("generateXlsx");
 const resetDefaultsButton = getEl<HTMLButtonElement>("resetDefaults");
+
+const PRAYER_ORDER: PrayerKey[] = ["fajr", "zhuhr", "asr", "maghrib", "isha"];
+const LIMIT_ORDER: Array<"noEarlier" | "noLater"> = ["noEarlier", "noLater"];
 const DEFAULT_TSV_FOLDER = "assets/out_monthly";
-const LAST_ENTRIES_KEY = "namaz-vakti:last-entries:v2";
-let fajrLatestLimitMinutesState = 390;
-let zhuhrSingleLimitMinutesState = 730;
-let zhuhrStandardLimitMinutesState = 750;
-let zhuhrDaylightLimitMinutesState = 810;
-let isGenerating = false;
+const LAST_ENTRIES_KEY = "namaz-vakti:last-entries:v4";
+const LEGACY_V3_KEY = "namaz-vakti:last-entries:v3";
+const LEGACY_V2_KEY = "namaz-vakti:last-entries:v2";
+
+type ActiveLimitRow = {
+  prayer: PrayerKey;
+  limitType: "noEarlier" | "noLater";
+};
 
 type LastEntries = {
   tsvFolder: string;
@@ -58,20 +61,39 @@ type LastEntries = {
   baseGroupSize: string;
   ramazanHesabi: boolean;
   announcementMessage: string;
-  fajrLatestLimitEnabled: boolean;
-  fajrLatestLimitMinutes: number;
-  zhuhrEarliestLimitEnabled: boolean;
-  zhuhrUseStandardDaylightLimits: boolean;
-  zhuhrEarliestLimitMinutes: number;
-  zhuhrStandardEarliestLimitMinutes: number;
-  zhuhrDaylightEarliestLimitMinutes: number;
+  customization: Customization;
 };
+
+type LegacyEntriesV3 = Partial<LastEntries> & {
+  zhuhrUseStandardDaylightLimits?: boolean;
+  zhuhrEarliestLimitMinutes?: number;
+  zhuhrStandardEarliestLimitMinutes?: number;
+  zhuhrDaylightEarliestLimitMinutes?: number;
+  fajrLatestLimitEnabled?: boolean;
+  fajrLatestLimitMinutes?: number;
+  zhuhrEarliestLimitEnabled?: boolean;
+};
+
+type LegacyPrayerConfig = {
+  enabled?: boolean;
+  direction?: "after" | "before";
+  offsetMinutes?: number;
+  minuteMultiple?: 1 | 5 | 10;
+  noEarlierEnabled?: boolean;
+  noLaterEnabled?: boolean;
+};
+
+let customizationState = cloneCustomization(DEFAULT_CUSTOMIZATION);
+let draftCustomizationState = cloneCustomization(DEFAULT_CUSTOMIZATION);
+let isGenerating = false;
 
 void bootstrap();
 
 async function bootstrap(): Promise<void> {
   const savedUiLanguage = localStorage.getItem(UI_LANGUAGE_STORAGE_KEY);
   await initializeI18n(savedUiLanguage);
+
+  initializeCustomizeModalUi();
   applyUiTranslations();
 
   if (!window.appApi) {
@@ -81,11 +103,9 @@ async function bootstrap(): Promise<void> {
 
   bindPersistence();
   bindUiLanguageSwitch();
+  bindCustomizeModalHandlers();
+
   await restoreLastEntries();
-  bindFajrLimitControls();
-  bindZhuhrLimitControls();
-  syncFajrLimitUi();
-  syncZhuhrLimitUi();
 
   log(t("logs.appApiReady", { methods: Object.keys(window.appApi).join(", ") }));
 
@@ -144,7 +164,7 @@ async function bootstrap(): Promise<void> {
 }
 
 async function refreshMonths(): Promise<void> {
-  if (!tsvFolderInput.value) {
+  if (!tsvFolderInput.value.trim()) {
     log(t("logs.setTsvFolderFirst"));
     return;
   }
@@ -163,15 +183,15 @@ async function refreshMonths(): Promise<void> {
 
   if (months.length === 0) {
     log(t("logs.noMonthFilesFound"));
-  } else {
-    if (previousMonth && months.includes(previousMonth)) {
-      monthSelect.value = previousMonth;
-    }
-    saveLastEntries();
-    log(t("logs.foundMonths", { months: months.join(", ") }));
+    return;
   }
-}
 
+  if (previousMonth && months.includes(previousMonth)) {
+    monthSelect.value = previousMonth;
+  }
+  saveLastEntries();
+  log(t("logs.foundMonths", { months: months.join(", ") }));
+}
 function bindPersistence(): void {
   const save = () => saveLastEntries();
 
@@ -180,26 +200,13 @@ function bindPersistence(): void {
   monthSelect.addEventListener("change", save);
   localeSelect.addEventListener("change", save);
   timeFormatSelect.addEventListener("change", () => {
-    syncFajrLimitUi();
-    syncZhuhrLimitUi();
+    renderAdvancedLimitRows();
     save();
   });
   baseGroupSizeSelect.addEventListener("change", save);
   ramazanHesabiInput.addEventListener("change", save);
   announcementMessageInput.addEventListener("change", save);
   announcementMessageInput.addEventListener("input", save);
-  fajrLatestLimitEnabledInput.addEventListener("change", () => {
-    syncFajrLimitUi();
-    save();
-  });
-  zhuhrEarliestLimitEnabledInput.addEventListener("change", () => {
-    syncZhuhrLimitUi();
-    save();
-  });
-  zhuhrLimitModeSelect.addEventListener("change", () => {
-    syncZhuhrLimitUi();
-    save();
-  });
 }
 
 function bindUiLanguageSwitch(): void {
@@ -208,8 +215,8 @@ function bindUiLanguageSwitch(): void {
     await setUiLanguage(nextLanguage);
     localStorage.setItem(UI_LANGUAGE_STORAGE_KEY, nextLanguage);
     applyUiTranslations();
-    syncFajrLimitUi();
-    syncZhuhrLimitUi();
+    renderAdvancedLimitRows();
+    syncCustomizeModalUiFromDraft();
   });
 }
 
@@ -225,9 +232,9 @@ async function restoreLastEntries(): Promise<void> {
   const saved = loadLastEntries();
   if (!saved) {
     applyFreshDefaults();
-    syncFajrLimitUi();
-    syncZhuhrLimitUi();
+    renderAdvancedLimitRows();
     await refreshMonths();
+    saveLastEntries();
     return;
   }
 
@@ -238,19 +245,13 @@ async function restoreLastEntries(): Promise<void> {
   baseGroupSizeSelect.value = saved.baseGroupSize;
   ramazanHesabiInput.checked = saved.ramazanHesabi;
   announcementMessageInput.value = saved.announcementMessage;
-  fajrLatestLimitEnabledInput.checked = saved.fajrLatestLimitEnabled;
-  fajrLatestLimitMinutesState = clampDayMinute(saved.fajrLatestLimitMinutes);
-  zhuhrEarliestLimitEnabledInput.checked = saved.zhuhrEarliestLimitEnabled;
-  zhuhrLimitModeSelect.value = saved.zhuhrUseStandardDaylightLimits ? "std-dst" : "single";
-  zhuhrSingleLimitMinutesState = clampDayMinute(saved.zhuhrEarliestLimitMinutes);
-  zhuhrStandardLimitMinutesState = clampDayMinute(saved.zhuhrStandardEarliestLimitMinutes);
-  zhuhrDaylightLimitMinutesState = clampDayMinute(saved.zhuhrDaylightEarliestLimitMinutes);
-  syncFajrLimitUi();
-  syncZhuhrLimitUi();
+  customizationState = sanitizeCustomization(saved.customization);
+
+  renderAdvancedLimitRows();
 
   if (tsvFolderInput.value.trim()) {
     await refreshMonths();
-    if (saved.month && Array.from(monthSelect.options).some((opt) => opt.value === saved.month)) {
+    if (saved.month && Array.from(monthSelect.options).some((option) => option.value === saved.month)) {
       monthSelect.value = saved.month;
     }
     saveLastEntries();
@@ -264,52 +265,129 @@ function saveLastEntries(): void {
     tsvFolder: tsvFolderInput.value.trim(),
     outputFolder: outputFolderInput.value.trim(),
     month: monthSelect.value,
-    locale: localeSelect.value as GenerationOptions["locale"],
-    timeFormat: timeFormatSelect.value as GenerationOptions["timeFormat"],
-    baseGroupSize: baseGroupSizeSelect.value,
+    locale: localeSelect.value === "tr" ? "tr" : "en",
+    timeFormat: timeFormatSelect.value === "24h" ? "24h" : "ampm",
+    baseGroupSize: normalizeBaseGroupSize(baseGroupSizeSelect.value),
     ramazanHesabi: ramazanHesabiInput.checked,
     announcementMessage: announcementMessageInput.value,
-    fajrLatestLimitEnabled: fajrLatestLimitEnabledInput.checked,
-    fajrLatestLimitMinutes: fajrLatestLimitMinutesState,
-    zhuhrEarliestLimitEnabled: zhuhrEarliestLimitEnabledInput.checked,
-    zhuhrUseStandardDaylightLimits: zhuhrLimitModeSelect.value === "std-dst",
-    zhuhrEarliestLimitMinutes: zhuhrSingleLimitMinutesState,
-    zhuhrStandardEarliestLimitMinutes: zhuhrStandardLimitMinutesState,
-    zhuhrDaylightEarliestLimitMinutes: zhuhrDaylightLimitMinutesState
+    customization: sanitizeCustomization(customizationState)
   };
 
   localStorage.setItem(LAST_ENTRIES_KEY, JSON.stringify(data));
 }
 
 function loadLastEntries(): LastEntries | null {
-  const raw = localStorage.getItem(LAST_ENTRIES_KEY);
-  if (!raw) {
-    return null;
+  const v4Raw = localStorage.getItem(LAST_ENTRIES_KEY);
+  if (v4Raw) {
+    const parsedV4 = parseV4Entries(v4Raw);
+    if (parsedV4) {
+      return parsedV4;
+    }
   }
 
+  const v3Raw = localStorage.getItem(LEGACY_V3_KEY);
+  if (v3Raw) {
+    const migratedV3 = parseLegacyEntries(v3Raw);
+    if (migratedV3) {
+      return migratedV3;
+    }
+  }
+
+  const v2Raw = localStorage.getItem(LEGACY_V2_KEY);
+  if (v2Raw) {
+    return parseLegacyEntries(v2Raw);
+  }
+
+  return null;
+}
+
+function parseV4Entries(raw: string): LastEntries | null {
   try {
     const parsed = JSON.parse(raw) as Partial<LastEntries>;
-    const normalizedTsvFolder = parsed.tsvFolder?.trim() || DEFAULT_TSV_FOLDER;
+    const parsedCustomization = CustomizationSchema.safeParse(parsed.customization);
+    if (!parsedCustomization.success) {
+      return null;
+    }
+
     return {
-      tsvFolder: normalizedTsvFolder,
+      tsvFolder: parsed.tsvFolder?.trim() || DEFAULT_TSV_FOLDER,
       outputFolder: parsed.outputFolder ?? "",
       month: parsed.month ?? "",
       locale: parsed.locale === "tr" ? "tr" : "en",
       timeFormat: parsed.timeFormat === "24h" ? "24h" : "ampm",
-      baseGroupSize: parsed.baseGroupSize ?? "5",
+      baseGroupSize: normalizeBaseGroupSize(parsed.baseGroupSize),
       ramazanHesabi: parsed.ramazanHesabi !== false,
       announcementMessage: parsed.announcementMessage ?? "",
-      fajrLatestLimitEnabled: parsed.fajrLatestLimitEnabled !== false,
-      fajrLatestLimitMinutes: Number.isFinite(parsed.fajrLatestLimitMinutes) ? Number(parsed.fajrLatestLimitMinutes) : 390,
-      zhuhrEarliestLimitEnabled: parsed.zhuhrEarliestLimitEnabled !== false,
-      zhuhrUseStandardDaylightLimits: parsed.zhuhrUseStandardDaylightLimits === true,
-      zhuhrEarliestLimitMinutes: Number.isFinite(parsed.zhuhrEarliestLimitMinutes) ? Number(parsed.zhuhrEarliestLimitMinutes) : 730,
-      zhuhrStandardEarliestLimitMinutes: Number.isFinite(parsed.zhuhrStandardEarliestLimitMinutes) ? Number(parsed.zhuhrStandardEarliestLimitMinutes) : 750,
-      zhuhrDaylightEarliestLimitMinutes: Number.isFinite(parsed.zhuhrDaylightEarliestLimitMinutes) ? Number(parsed.zhuhrDaylightEarliestLimitMinutes) : 810
+      customization: sanitizeCustomization(parsedCustomization.data)
     };
   } catch {
     return null;
   }
+}
+
+function parseLegacyEntries(raw: string): LastEntries | null {
+  try {
+    const parsed = JSON.parse(raw) as LegacyEntriesV3;
+    return {
+      tsvFolder: parsed.tsvFolder?.trim() || DEFAULT_TSV_FOLDER,
+      outputFolder: parsed.outputFolder ?? "",
+      month: parsed.month ?? "",
+      locale: parsed.locale === "tr" ? "tr" : "en",
+      timeFormat: parsed.timeFormat === "24h" ? "24h" : "ampm",
+      baseGroupSize: normalizeBaseGroupSize(parsed.baseGroupSize),
+      ramazanHesabi: parsed.ramazanHesabi !== false,
+      announcementMessage: parsed.announcementMessage ?? "",
+      customization: migrateLegacyCustomization(parsed)
+    };
+  } catch {
+    return null;
+  }
+}
+
+function migrateLegacyCustomization(parsed: LegacyEntriesV3): Customization {
+  const migrated = cloneCustomization(DEFAULT_CUSTOMIZATION);
+  const legacyPrayers = (parsed.customization as { prayers?: Partial<Record<PrayerKey, LegacyPrayerConfig>> } | undefined)?.prayers;
+
+  for (const prayer of PRAYER_ORDER) {
+    const old = legacyPrayers?.[prayer];
+    if (!old) {
+      continue;
+    }
+
+    if (typeof old.enabled === "boolean") {
+      migrated.prayers[prayer].enabled = old.enabled;
+    }
+    if (old.direction === "after" || old.direction === "before") {
+      migrated.prayers[prayer].direction = old.direction;
+    }
+    if (typeof old.offsetMinutes === "number" && Number.isFinite(old.offsetMinutes)) {
+      migrated.prayers[prayer].offsetMinutes = Math.max(0, Math.trunc(old.offsetMinutes));
+    }
+    if (old.minuteMultiple === 1 || old.minuteMultiple === 5 || old.minuteMultiple === 10) {
+      migrated.prayers[prayer].minuteMultiple = old.minuteMultiple;
+    }
+    if (typeof old.noEarlierEnabled === "boolean") {
+      migrated.prayers[prayer].noEarlier.enabled = old.noEarlierEnabled;
+    }
+    if (typeof old.noLaterEnabled === "boolean") {
+      migrated.prayers[prayer].noLater.enabled = old.noLaterEnabled;
+    }
+  }
+
+  migrated.prayers.fajr.noLater.enabled = parsed.fajrLatestLimitEnabled !== false;
+  const legacyFajr = toMinuteWithDefault(parsed.fajrLatestLimitMinutes, 390);
+  migrated.prayers.fajr.noLater.mode = "single";
+  migrated.prayers.fajr.noLater.singleMinutes = legacyFajr;
+  migrated.prayers.fajr.noLater.standardMinutes = legacyFajr;
+  migrated.prayers.fajr.noLater.daylightMinutes = legacyFajr;
+
+  migrated.prayers.zhuhr.noEarlier.enabled = parsed.zhuhrEarliestLimitEnabled !== false;
+  migrated.prayers.zhuhr.noEarlier.mode = parsed.zhuhrUseStandardDaylightLimits ? "std-dst" : "single";
+  migrated.prayers.zhuhr.noEarlier.singleMinutes = toMinuteWithDefault(parsed.zhuhrEarliestLimitMinutes, 730);
+  migrated.prayers.zhuhr.noEarlier.standardMinutes = toMinuteWithDefault(parsed.zhuhrStandardEarliestLimitMinutes, 750);
+  migrated.prayers.zhuhr.noEarlier.daylightMinutes = toMinuteWithDefault(parsed.zhuhrDaylightEarliestLimitMinutes, 810);
+
+  return sanitizeCustomization(migrated);
 }
 
 function readOptions(): GenerationOptions {
@@ -318,18 +396,12 @@ function readOptions(): GenerationOptions {
     tsvFolder: tsvFolderInput.value.trim(),
     outputFolder: outputFolderInput.value.trim(),
     announcementMessage: announcementMessageInput.value,
-    fajrLatestLimitEnabled: fajrLatestLimitEnabledInput.checked,
-    fajrLatestLimitMinutes: fajrLatestLimitMinutesState,
-    zhuhrEarliestLimitEnabled: zhuhrEarliestLimitEnabledInput.checked,
-    zhuhrUseStandardDaylightLimits: zhuhrLimitModeSelect.value === "std-dst",
-    zhuhrEarliestLimitMinutes: zhuhrSingleLimitMinutesState,
-    zhuhrStandardEarliestLimitMinutes: zhuhrStandardLimitMinutesState,
-    zhuhrDaylightEarliestLimitMinutes: zhuhrDaylightLimitMinutesState,
-    locale: localeSelect.value as GenerationOptions["locale"],
-    timeFormat: timeFormatSelect.value as GenerationOptions["timeFormat"],
-    baseGroupSize: Number(baseGroupSizeSelect.value),
+    locale: localeSelect.value === "tr" ? "tr" : "en",
+    timeFormat: timeFormatSelect.value === "24h" ? "24h" : "ampm",
+    baseGroupSize: Number(normalizeBaseGroupSize(baseGroupSizeSelect.value)),
     includeFridayNotes: true,
-    ramazanHesabi: ramazanHesabiInput.checked
+    ramazanHesabi: ramazanHesabiInput.checked,
+    customization: sanitizeCustomization(customizationState)
   };
 }
 
@@ -342,20 +414,16 @@ function applyFreshDefaults(): void {
   baseGroupSizeSelect.value = "5";
   ramazanHesabiInput.checked = true;
   announcementMessageInput.value = "";
-  fajrLatestLimitEnabledInput.checked = true;
-  fajrLatestLimitMinutesState = 390;
-  zhuhrEarliestLimitEnabledInput.checked = true;
-  zhuhrLimitModeSelect.value = "single";
-  zhuhrSingleLimitMinutesState = 730;
-  zhuhrStandardLimitMinutesState = 750;
-  zhuhrDaylightLimitMinutesState = 810;
+  customizationState = cloneCustomization(DEFAULT_CUSTOMIZATION);
+  draftCustomizationState = cloneCustomization(DEFAULT_CUSTOMIZATION);
 }
 
 async function resetToDefaults(): Promise<void> {
   localStorage.removeItem(LAST_ENTRIES_KEY);
+  localStorage.removeItem(LEGACY_V3_KEY);
+  localStorage.removeItem(LEGACY_V2_KEY);
   applyFreshDefaults();
-  syncFajrLimitUi();
-  syncZhuhrLimitUi();
+  renderAdvancedLimitRows();
   await refreshMonths();
   saveLastEntries();
   showStatus(t("status.defaultsRestored"));
@@ -399,14 +467,12 @@ async function generateForTarget(target: GenerateTarget): Promise<void> {
 
   try {
     log(t("logs.generateClicked", { month: options.month, target: targetLabel }));
-    await window.appApi.generateOutputs({ options, targets: [target] });
-
-    if (target === "png") {
+    const response = await window.appApi.generateOutputs({ options, targets: [target] });
+    if (response.warnings.length > 0) {
+      showStatus(response.warnings.join(" | "));
+    } else {
       showStatus("");
-      return;
     }
-
-    showStatus("");
   } catch (error) {
     const details = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
     showStatus(t("status.generateFailed", { target: targetLabel, details }));
@@ -416,321 +482,480 @@ async function generateForTarget(target: GenerateTarget): Promise<void> {
     setGenerateButtonsDisabled(false);
   }
 }
-
-function bindFajrLimitControls(): void {
-  getEl<HTMLButtonElement>("fajrHourInc").addEventListener("click", () => {
-    incrementFajrHour(1);
-    saveLastEntries();
-  });
-  getEl<HTMLButtonElement>("fajrHourDec").addEventListener("click", () => {
-    incrementFajrHour(-1);
-    saveLastEntries();
-  });
-  getEl<HTMLButtonElement>("fajrMinuteInc").addEventListener("click", () => {
-    incrementFajrMinute(1);
-    saveLastEntries();
-  });
-  getEl<HTMLButtonElement>("fajrMinuteDec").addEventListener("click", () => {
-    incrementFajrMinute(-1);
-    saveLastEntries();
-  });
-
-  fajrHourInput.addEventListener("change", () => {
-    applyManualFajrHour();
-    saveLastEntries();
-  });
-  fajrMinuteInput.addEventListener("change", () => {
-    applyManualFajrMinute();
-    saveLastEntries();
-  });
-}
-
-function syncFajrLimitUi(): void {
-  const enabled = fajrLatestLimitEnabledInput.checked;
-  const timeFormat = timeFormatSelect.value as GenerationOptions["timeFormat"];
-
-  const display = formatLimitForUi(fajrLatestLimitMinutesState, timeFormat);
-  fajrHourInput.value = String(display.hour).padStart(2, "0");
-  fajrMinuteInput.value = String(display.minute).padStart(2, "0");
-  fajrAmPmLabel.textContent = display.suffix;
-  fajrAmPmLabel.style.visibility = timeFormat === "24h" ? "hidden" : "visible";
-
-  fajrHourInput.disabled = !enabled;
-  fajrMinuteInput.disabled = !enabled;
-  getEl<HTMLButtonElement>("fajrHourInc").disabled = !enabled;
-  getEl<HTMLButtonElement>("fajrHourDec").disabled = !enabled;
-  getEl<HTMLButtonElement>("fajrMinuteInc").disabled = !enabled;
-  getEl<HTMLButtonElement>("fajrMinuteDec").disabled = !enabled;
-}
-
-function incrementFajrHour(step: number): void {
-  fajrLatestLimitMinutesState = clampDayMinute(fajrLatestLimitMinutesState + (step * 60));
-  syncFajrLimitUi();
-}
-
-function incrementFajrMinute(step: number): void {
-  fajrLatestLimitMinutesState = clampDayMinute(fajrLatestLimitMinutesState + step);
-  syncFajrLimitUi();
-}
-
-function applyManualFajrHour(): void {
-  const timeFormat = timeFormatSelect.value as GenerationOptions["timeFormat"];
-  const raw = Number(fajrHourInput.value);
-  if (!Number.isFinite(raw)) {
-    syncFajrLimitUi();
-    return;
-  }
-
-  const hour = Math.trunc(raw);
-  const currentMinute = fajrLatestLimitMinutesState % 60;
-  if (timeFormat === "24h") {
-    if (hour < 0 || hour > 23) {
-      syncFajrLimitUi();
-      return;
+function getOrderedActiveLimitRows(customization: Customization): ActiveLimitRow[] {
+  const rows: ActiveLimitRow[] = [];
+  for (const prayer of PRAYER_ORDER) {
+    for (const limitType of LIMIT_ORDER) {
+      const config = customization.prayers[prayer][limitType];
+      if (config.enabled) {
+        rows.push({ prayer, limitType });
+      }
     }
-    fajrLatestLimitMinutesState = (hour * 60) + currentMinute;
-    syncFajrLimitUi();
-    return;
   }
-
-  if (hour < 1 || hour > 12) {
-    syncFajrLimitUi();
-    return;
-  }
-  const currentHour24 = Math.floor(fajrLatestLimitMinutesState / 60);
-  const isPm = currentHour24 >= 12;
-  const hour24 = (hour % 12) + (isPm ? 12 : 0);
-  fajrLatestLimitMinutesState = (hour24 * 60) + currentMinute;
-  syncFajrLimitUi();
+  return rows;
 }
 
-function applyManualFajrMinute(): void {
-  const raw = Number(fajrMinuteInput.value);
-  if (!Number.isFinite(raw)) {
-    syncFajrLimitUi();
+function renderAdvancedLimitRows(): void {
+  const timeFormat = timeFormatSelect.value === "24h" ? "24h" : "ampm";
+  const rows = getOrderedActiveLimitRows(customizationState);
+
+  if (rows.length === 0) {
+    advancedLimitRowsEl.innerHTML = "";
     return;
   }
-  const minute = Math.trunc(raw);
-  if (minute < 0 || minute > 59) {
-    syncFajrLimitUi();
-    return;
+
+  advancedLimitRowsEl.innerHTML = rows.map((row) => buildLimitRowHtml(row, timeFormat)).join("");
+
+  for (const row of rows) {
+    bindLimitRowEvents(row);
   }
-  const hour24 = Math.floor(fajrLatestLimitMinutesState / 60);
-  fajrLatestLimitMinutesState = (hour24 * 60) + minute;
-  syncFajrLimitUi();
 }
 
-function bindZhuhrLimitControls(): void {
-  getEl<HTMLButtonElement>("zhuhrSingleHourInc").addEventListener("click", () => {
-    incrementZhuhrHour("single", 1);
-    saveLastEntries();
-  });
-  getEl<HTMLButtonElement>("zhuhrSingleHourDec").addEventListener("click", () => {
-    incrementZhuhrHour("single", -1);
-    saveLastEntries();
-  });
-  getEl<HTMLButtonElement>("zhuhrSingleMinuteInc").addEventListener("click", () => {
-    incrementZhuhrMinute("single", 1);
-    saveLastEntries();
-  });
-  getEl<HTMLButtonElement>("zhuhrSingleMinuteDec").addEventListener("click", () => {
-    incrementZhuhrMinute("single", -1);
-    saveLastEntries();
-  });
-
-  getEl<HTMLButtonElement>("zhuhrStdHourInc").addEventListener("click", () => {
-    incrementZhuhrHour("standard", 1);
-    saveLastEntries();
-  });
-  getEl<HTMLButtonElement>("zhuhrStdHourDec").addEventListener("click", () => {
-    incrementZhuhrHour("standard", -1);
-    saveLastEntries();
-  });
-  getEl<HTMLButtonElement>("zhuhrStdMinuteInc").addEventListener("click", () => {
-    incrementZhuhrMinute("standard", 1);
-    saveLastEntries();
-  });
-  getEl<HTMLButtonElement>("zhuhrStdMinuteDec").addEventListener("click", () => {
-    incrementZhuhrMinute("standard", -1);
-    saveLastEntries();
-  });
-
-  getEl<HTMLButtonElement>("zhuhrDstHourInc").addEventListener("click", () => {
-    incrementZhuhrHour("daylight", 1);
-    saveLastEntries();
-  });
-  getEl<HTMLButtonElement>("zhuhrDstHourDec").addEventListener("click", () => {
-    incrementZhuhrHour("daylight", -1);
-    saveLastEntries();
-  });
-  getEl<HTMLButtonElement>("zhuhrDstMinuteInc").addEventListener("click", () => {
-    incrementZhuhrMinute("daylight", 1);
-    saveLastEntries();
-  });
-  getEl<HTMLButtonElement>("zhuhrDstMinuteDec").addEventListener("click", () => {
-    incrementZhuhrMinute("daylight", -1);
-    saveLastEntries();
-  });
-
-  zhuhrSingleHourInput.addEventListener("change", () => {
-    applyManualZhuhrHour("single", zhuhrSingleHourInput);
-    saveLastEntries();
-  });
-  zhuhrSingleMinuteInput.addEventListener("change", () => {
-    applyManualZhuhrMinute("single", zhuhrSingleMinuteInput);
-    saveLastEntries();
-  });
-  zhuhrStdHourInput.addEventListener("change", () => {
-    applyManualZhuhrHour("standard", zhuhrStdHourInput);
-    saveLastEntries();
-  });
-  zhuhrStdMinuteInput.addEventListener("change", () => {
-    applyManualZhuhrMinute("standard", zhuhrStdMinuteInput);
-    saveLastEntries();
-  });
-  zhuhrDstHourInput.addEventListener("change", () => {
-    applyManualZhuhrHour("daylight", zhuhrDstHourInput);
-    saveLastEntries();
-  });
-  zhuhrDstMinuteInput.addEventListener("change", () => {
-    applyManualZhuhrMinute("daylight", zhuhrDstMinuteInput);
-    saveLastEntries();
-  });
-}
-
-function syncZhuhrLimitUi(): void {
-  const enabled = zhuhrEarliestLimitEnabledInput.checked;
-  const useDualMode = zhuhrLimitModeSelect.value === "std-dst";
-  const timeFormat = timeFormatSelect.value as GenerationOptions["timeFormat"];
-
-  const singleDisplay = formatLimitForUi(zhuhrSingleLimitMinutesState, timeFormat);
-  zhuhrSingleHourInput.value = String(singleDisplay.hour).padStart(2, "0");
-  zhuhrSingleMinuteInput.value = String(singleDisplay.minute).padStart(2, "0");
-  zhuhrSingleAmPmLabel.textContent = singleDisplay.suffix;
-
-  const standardDisplay = formatLimitForUi(zhuhrStandardLimitMinutesState, timeFormat);
-  zhuhrStdHourInput.value = String(standardDisplay.hour).padStart(2, "0");
-  zhuhrStdMinuteInput.value = String(standardDisplay.minute).padStart(2, "0");
-  zhuhrStdAmPmLabel.textContent = standardDisplay.suffix;
-
-  const daylightDisplay = formatLimitForUi(zhuhrDaylightLimitMinutesState, timeFormat);
-  zhuhrDstHourInput.value = String(daylightDisplay.hour).padStart(2, "0");
-  zhuhrDstMinuteInput.value = String(daylightDisplay.minute).padStart(2, "0");
-  zhuhrDstAmPmLabel.textContent = daylightDisplay.suffix;
-
+function buildLimitRowHtml(row: ActiveLimitRow, timeFormat: GenerationOptions["timeFormat"]): string {
+  const limitConfig = customizationState.prayers[row.prayer][row.limitType];
+  const rowKey = `${row.prayer}:${row.limitType}`;
+  const rowLabel = `${t(`prayers.${row.prayer}`)} ${t(row.limitType === "noEarlier" ? "labels.noEarlierLimit" : "labels.noLaterLimit")}`;
+  const singleDisplay = formatLimitForUi(limitConfig.singleMinutes, timeFormat);
+  const standardDisplay = formatLimitForUi(limitConfig.standardMinutes, timeFormat);
+  const daylightDisplay = formatLimitForUi(limitConfig.daylightMinutes, timeFormat);
   const ampmVisibility = timeFormat === "24h" ? "hidden" : "visible";
-  zhuhrSingleAmPmLabel.style.visibility = ampmVisibility;
-  zhuhrStdAmPmLabel.style.visibility = ampmVisibility;
-  zhuhrDstAmPmLabel.style.visibility = ampmVisibility;
+  const singleHidden = limitConfig.mode === "std-dst" ? "display:none;" : "";
+  const dualHidden = limitConfig.mode === "std-dst" ? "" : "display:none;";
 
-  zhuhrSingleGroup.style.display = useDualMode ? "none" : "flex";
-  zhuhrDualGroup.style.display = useDualMode ? "flex" : "none";
-  zhuhrStdDstRow.style.display = useDualMode ? "grid" : "none";
+  return `
+    <div class="row" data-row-key="${rowKey}">
+      <label>${rowLabel}</label>
+      <div class="limit-row-time">
+        <select class="limit-mode" data-role="mode">
+          <option value="single" ${limitConfig.mode === "single" ? "selected" : ""}>${t("options.zhuhrLimitMode.single")}</option>
+          <option value="std-dst" ${limitConfig.mode === "std-dst" ? "selected" : ""}>${t("options.zhuhrLimitMode.stdDst")}</option>
+        </select>
 
-  zhuhrLimitModeSelect.disabled = !enabled;
+        <div class="time-group" data-role="single" style="${singleHidden}">
+          ${renderTimeGroupControls(rowKey, "single", singleDisplay.hour, singleDisplay.minute, singleDisplay.suffix, ampmVisibility)}
+        </div>
 
-  setZhuhrGroupDisabled("single", !enabled || useDualMode);
-  setZhuhrGroupDisabled("standard", !enabled || !useDualMode);
-  setZhuhrGroupDisabled("daylight", !enabled || !useDualMode);
+        <div class="time-group" data-role="dual" style="${dualHidden}">
+          <div class="time-group">
+            <span class="group-label">${t("options.zhuhrGroup.standard")}</span>
+            ${renderTimeGroupControls(rowKey, "standard", standardDisplay.hour, standardDisplay.minute, standardDisplay.suffix, ampmVisibility)}
+          </div>
+          <div class="time-group">
+            <span class="group-label">${t("options.zhuhrGroup.daylight")}</span>
+            ${renderTimeGroupControls(rowKey, "daylight", daylightDisplay.hour, daylightDisplay.minute, daylightDisplay.suffix, ampmVisibility)}
+          </div>
+        </div>
+      </div>
+      <span></span>
+    </div>
+  `;
 }
 
-function setZhuhrGroupDisabled(group: "single" | "standard" | "daylight", disabled: boolean): void {
-  const prefix = group === "single" ? "zhuhrSingle" : group === "standard" ? "zhuhrStd" : "zhuhrDst";
-  getEl<HTMLButtonElement>(`${prefix}HourInc`).disabled = disabled;
-  getEl<HTMLButtonElement>(`${prefix}HourDec`).disabled = disabled;
-  getEl<HTMLButtonElement>(`${prefix}MinuteInc`).disabled = disabled;
-  getEl<HTMLButtonElement>(`${prefix}MinuteDec`).disabled = disabled;
-  getEl<HTMLInputElement>(`${prefix}Hour`).disabled = disabled;
-  getEl<HTMLInputElement>(`${prefix}Minute`).disabled = disabled;
+function renderTimeGroupControls(
+  rowKey: string,
+  target: "single" | "standard" | "daylight",
+  hour: number,
+  minute: number,
+  suffix: string,
+  ampmVisibility: "hidden" | "visible"
+): string {
+  return `
+    <button class="tiny" type="button" data-role="adjust" data-row-key="${rowKey}" data-target="${target}" data-part="hour" data-step="-1">-</button>
+    <input type="text" inputmode="numeric" data-role="input" data-row-key="${rowKey}" data-target="${target}" data-part="hour" value="${String(hour).padStart(2, "0")}" />
+    <button class="tiny" type="button" data-role="adjust" data-row-key="${rowKey}" data-target="${target}" data-part="hour" data-step="1">+</button>
+    <span>:</span>
+    <button class="tiny" type="button" data-role="adjust" data-row-key="${rowKey}" data-target="${target}" data-part="minute" data-step="-1">-</button>
+    <input type="text" inputmode="numeric" data-role="input" data-row-key="${rowKey}" data-target="${target}" data-part="minute" value="${String(minute).padStart(2, "0")}" />
+    <button class="tiny" type="button" data-role="adjust" data-row-key="${rowKey}" data-target="${target}" data-part="minute" data-step="1">+</button>
+    <span class="ampm-label" style="visibility:${ampmVisibility};">${suffix}</span>
+  `;
 }
 
-function incrementZhuhrHour(group: "single" | "standard" | "daylight", step: number): void {
-  const current = getZhuhrLimitState(group);
-  setZhuhrLimitState(group, clampDayMinute(current + (step * 60)));
-  syncZhuhrLimitUi();
-}
-
-function incrementZhuhrMinute(group: "single" | "standard" | "daylight", step: number): void {
-  const current = getZhuhrLimitState(group);
-  setZhuhrLimitState(group, clampDayMinute(current + step));
-  syncZhuhrLimitUi();
-}
-
-function applyManualZhuhrHour(
-  group: "single" | "standard" | "daylight",
-  inputEl: HTMLInputElement
-): void {
-  const timeFormat = timeFormatSelect.value as GenerationOptions["timeFormat"];
-  const raw = Number(inputEl.value);
-  if (!Number.isFinite(raw)) {
-    syncZhuhrLimitUi();
+function bindLimitRowEvents(row: ActiveLimitRow): void {
+  const rowKey = `${row.prayer}:${row.limitType}`;
+  const rowEl = advancedLimitRowsEl.querySelector<HTMLElement>(`[data-row-key="${rowKey}"]`);
+  if (!rowEl) {
     return;
   }
 
-  const hour = Math.trunc(raw);
-  const currentMinute = getZhuhrLimitState(group) % 60;
-  if (timeFormat === "24h") {
-    if (hour < 0 || hour > 23) {
-      syncZhuhrLimitUi();
+  const modeSelect = rowEl.querySelector<HTMLSelectElement>("[data-role='mode']");
+  modeSelect?.addEventListener("change", () => {
+    const mode = modeSelect.value === "std-dst" ? "std-dst" : "single";
+    customizationState.prayers[row.prayer][row.limitType].mode = mode;
+    saveLastEntries();
+    renderAdvancedLimitRows();
+  });
+
+  rowEl.querySelectorAll<HTMLButtonElement>("[data-role='adjust']").forEach((button) => {
+    button.addEventListener("click", () => {
+      const target = readLimitTarget(button.dataset.target);
+      const part = button.dataset.part === "minute" ? "minute" : "hour";
+      const step = button.dataset.step === "-1" ? -1 : 1;
+      adjustLimitMinutes(row.prayer, row.limitType, target, part, step);
+      saveLastEntries();
+      renderAdvancedLimitRows();
+    });
+  });
+
+  rowEl.querySelectorAll<HTMLInputElement>("[data-role='input']").forEach((input) => {
+    input.addEventListener("change", () => {
+      const target = readLimitTarget(input.dataset.target);
+      const part = input.dataset.part === "minute" ? "minute" : "hour";
+      applyManualLimitInput(row.prayer, row.limitType, target, part, input.value);
+      saveLastEntries();
+      renderAdvancedLimitRows();
+    });
+  });
+}
+
+function bindCustomizeModalHandlers(): void {
+  openCustomizeButton.addEventListener("click", () => {
+    openCustomizeModal();
+  });
+
+  saveCustomizeButton.addEventListener("click", () => {
+    saveCustomize();
+  });
+
+  cancelCustomizeButton.addEventListener("click", () => {
+    cancelCustomize();
+  });
+
+  customizeModal.addEventListener("click", (event) => {
+    if (event.target === customizeModal) {
+      cancelCustomize();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !customizeModal.hidden) {
+      cancelCustomize();
+    }
+  });
+}
+
+function initializeCustomizeModalUi(): void {
+  customizePrayers.innerHTML = PRAYER_ORDER.map((prayer) => `
+    <section class="customize-prayer" data-prayer="${prayer}">
+      <h3 class="customize-prayer-title" data-i18n="prayers.${prayer}">${prayer}</h3>
+      <div class="customize-controls">
+        <label class="customize-field">
+          <input id="customize-${prayer}-enabled" type="checkbox" />
+          <span data-i18n="modal.enabled">Enabled</span>
+        </label>
+
+        <label class="customize-field" for="customize-${prayer}-direction">
+          <span data-i18n="modal.direction">Direction</span>
+          <select id="customize-${prayer}-direction">
+            <option value="after" data-i18n="modal.after">After</option>
+            <option value="before" data-i18n="modal.before">Before</option>
+          </select>
+        </label>
+
+        <label class="customize-field" for="customize-${prayer}-offsetMinutes">
+          <span data-i18n="modal.offsetMinutes">Offset minutes</span>
+          <button id="customize-${prayer}-offsetDec" class="tiny" type="button">-</button>
+          <input id="customize-${prayer}-offsetMinutes" type="text" inputmode="numeric" />
+          <button id="customize-${prayer}-offsetInc" class="tiny" type="button">+</button>
+        </label>
+
+        <label class="customize-field" for="customize-${prayer}-minuteMultiple">
+          <span data-i18n="modal.minuteMultiple">Minute multiple</span>
+          <select id="customize-${prayer}-minuteMultiple">
+            <option value="1" data-i18n="modal.minuteMultipleOptions.none">1</option>
+            <option value="5" data-i18n="modal.minuteMultipleOptions.five">5</option>
+            <option value="10" data-i18n="modal.minuteMultipleOptions.ten">10</option>
+          </select>
+        </label>
+
+        <label class="customize-field">
+          <input id="customize-${prayer}-noEarlierEnabled" type="checkbox" />
+          <span data-i18n="modal.noEarlierEnabled">No earlier than</span>
+        </label>
+
+        <label class="customize-field">
+          <input id="customize-${prayer}-noLaterEnabled" type="checkbox" />
+          <span data-i18n="modal.noLaterEnabled">No later than</span>
+        </label>
+      </div>
+    </section>
+  `).join("");
+
+  for (const prayer of PRAYER_ORDER) {
+    getEl<HTMLInputElement>(`customize-${prayer}-enabled`).addEventListener("change", () => {
+      syncCustomizePrayerEnabledState(prayer);
+    });
+
+    getEl<HTMLButtonElement>(`customize-${prayer}-offsetInc`).addEventListener("click", () => {
+      incrementCustomizeOffsetInput(prayer, 1);
+    });
+
+    getEl<HTMLButtonElement>(`customize-${prayer}-offsetDec`).addEventListener("click", () => {
+      incrementCustomizeOffsetInput(prayer, -1);
+    });
+
+    getEl<HTMLInputElement>(`customize-${prayer}-offsetMinutes`).addEventListener("change", () => {
+      sanitizeCustomizeOffsetInput(prayer);
+    });
+  }
+}
+
+function incrementCustomizeOffsetInput(prayer: PrayerKey, step: number): void {
+  const input = getEl<HTMLInputElement>(`customize-${prayer}-offsetMinutes`);
+  const current = toNonNegativeInteger(input.value, 0);
+  input.value = String(Math.max(0, current + step));
+}
+
+function sanitizeCustomizeOffsetInput(prayer: PrayerKey): void {
+  const input = getEl<HTMLInputElement>(`customize-${prayer}-offsetMinutes`);
+  input.value = String(toNonNegativeInteger(input.value, 0));
+}
+
+function openCustomizeModal(): void {
+  draftCustomizationState = cloneCustomization(customizationState);
+  syncCustomizeModalUiFromDraft();
+  customizeModal.hidden = false;
+}
+
+function saveCustomize(): void {
+  readCustomizeModalDraftFromUi();
+  customizationState = sanitizeCustomization(draftCustomizationState);
+  customizeModal.hidden = true;
+  renderAdvancedLimitRows();
+  saveLastEntries();
+}
+
+function cancelCustomize(): void {
+  customizeModal.hidden = true;
+}
+function syncCustomizeModalUiFromDraft(): void {
+  for (const prayer of PRAYER_ORDER) {
+    const config = draftCustomizationState.prayers[prayer];
+    getEl<HTMLInputElement>(`customize-${prayer}-enabled`).checked = config.enabled;
+    getEl<HTMLSelectElement>(`customize-${prayer}-direction`).value = config.direction;
+    getEl<HTMLInputElement>(`customize-${prayer}-offsetMinutes`).value = String(config.offsetMinutes);
+    getEl<HTMLSelectElement>(`customize-${prayer}-minuteMultiple`).value = String(config.minuteMultiple);
+    getEl<HTMLInputElement>(`customize-${prayer}-noEarlierEnabled`).checked = config.noEarlier.enabled;
+    getEl<HTMLInputElement>(`customize-${prayer}-noLaterEnabled`).checked = config.noLater.enabled;
+    syncCustomizePrayerEnabledState(prayer);
+  }
+}
+
+function readCustomizeModalDraftFromUi(): void {
+  const next = cloneCustomization(draftCustomizationState);
+
+  for (const prayer of PRAYER_ORDER) {
+    const enabled = getEl<HTMLInputElement>(`customize-${prayer}-enabled`).checked;
+    const directionValue = getEl<HTMLSelectElement>(`customize-${prayer}-direction`).value;
+    const direction = directionValue === "before" ? "before" : "after";
+    const offsetMinutes = toNonNegativeInteger(
+      getEl<HTMLInputElement>(`customize-${prayer}-offsetMinutes`).value,
+      next.prayers[prayer].offsetMinutes
+    );
+    const minuteMultiple = parseMinuteMultiple(
+      getEl<HTMLSelectElement>(`customize-${prayer}-minuteMultiple`).value
+    );
+
+    next.prayers[prayer].enabled = enabled;
+    next.prayers[prayer].direction = direction;
+    next.prayers[prayer].offsetMinutes = offsetMinutes;
+    next.prayers[prayer].minuteMultiple = minuteMultiple;
+    next.prayers[prayer].noEarlier.enabled = getEl<HTMLInputElement>(`customize-${prayer}-noEarlierEnabled`).checked;
+    next.prayers[prayer].noLater.enabled = getEl<HTMLInputElement>(`customize-${prayer}-noLaterEnabled`).checked;
+  }
+
+  draftCustomizationState = sanitizeCustomization(next);
+  syncCustomizeModalUiFromDraft();
+}
+
+function syncCustomizePrayerEnabledState(prayer: PrayerKey): void {
+  const enabled = getEl<HTMLInputElement>(`customize-${prayer}-enabled`).checked;
+  getEl<HTMLSelectElement>(`customize-${prayer}-direction`).disabled = !enabled;
+  getEl<HTMLInputElement>(`customize-${prayer}-offsetMinutes`).disabled = !enabled;
+  getEl<HTMLButtonElement>(`customize-${prayer}-offsetDec`).disabled = !enabled;
+  getEl<HTMLButtonElement>(`customize-${prayer}-offsetInc`).disabled = !enabled;
+  getEl<HTMLSelectElement>(`customize-${prayer}-minuteMultiple`).disabled = !enabled;
+  getEl<HTMLInputElement>(`customize-${prayer}-noEarlierEnabled`).disabled = !enabled;
+  getEl<HTMLInputElement>(`customize-${prayer}-noLaterEnabled`).disabled = !enabled;
+}
+
+function adjustLimitMinutes(
+  prayer: PrayerKey,
+  limitType: "noEarlier" | "noLater",
+  target: "single" | "standard" | "daylight",
+  part: "hour" | "minute",
+  step: number
+): void {
+  const config = customizationState.prayers[prayer][limitType];
+  const current = readTargetMinutes(config, target);
+  const next = clampDayMinute(current + (part === "hour" ? step * 60 : step));
+  writeTargetMinutes(config, target, next);
+}
+
+function applyManualLimitInput(
+  prayer: PrayerKey,
+  limitType: "noEarlier" | "noLater",
+  target: "single" | "standard" | "daylight",
+  part: "hour" | "minute",
+  rawValue: string
+): void {
+  const config = customizationState.prayers[prayer][limitType];
+  const current = readTargetMinutes(config, target);
+  const parsed = Number(rawValue);
+  if (!Number.isFinite(parsed)) {
+    return;
+  }
+
+  const timeFormat = timeFormatSelect.value === "24h" ? "24h" : "ampm";
+  const hour24 = Math.floor(current / 60);
+  const minute = current % 60;
+
+  if (part === "minute") {
+    const nextMinute = Math.trunc(parsed);
+    if (nextMinute < 0 || nextMinute > 59) {
       return;
     }
-    setZhuhrLimitState(group, (hour * 60) + currentMinute);
-    syncZhuhrLimitUi();
+    writeTargetMinutes(config, target, (hour24 * 60) + nextMinute);
     return;
   }
 
-  if (hour < 1 || hour > 12) {
-    syncZhuhrLimitUi();
+  const nextHour = Math.trunc(parsed);
+  if (timeFormat === "24h") {
+    if (nextHour < 0 || nextHour > 23) {
+      return;
+    }
+    writeTargetMinutes(config, target, (nextHour * 60) + minute);
     return;
   }
 
-  const currentHour24 = Math.floor(getZhuhrLimitState(group) / 60);
-  const isPm = currentHour24 >= 12;
-  const hour24 = (hour % 12) + (isPm ? 12 : 0);
-  setZhuhrLimitState(group, (hour24 * 60) + currentMinute);
-  syncZhuhrLimitUi();
+  if (nextHour < 1 || nextHour > 12) {
+    return;
+  }
+  const isPm = hour24 >= 12;
+  const nextHour24 = (nextHour % 12) + (isPm ? 12 : 0);
+  writeTargetMinutes(config, target, (nextHour24 * 60) + minute);
 }
 
-function applyManualZhuhrMinute(
-  group: "single" | "standard" | "daylight",
-  inputEl: HTMLInputElement
+function readTargetMinutes(
+  config: Customization["prayers"][PrayerKey]["noEarlier"],
+  target: "single" | "standard" | "daylight"
+): number {
+  if (target === "single") {
+    return config.singleMinutes;
+  }
+  if (target === "standard") {
+    return config.standardMinutes;
+  }
+  return config.daylightMinutes;
+}
+
+function writeTargetMinutes(
+  config: Customization["prayers"][PrayerKey]["noEarlier"],
+  target: "single" | "standard" | "daylight",
+  value: number
 ): void {
-  const raw = Number(inputEl.value);
-  if (!Number.isFinite(raw)) {
-    syncZhuhrLimitUi();
+  const clamped = clampDayMinute(value);
+  if (target === "single") {
+    config.singleMinutes = clamped;
     return;
   }
-  const minute = Math.trunc(raw);
-  if (minute < 0 || minute > 59) {
-    syncZhuhrLimitUi();
+  if (target === "standard") {
+    config.standardMinutes = clamped;
     return;
   }
-
-  const hour24 = Math.floor(getZhuhrLimitState(group) / 60);
-  setZhuhrLimitState(group, (hour24 * 60) + minute);
-  syncZhuhrLimitUi();
+  config.daylightMinutes = clamped;
 }
 
-function getZhuhrLimitState(group: "single" | "standard" | "daylight"): number {
-  if (group === "single") {
-    return zhuhrSingleLimitMinutesState;
+function readLimitTarget(raw: string | undefined): "single" | "standard" | "daylight" {
+  if (raw === "standard") {
+    return "standard";
   }
-  if (group === "standard") {
-    return zhuhrStandardLimitMinutesState;
+  if (raw === "daylight") {
+    return "daylight";
   }
-  return zhuhrDaylightLimitMinutesState;
+  return "single";
 }
 
-function setZhuhrLimitState(group: "single" | "standard" | "daylight", value: number): void {
-  if (group === "single") {
-    zhuhrSingleLimitMinutesState = value;
-    return;
+function parseMinuteMultiple(raw: string): MinuteMultiple {
+  if (raw === "1") {
+    return 1;
   }
-  if (group === "standard") {
-    zhuhrStandardLimitMinutesState = value;
-    return;
+  if (raw === "10") {
+    return 10;
   }
-  zhuhrDaylightLimitMinutesState = value;
+  return 5;
+}
+
+function sanitizeCustomization(value: Customization): Customization {
+  const parsed = CustomizationSchema.safeParse(value);
+  if (!parsed.success) {
+    return cloneCustomization(DEFAULT_CUSTOMIZATION);
+  }
+
+  const clean = cloneCustomization(parsed.data);
+  for (const prayer of PRAYER_ORDER) {
+    clean.prayers[prayer].offsetMinutes = Math.max(0, Math.trunc(clean.prayers[prayer].offsetMinutes));
+    clean.prayers[prayer].noEarlier.singleMinutes = clampDayMinute(clean.prayers[prayer].noEarlier.singleMinutes);
+    clean.prayers[prayer].noEarlier.standardMinutes = clampDayMinute(clean.prayers[prayer].noEarlier.standardMinutes);
+    clean.prayers[prayer].noEarlier.daylightMinutes = clampDayMinute(clean.prayers[prayer].noEarlier.daylightMinutes);
+    clean.prayers[prayer].noLater.singleMinutes = clampDayMinute(clean.prayers[prayer].noLater.singleMinutes);
+    clean.prayers[prayer].noLater.standardMinutes = clampDayMinute(clean.prayers[prayer].noLater.standardMinutes);
+    clean.prayers[prayer].noLater.daylightMinutes = clampDayMinute(clean.prayers[prayer].noLater.daylightMinutes);
+  }
+
+  return clean;
+}
+
+function cloneCustomization(source: Customization): Customization {
+  return {
+    prayers: {
+      fajr: {
+        ...source.prayers.fajr,
+        noEarlier: { ...source.prayers.fajr.noEarlier },
+        noLater: { ...source.prayers.fajr.noLater }
+      },
+      zhuhr: {
+        ...source.prayers.zhuhr,
+        noEarlier: { ...source.prayers.zhuhr.noEarlier },
+        noLater: { ...source.prayers.zhuhr.noLater }
+      },
+      asr: {
+        ...source.prayers.asr,
+        noEarlier: { ...source.prayers.asr.noEarlier },
+        noLater: { ...source.prayers.asr.noLater }
+      },
+      maghrib: {
+        ...source.prayers.maghrib,
+        noEarlier: { ...source.prayers.maghrib.noEarlier },
+        noLater: { ...source.prayers.maghrib.noLater }
+      },
+      isha: {
+        ...source.prayers.isha,
+        noEarlier: { ...source.prayers.isha.noEarlier },
+        noLater: { ...source.prayers.isha.noLater }
+      }
+    }
+  };
+}
+
+function toMinuteWithDefault(value: unknown, fallback: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return fallback;
+  }
+  return clampDayMinute(value);
+}
+
+function normalizeBaseGroupSize(raw: unknown): string {
+  const normalized = String(raw ?? "5");
+  return normalized === "10" || normalized === "15" ? normalized : "5";
+}
+
+function toNonNegativeInteger(raw: string, fallback: number): number {
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) {
+    return Math.max(0, Math.trunc(fallback));
+  }
+  return Math.max(0, Math.trunc(parsed));
 }
 
 function clampDayMinute(value: number): number {

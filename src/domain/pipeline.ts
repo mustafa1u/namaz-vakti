@@ -1,6 +1,6 @@
-﻿import type { Locale, TimeFormat } from "@shared/ipc";
+import type { Customization, Locale, PrayerKey, PrayerLimitConfig, TimeFormat } from "@shared/ipc";
 import type { ColorTheme, DailyPrayerMinutes, JumahNote, MonthlyPlan, RawDailyRecord } from "./types";
-import { DEFAULT_IQAMAH_RULES, validateBaseGroupSize } from "./iqamah-rules";
+import { buildIqamahRulesFromCustomization, validateBaseGroupSize } from "./iqamah-rules";
 import { buildBaseGroups, optimizeGroups } from "./optimizer";
 import { assignColorTokens, collapseAdjacentSameGroups } from "./grouping";
 import { formatMinutes } from "./format";
@@ -29,15 +29,9 @@ export type BuildMonthlyPlanInput = {
   month: string;
   locale: Locale;
   timeFormat: TimeFormat;
+  customization: Customization;
   baseGroupSize: number;
   ramazanHesabi: boolean;
-  fajrLatestLimitEnabled: boolean;
-  fajrLatestLimitMinutes: number;
-  zhuhrEarliestLimitEnabled: boolean;
-  zhuhrUseStandardDaylightLimits: boolean;
-  zhuhrEarliestLimitMinutes: number;
-  zhuhrStandardEarliestLimitMinutes: number;
-  zhuhrDaylightEarliestLimitMinutes: number;
   days: RawDailyRecord[];
 };
 
@@ -52,6 +46,8 @@ type DayBucket = {
   endDay: number;
   days: DailyPrayerMinutes[];
 };
+
+const PRAYER_ORDER: PrayerKey[] = ["fajr", "zhuhr", "asr", "maghrib", "isha"];
 
 export function buildMonthlyPlan(input: BuildMonthlyPlanInput): MonthlyPlan {
   validateBaseGroupSize(input.baseGroupSize);
@@ -85,22 +81,17 @@ export function buildMonthlyPlan(input: BuildMonthlyPlanInput): MonthlyPlan {
   const splitBuckets = splitBucketsAtDays(initialBuckets, splitStartDays);
   const normalizedSplitBuckets = mergeSplitSingletons(splitBuckets, splitStartDays);
   const baseBuckets = mergeTrailingSingletonByDefault(normalizedSplitBuckets, splitStartDays);
-  const baseGroups = optimizeGroups(baseBuckets, DEFAULT_IQAMAH_RULES);
+  const iqamahRules = buildIqamahRulesFromCustomization(input.customization);
+  const baseGroups = optimizeGroups(baseBuckets, iqamahRules);
 
   if (input.ramazanHesabi) {
     applyRamazanOverrides(baseGroups, baseBuckets, ramazanInfo, input.locale, input.timeFormat);
   }
-  applyFajrLatestLimit(baseGroups, baseBuckets, input.fajrLatestLimitEnabled, input.fajrLatestLimitMinutes);
-  applyZhuhrEarliestLimit({
+  applyPrayerLimits({
     groups: baseGroups,
     baseBuckets,
-    allDays: normalizedDays,
-    dstSplitStartDays,
-    enabled: input.zhuhrEarliestLimitEnabled,
-    useStandardDaylightLimits: input.zhuhrUseStandardDaylightLimits,
-    singleLimitMinutes: input.zhuhrEarliestLimitMinutes,
-    standardLimitMinutes: input.zhuhrStandardEarliestLimitMinutes,
-    daylightLimitMinutes: input.zhuhrDaylightEarliestLimitMinutes
+    customization: input.customization,
+    dstSplitStartDays
   });
   const jumahNotes = buildJumahNotes(input.days, normalizedDays, dstSplitStartDays);
   applyJumahNoteMarkers(baseGroups, jumahNotes, input.locale, input.timeFormat);
@@ -206,75 +197,56 @@ function applyJumahNoteMarkers(
   }
 }
 
-function applyFajrLatestLimit(
-  groups: MonthlyPlan["baseGroups"],
-  baseBuckets: Array<{ startDay: number; endDay: number; days: DailyPrayerMinutes[] }>,
-  enabled: boolean,
-  limitMinutes: number
-): void {
-  if (!enabled) {
-    return;
-  }
-
-  groups.forEach((group, idx) => {
-    const bucket = baseBuckets[idx]!;
-    if (!bucket || bucket.days.length === 0) {
-      return;
-    }
-
-    const minFromImsak = ceilToFive(Math.max(...bucket.days.map((day) => day.fajrStart + 5)));
-    const capped = Math.min(group.iqamahByPrayer.fajr, limitMinutes);
-    group.iqamahByPrayer.fajr = Math.max(capped, minFromImsak);
-  });
-}
-
-function applyZhuhrEarliestLimit(input: {
+function applyPrayerLimits(input: {
   groups: MonthlyPlan["baseGroups"];
   baseBuckets: DayBucket[];
-  allDays: DailyPrayerMinutes[];
+  customization: Customization;
   dstSplitStartDays: Set<number>;
-  enabled: boolean;
-  useStandardDaylightLimits: boolean;
-  singleLimitMinutes: number;
-  standardLimitMinutes: number;
-  daylightLimitMinutes: number;
 }): void {
-  if (!input.enabled) {
+  if (input.groups.length === 0 || input.baseBuckets.length === 0) {
     return;
   }
 
-  const singleLimit = ceilToFive(clampDayMinute(input.singleLimitMinutes));
-  const standardLimit = ceilToFive(clampDayMinute(input.standardLimitMinutes));
-  const daylightLimitRaw = clampDayMinute(input.daylightLimitMinutes);
-  const daylightLimit = ceilToFive(daylightLimitRaw);
   const hasDstSwitch = input.dstSplitStartDays.size > 0;
-  const earliestZhuhrInMonth = Math.min(...input.allDays.map((day) => day.zhuhrStart));
-
-  let monthWideLimit = singleLimit;
-  if (input.useStandardDaylightLimits && !hasDstSwitch) {
-    // Single-timing month rule:
-    // use daylight limit only when earliest ogle is later than or equal to (daylight limit - 30).
-    monthWideLimit = earliestZhuhrInMonth >= (daylightLimitRaw - 30)
-      ? daylightLimit
-      : standardLimit;
-  }
+  const allDays = input.baseBuckets.flatMap((bucket) => bucket.days);
+  const monthWideRegion = inferRegionType(allDays);
 
   input.groups.forEach((group, idx) => {
     const bucket = input.baseBuckets[idx]!;
     if (!bucket || bucket.days.length === 0) {
       return;
     }
+    const regionType = hasDstSwitch ? inferRegionType(bucket.days) : monthWideRegion;
 
-    let groupLimit = monthWideLimit;
-    if (input.useStandardDaylightLimits && hasDstSwitch) {
-      const regionType = inferZhuhrRegionType(bucket.days);
-      groupLimit = regionType === "daylight" ? daylightLimit : standardLimit;
-    } else if (!input.useStandardDaylightLimits) {
-      groupLimit = singleLimit;
+    for (const prayer of PRAYER_ORDER) {
+      const prayerConfig = input.customization.prayers[prayer];
+
+      if (prayerConfig.noEarlier.enabled) {
+        const lowerBound = resolveLimitMinutes(prayerConfig.noEarlier, regionType);
+        group.iqamahByPrayer[prayer] = Math.max(group.iqamahByPrayer[prayer], lowerBound);
+      }
+
+      if (prayerConfig.noLater.enabled) {
+        const upperBound = resolveLimitMinutes(prayerConfig.noLater, regionType);
+        group.iqamahByPrayer[prayer] = Math.min(group.iqamahByPrayer[prayer], upperBound);
+      }
+
+      if (prayer === "fajr" && prayerConfig.noLater.enabled) {
+        const minFromImsak = Math.max(...bucket.days.map((day) => day.fajrStart + 5));
+        group.iqamahByPrayer.fajr = Math.max(group.iqamahByPrayer.fajr, minFromImsak);
+      }
     }
-
-    group.iqamahByPrayer.zhuhr = Math.max(group.iqamahByPrayer.zhuhr, groupLimit);
   });
+}
+
+function resolveLimitMinutes(limit: PrayerLimitConfig, regionType: "standard" | "daylight"): number {
+  if (limit.mode === "single") {
+    return clampDayMinute(limit.singleMinutes);
+  }
+
+  return regionType === "daylight"
+    ? clampDayMinute(limit.daylightMinutes)
+    : clampDayMinute(limit.standardMinutes);
 }
 
 function buildJumahNotes(
@@ -353,7 +325,7 @@ function clampDayMinute(value: number): number {
   return Math.max(0, Math.min(1439, Math.trunc(value)));
 }
 
-function inferZhuhrRegionType(days: DailyPrayerMinutes[]): "standard" | "daylight" {
+function inferRegionType(days: DailyPrayerMinutes[]): "standard" | "daylight" {
   const regionMedianZhuhr = medianMinutes(days.map((day) => day.zhuhrStart));
   const standardAnchor = (12 * 60) + 15;
   const daylightAnchor = (13 * 60) + 15;
@@ -515,6 +487,11 @@ function getDstSplitStartDays(days: DailyPrayerMinutes[]): Set<number> {
 }
 
 function toMinutes(hhmm: string): number {
-  const [h, m] = hhmm.split(":").map((part) => Number(part));
+  const [hRaw, mRaw] = hhmm.split(":");
+  const h = Number(hRaw ?? 0);
+  const m = Number(mRaw ?? 0);
   return (h * 60) + m;
 }
+
+
+

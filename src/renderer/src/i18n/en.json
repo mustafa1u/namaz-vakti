@@ -13,17 +13,23 @@
     "timeFormat": "Time Format",
     "baseGroupSize": "Base Group Size",
     "ramazanHesabi": "Ramadan calculation",
-    "fajrLatestLimitEnabled": "Fajr no later than",
-    "zhuhrEarliestLimitEnabled": "Zhuhr no earlier than",
+    "noEarlierLimit": "no earlier than limit",
+    "noLaterLimit": "no later than limit",
+    "fajrLatestLimitEnabled": "Fajr no later than limit",
+    "zhuhrEarliestLimitEnabled": "Zhuhr no earlier than limit",
     "zhuhrSingleLimit": "Zhuhr single limit",
     "zhuhrStdDstLimits": "Zhuhr standard/daylight limits",
     "announcementMessage": "Announcement",
-    "generatePane": "Generate"
+    "generatePane": "Generate",
+    "customizeTitle": "Customize"
   },
   "buttons": {
     "browse": "Browse",
     "refresh": "Refresh",
     "advanced": "Advanced...",
+    "customize": "Customize",
+    "save": "Save",
+    "cancel": "Cancel",
     "generatePng": "Generate PNG",
     "generateXlsx": "Generate XLSX",
     "resetDefaults": "Reset to defaults",
@@ -48,6 +54,28 @@
       "standard": "Standard",
       "daylight": "Daylight"
     }
+  },
+  "prayers": {
+    "fajr": "Fajr",
+    "zhuhr": "Zhuhr",
+    "asr": "Asr",
+    "maghrib": "Maghrib",
+    "isha": "Isha"
+  },
+  "modal": {
+    "enabled": "Enabled",
+    "direction": "Direction",
+    "after": "After",
+    "before": "Before",
+    "offsetMinutes": "Offset minutes",
+    "minuteMultiple": "Minute multiple",
+    "minuteMultipleOptions": {
+      "none": "1",
+      "five": "5",
+      "ten": "10"
+    },
+    "noEarlierEnabled": "No earlier than",
+    "noLaterEnabled": "No later than"
   },
   "placeholders": {
     "announcementMessage": "Message shown above the table"
@@ -88,8 +116,6 @@
   },
   "status": {
     "validationFailed": "Cannot generate. {{details}}",
-    "generatePngSuccess": "PNG generated: {{pngPath}} | Warnings: {{warnings}}",
-    "generateXlsxSuccess": "XLSX generated: {{xlsxPath}} | Warnings: {{warnings}}",
     "generateFailed": "Generate {{target}} failed: {{details}}",
     "defaultsRestored": "Defaults restored."
   },

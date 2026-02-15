@@ -4,6 +4,8 @@ import { existsSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import {
   APP_CHANNELS,
+  type Customization,
+  type PrayerKey,
   GenerateOutputsRequestSchema,
   GenerateOutputsResponseSchema
 } from "@shared/ipc";
@@ -51,6 +53,34 @@ function resolveTsvFolderPath(tsvFolder: string): string {
   return found ?? resolve(process.cwd(), trimmed);
 }
 
+const PRAYER_ORDER: PrayerKey[] = ["fajr", "zhuhr", "asr", "maghrib", "isha"];
+
+function collectLimitWarnings(customization: Customization): string[] {
+  const warnings: string[] = [];
+
+  for (const prayer of PRAYER_ORDER) {
+    const config = customization.prayers[prayer];
+    if (!config.noEarlier.enabled || !config.noLater.enabled) {
+      continue;
+    }
+
+    const regions: Array<"single" | "standard" | "daylight"> = ["single", "standard", "daylight"];
+    for (const region of regions) {
+      const lower = config.noEarlier.mode === "single"
+        ? config.noEarlier.singleMinutes
+        : (region === "daylight" ? config.noEarlier.daylightMinutes : config.noEarlier.standardMinutes);
+      const upper = config.noLater.mode === "single"
+        ? config.noLater.singleMinutes
+        : (region === "daylight" ? config.noLater.daylightMinutes : config.noLater.standardMinutes);
+      if (lower > upper) {
+        warnings.push(`${prayer}: no-earlier ${region} limit is later than no-later ${region} limit.`);
+      }
+    }
+  }
+
+  return warnings;
+}
+
 export function registerIpcHandlers(_getWindow: WindowGetter): void {
   console.log("[main] registering IPC handlers");
 
@@ -71,15 +101,9 @@ export function registerIpcHandlers(_getWindow: WindowGetter): void {
       month: options.month,
       locale: options.locale,
       timeFormat: options.timeFormat,
+      customization: options.customization,
       baseGroupSize: options.baseGroupSize,
       ramazanHesabi: options.ramazanHesabi,
-      fajrLatestLimitEnabled: options.fajrLatestLimitEnabled,
-      fajrLatestLimitMinutes: options.fajrLatestLimitMinutes,
-      zhuhrEarliestLimitEnabled: options.zhuhrEarliestLimitEnabled,
-      zhuhrUseStandardDaylightLimits: options.zhuhrUseStandardDaylightLimits,
-      zhuhrEarliestLimitMinutes: options.zhuhrEarliestLimitMinutes,
-      zhuhrStandardEarliestLimitMinutes: options.zhuhrStandardEarliestLimitMinutes,
-      zhuhrDaylightEarliestLimitMinutes: options.zhuhrDaylightEarliestLimitMinutes,
       days
     });
 
@@ -109,7 +133,7 @@ export function registerIpcHandlers(_getWindow: WindowGetter): void {
     return GenerateOutputsResponseSchema.parse({
       xlsxPath: byTarget.get("xlsx") ?? null,
       pngPath: byTarget.get("png") ?? null,
-      warnings: []
+      warnings: collectLimitWarnings(options.customization)
     });
   });
 

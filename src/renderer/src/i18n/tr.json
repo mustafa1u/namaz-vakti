@@ -1,7 +1,7 @@
 {
   "app": {
     "windowTitle": "Namaz Vakti Masaüstü",
-    "heading": "Kametleme Çizelgesi Oluşturucu"
+    "heading": "Kamet Çizelgesi Oluşturucu"
   },
   "labels": {
     "uiLanguage": "Uygulama dili",
@@ -13,20 +13,26 @@
     "timeFormat": "Saat biçimi",
     "baseGroupSize": "Temel grup boyutu",
     "ramazanHesabi": "Ramazan hesabı",
-    "fajrLatestLimitEnabled": "Sabah en geç",
-    "zhuhrEarliestLimitEnabled": "Öğle en erken",
+    "noEarlierLimit": "en erken sınır",
+    "noLaterLimit": "en geç sınır",
+    "fajrLatestLimitEnabled": "Sabah en geç sınır",
+    "zhuhrEarliestLimitEnabled": "Öğle en erken sınır",
     "zhuhrSingleLimit": "Öğle tek sınır",
     "zhuhrStdDstLimits": "Öğle kış/yaz saati sınırları",
     "announcementMessage": "Duyuru",
-    "generatePane": "Üret"
+    "generatePane": "Üret",
+    "customizeTitle": "Özelleştir"
   },
   "buttons": {
     "browse": "Gözat",
     "refresh": "Yenile",
     "advanced": "Gelişmiş...",
+    "customize": "Özelleştir",
+    "save": "Kaydet",
+    "cancel": "İptal",
     "generatePng": "PNG üret",
     "generateXlsx": "XLSX üret",
-    "resetDefaults": "Varsayılanlara dön",
+    "resetDefaults": "Varsayılana dön",
     "switchToEnglish": "English",
     "switchToTurkish": "Türkçe"
   },
@@ -48,6 +54,28 @@
       "standard": "Kış saati",
       "daylight": "Yaz saati"
     }
+  },
+  "prayers": {
+    "fajr": "Sabah",
+    "zhuhr": "Öğle",
+    "asr": "İkindi",
+    "maghrib": "Akşam",
+    "isha": "Yatsı"
+  },
+  "modal": {
+    "enabled": "Etkin",
+    "direction": "Yön",
+    "after": "Sonra",
+    "before": "Önce",
+    "offsetMinutes": "Dakika farkı",
+    "minuteMultiple": "Dakika katı",
+    "minuteMultipleOptions": {
+      "none": "1",
+      "five": "5",
+      "ten": "10"
+    },
+    "noEarlierEnabled": "En erken sınırı uygula",
+    "noLaterEnabled": "En geç sınırı uygula"
   },
   "placeholders": {
     "announcementMessage": "Tablonun üstünde gösterilen mesaj"
@@ -88,8 +116,6 @@
   },
   "status": {
     "validationFailed": "Üretim başlatılamadı. {{details}}",
-    "generatePngSuccess": "PNG üretildi: {{pngPath}} | Uyarılar: {{warnings}}",
-    "generateXlsxSuccess": "XLSX üretildi: {{xlsxPath}} | Uyarılar: {{warnings}}",
     "generateFailed": "{{target}} üretimi başarısız: {{details}}",
     "defaultsRestored": "Varsayılanlar yüklendi."
   },

@@ -1,12 +1,31 @@
-﻿import type { IqamahRule } from "./types";
+import type { Customization, PrayerKey } from "@shared/ipc";
+import { DEFAULT_CUSTOMIZATION } from "@shared/ipc";
+import type { IqamahRule } from "./types";
 
-export const DEFAULT_IQAMAH_RULES: IqamahRule[] = [
-  { prayer: "fajr", direction: "before", offsetMinutes: 25, roundedToFiveMinutes: true },
-  { prayer: "zhuhr", direction: "after", offsetMinutes: 7, roundedToFiveMinutes: true },
-  { prayer: "asr", direction: "after", offsetMinutes: 7, roundedToFiveMinutes: true },
-  { prayer: "maghrib", direction: "after", offsetMinutes: 2, roundedToFiveMinutes: false },
-  { prayer: "isha", direction: "after", offsetMinutes: 7, roundedToFiveMinutes: true }
-];
+const PRAYER_ORDER: PrayerKey[] = ["fajr", "zhuhr", "asr", "maghrib", "isha"];
+
+export function buildIqamahRulesFromCustomization(customization: Customization): IqamahRule[] {
+  return PRAYER_ORDER.map((prayer) => {
+    const config = customization.prayers[prayer];
+    if (!config.enabled) {
+      return {
+        prayer,
+        direction: "after",
+        offsetMinutes: 0,
+        minuteMultiple: 1
+      };
+    }
+
+    return {
+      prayer,
+      direction: config.direction,
+      offsetMinutes: config.offsetMinutes,
+      minuteMultiple: config.minuteMultiple
+    };
+  });
+}
+
+export const DEFAULT_IQAMAH_RULES: IqamahRule[] = buildIqamahRulesFromCustomization(DEFAULT_CUSTOMIZATION);
 
 export const ALLOWED_BASE_GROUP_SIZES = [5, 10, 15] as const;
 

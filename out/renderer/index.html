@@ -55,6 +55,11 @@
         gap: 0.5rem;
         flex-wrap: wrap;
       }
+      .advanced-actions {
+        display: flex;
+        justify-content: flex-start;
+        margin-bottom: 0.75rem;
+      }
       .compact-select {
         width: 110px;
       }
@@ -117,6 +122,19 @@
         min-width: 68px;
         font-weight: 600;
       }
+      .limit-rows {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .limit-row-time {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .limit-mode {
+        min-width: 130px;
+      }
       label {
         font-weight: 600;
       }
@@ -175,12 +193,79 @@
         display: flex;
         gap: 0.5rem;
       }
+      .bottom-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 1rem;
+      }
       .status {
         min-height: 1.5rem;
         margin: 0.25rem 0 0.75rem;
       }
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(12, 20, 24, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        z-index: 20;
+      }
+      .modal-backdrop[hidden] {
+        display: none !important;
+      }
+      .modal-panel {
+        width: min(920px, 100%);
+        max-height: calc(100vh - 2rem);
+        overflow: auto;
+        background: #ffffff;
+        border: 1px solid #bcc8ce;
+        padding: 1rem;
+      }
+      .modal-panel h2 {
+        margin: 0 0 0.85rem;
+        font-size: 18px;
+      }
+      .customize-prayers {
+        display: grid;
+        gap: 0.65rem;
+      }
+      .customize-prayer {
+        border: 1px solid #d9dfe3;
+        padding: 0.65rem;
+      }
+      .customize-prayer-title {
+        margin: 0 0 0.55rem;
+        font-size: 14px;
+      }
+      .customize-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+      }
+      .customize-field {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .customize-field input[type="text"] {
+        width: 68px;
+        text-align: center;
+      }
+      .customize-field select {
+        min-width: 90px;
+      }
+      .modal-actions {
+        margin-top: 0.95rem;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+      }
     </style>
-    <script type="module" crossorigin src="./assets/index-1SzAdfca.js"></script>
+    <script type="module" crossorigin src="./assets/index-3_yDZxb2.js"></script>
   </head>
   <body>
     <main class="shell">
@@ -221,6 +306,10 @@
       <details class="advanced" id="advancedSettings">
         <summary data-i18n="buttons.advanced">Advanced...</summary>
         <div class="advanced-content">
+          <div class="advanced-actions">
+            <button id="openCustomize" type="button" data-i18n="buttons.customize">Customize</button>
+          </div>
+
           <div class="row">
             <label for="tsvFolder" data-i18n="labels.tsvFolder">TSV Folder</label>
             <input id="tsvFolder" type="text" />
@@ -251,95 +340,34 @@
             </div>
             <span></span>
           </div>
-
-          <div class="row">
-            <label for="fajrLatestLimitEnabled" data-i18n="labels.fajrLatestLimitEnabled">Fajr no later than</label>
-            <div class="time-control">
-              <input id="fajrLatestLimitEnabled" type="checkbox" />
-              <span class="control-indent" aria-hidden="true"></span>
-              <button id="fajrHourDec" class="tiny" type="button">-</button>
-              <input id="fajrHour" type="text" inputmode="numeric" />
-              <button id="fajrHourInc" class="tiny" type="button">+</button>
-              <span>:</span>
-              <button id="fajrMinuteDec" class="tiny" type="button">-</button>
-              <input id="fajrMinute" type="text" inputmode="numeric" />
-              <button id="fajrMinuteInc" class="tiny" type="button">+</button>
-              <span id="fajrAmPm" class="ampm-label">AM</span>
-            </div>
-            <span></span>
-          </div>
-
-          <div class="row">
-            <label for="zhuhrEarliestLimitEnabled" data-i18n="labels.zhuhrEarliestLimitEnabled">Zhuhr no earlier than</label>
-            <div class="time-control">
-              <input id="zhuhrEarliestLimitEnabled" type="checkbox" />
-              <span class="control-indent" aria-hidden="true"></span>
-              <select id="zhuhrLimitMode">
-                <option value="single" data-i18n="options.zhuhrLimitMode.single">Single limit</option>
-                <option value="std-dst" data-i18n="options.zhuhrLimitMode.stdDst">Standard/daylight</option>
-              </select>
-            </div>
-            <span></span>
-          </div>
-
-          <div class="row">
-            <label for="zhuhrSingleHour" data-i18n="labels.zhuhrSingleLimit">Zhuhr single limit</label>
-            <div id="zhuhrSingleGroup" class="time-control">
-              <span class="checkbox-slot" aria-hidden="true"></span>
-              <span class="control-indent" aria-hidden="true"></span>
-              <button id="zhuhrSingleHourDec" class="tiny" type="button">-</button>
-              <input id="zhuhrSingleHour" type="text" inputmode="numeric" />
-              <button id="zhuhrSingleHourInc" class="tiny" type="button">+</button>
-              <span>:</span>
-              <button id="zhuhrSingleMinuteDec" class="tiny" type="button">-</button>
-              <input id="zhuhrSingleMinute" type="text" inputmode="numeric" />
-              <button id="zhuhrSingleMinuteInc" class="tiny" type="button">+</button>
-              <span id="zhuhrSingleAmPm" class="ampm-label">PM</span>
-            </div>
-            <span></span>
-          </div>
-
-          <div class="row" id="zhuhrStdDstRow">
-            <label for="zhuhrStdHour" data-i18n="labels.zhuhrStdDstLimits">Zhuhr standard/daylight limits</label>
-            <div id="zhuhrDualGroup" class="time-control">
-              <div class="time-group">
-                <span class="group-label" data-i18n="options.zhuhrGroup.standard">Standard</span>
-                <button id="zhuhrStdHourDec" class="tiny" type="button">-</button>
-                <input id="zhuhrStdHour" type="text" inputmode="numeric" />
-                <button id="zhuhrStdHourInc" class="tiny" type="button">+</button>
-                <span>:</span>
-                <button id="zhuhrStdMinuteDec" class="tiny" type="button">-</button>
-                <input id="zhuhrStdMinute" type="text" inputmode="numeric" />
-                <button id="zhuhrStdMinuteInc" class="tiny" type="button">+</button>
-                <span id="zhuhrStdAmPm" class="ampm-label">PM</span>
-              </div>
-              <div class="time-group">
-                <span class="group-label" data-i18n="options.zhuhrGroup.daylight">Daylight</span>
-                <button id="zhuhrDstHourDec" class="tiny" type="button">-</button>
-                <input id="zhuhrDstHour" type="text" inputmode="numeric" />
-                <button id="zhuhrDstHourInc" class="tiny" type="button">+</button>
-                <span>:</span>
-                <button id="zhuhrDstMinuteDec" class="tiny" type="button">-</button>
-                <input id="zhuhrDstMinute" type="text" inputmode="numeric" />
-                <button id="zhuhrDstMinuteInc" class="tiny" type="button">+</button>
-                <span id="zhuhrDstAmPm" class="ampm-label">PM</span>
-              </div>
-            </div>
-            <span></span>
-          </div>
+          <div id="advancedLimitRows" class="limit-rows"></div>
         </div>
       </details>
 
       <p class="status" id="statusMessage" aria-live="polite"></p>
 
-      <div class="generate-pane">
-        <h2 data-i18n="labels.generatePane">Generate</h2>
-        <div class="generate-actions">
-          <button id="generatePng" class="generate-btn" type="button">PNG</button>
-          <button id="generateXlsx" class="generate-btn" type="button">Excel (.xlsx)</button>
+      <div class="bottom-actions">
+        <div class="generate-pane">
+          <h2 data-i18n="labels.generatePane">Generate</h2>
+          <div class="generate-actions">
+            <button id="generatePng" class="generate-btn" type="button">PNG</button>
+            <button id="generateXlsx" class="generate-btn" type="button">Excel (.xlsx)</button>
+          </div>
         </div>
+        <button id="resetDefaults" type="button" data-i18n="buttons.resetDefaults">Reset to defaults</button>
       </div>
     </main>
-
+
+    <div id="customizeModal" class="modal-backdrop" hidden>
+      <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="customizeTitle">
+        <h2 id="customizeTitle" data-i18n="labels.customizeTitle">Customize</h2>
+        <div id="customizePrayers" class="customize-prayers"></div>
+        <div class="modal-actions">
+          <button id="cancelCustomize" type="button" data-i18n="buttons.cancel">Cancel</button>
+          <button id="saveCustomize" type="button" data-i18n="buttons.save">Save</button>
+        </div>
+      </div>
+    </div>
+
   </body>
 </html>

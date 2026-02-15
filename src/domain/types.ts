@@ -29,7 +29,7 @@ export type IqamahRule = {
   prayer: PrayerKey;
   direction: "after" | "before";
   offsetMinutes: number;
-  roundedToFiveMinutes: boolean;
+  minuteMultiple: 1 | 5 | 10;
 };
 
 export type GroupResult = {
