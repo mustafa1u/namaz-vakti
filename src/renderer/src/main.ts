@@ -45,9 +45,11 @@ const resetDefaultsButton = getEl<HTMLButtonElement>("resetDefaults");
 const PRAYER_ORDER: PrayerKey[] = ["fajr", "zhuhr", "asr", "maghrib", "isha"];
 const LIMIT_ORDER: Array<"noEarlier" | "noLater"> = ["noEarlier", "noLater"];
 const DEFAULT_TSV_FOLDER = "assets/out_monthly";
+const RESET_DEFAULT_MONTH = "2026-01";
 const LAST_ENTRIES_KEY = "namaz-vakti:last-entries:v4";
 const LEGACY_V3_KEY = "namaz-vakti:last-entries:v3";
 const LEGACY_V2_KEY = "namaz-vakti:last-entries:v2";
+const RESET_DEFAULT_CUSTOMIZATION = buildResetDefaultCustomization();
 
 type ActiveLimitRow = {
   prayer: PrayerKey;
@@ -426,7 +428,7 @@ function readOptions(): GenerationOptions {
 function applyFreshDefaults(): void {
   tsvFolderInput.value = DEFAULT_TSV_FOLDER;
   outputFolderInput.value = "";
-  monthSelect.value = "";
+  monthSelect.value = RESET_DEFAULT_MONTH;
   localeSelect.value = "en";
   timeFormatSelect.value = "ampm";
   baseGroupSizeSelect.value = "5";
@@ -434,17 +436,25 @@ function applyFreshDefaults(): void {
   masjidNameInput.value = "";
   masjidAddressInput.value = "";
   announcementMessageInput.value = "";
-  customizationState = cloneCustomization(DEFAULT_CUSTOMIZATION);
-  draftCustomizationState = cloneCustomization(DEFAULT_CUSTOMIZATION);
+  customizationState = cloneCustomization(RESET_DEFAULT_CUSTOMIZATION);
+  draftCustomizationState = cloneCustomization(RESET_DEFAULT_CUSTOMIZATION);
 }
 
 async function resetToDefaults(): Promise<void> {
+  const preservedMasjidName = masjidNameInput.value;
+  const preservedMasjidAddress = masjidAddressInput.value;
+
   localStorage.removeItem(LAST_ENTRIES_KEY);
   localStorage.removeItem(LEGACY_V3_KEY);
   localStorage.removeItem(LEGACY_V2_KEY);
   applyFreshDefaults();
+  masjidNameInput.value = preservedMasjidName;
+  masjidAddressInput.value = preservedMasjidAddress;
   renderAdvancedLimitRows();
   await refreshMonths();
+  if (Array.from(monthSelect.options).some((option) => option.value === RESET_DEFAULT_MONTH)) {
+    monthSelect.value = RESET_DEFAULT_MONTH;
+  }
   saveLastEntries();
   showStatus(t("status.defaultsRestored"));
 }
@@ -956,6 +966,31 @@ function cloneCustomization(source: Customization): Customization {
       }
     }
   };
+}
+
+function buildResetDefaultCustomization(): Customization {
+  const value = cloneCustomization(DEFAULT_CUSTOMIZATION);
+
+  value.prayers.fajr.noLater.enabled = true;
+  value.prayers.fajr.noLater.mode = "single";
+  value.prayers.fajr.noLater.singleMinutes = 390;
+  value.prayers.fajr.noLater.standardMinutes = 390;
+  value.prayers.fajr.noLater.daylightMinutes = 390;
+
+  value.prayers.zhuhr.noEarlier.enabled = true;
+  value.prayers.zhuhr.noEarlier.mode = "std-dst";
+  value.prayers.zhuhr.noEarlier.singleMinutes = 730;
+  value.prayers.zhuhr.noEarlier.standardMinutes = 730;
+  value.prayers.zhuhr.noEarlier.daylightMinutes = 790;
+
+  value.prayers.asr.noEarlier.enabled = false;
+  value.prayers.asr.noLater.enabled = false;
+  value.prayers.maghrib.noEarlier.enabled = false;
+  value.prayers.maghrib.noLater.enabled = false;
+  value.prayers.isha.noEarlier.enabled = false;
+  value.prayers.isha.noLater.enabled = false;
+
+  return sanitizeCustomization(value);
 }
 
 function toMinuteWithDefault(value: unknown, fallback: number): number {
