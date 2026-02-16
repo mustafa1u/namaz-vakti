@@ -32,6 +32,7 @@ export type BuildMonthlyPlanInput = {
   customization: Customization;
   baseGroupSize: number;
   ramazanHesabi: boolean;
+  yearZhuhrPeriods: YearZhuhrPeriod[];
   days: RawDailyRecord[];
 };
 
@@ -45,6 +46,12 @@ type DayBucket = {
   startDay: number;
   endDay: number;
   days: DailyPrayerMinutes[];
+};
+
+type YearZhuhrPeriod = {
+  startIso: string;
+  endIso: string;
+  regionType: "standard" | "daylight";
 };
 
 const PRAYER_ORDER: PrayerKey[] = ["fajr", "zhuhr", "asr", "maghrib", "isha"];
@@ -70,7 +77,12 @@ export function buildMonthlyPlan(input: BuildMonthlyPlanInput): MonthlyPlan {
     ramazanInfo.set(day.dayOfMonth, parseHicriInfo(day.hicriDate));
   });
 
-  const dstSplitStartDays = getDstSplitStartDays(normalizedDays);
+  const dstSplitStartDays = getDstSplitStartDaysFromYearPeriods(input.days, input.yearZhuhrPeriods);
+  if (dstSplitStartDays.size === 0) {
+    for (const day of getDstSplitStartDays(normalizedDays)) {
+      dstSplitStartDays.add(day);
+    }
+  }
   const splitStartDays = new Set<number>(dstSplitStartDays);
   if (input.ramazanHesabi) {
     for (const day of getRamazanSplitStartDays(input.days, ramazanInfo)) {
@@ -90,7 +102,9 @@ export function buildMonthlyPlan(input: BuildMonthlyPlanInput): MonthlyPlan {
   applyPrayerLimits({
     groups: baseGroups,
     baseBuckets,
+    rawDays: input.days,
     customization: input.customization,
+    yearZhuhrPeriods: input.yearZhuhrPeriods,
     dstSplitStartDays
   });
   const jumahNotes = buildJumahNotes(input.days, normalizedDays, dstSplitStartDays);
@@ -200,7 +214,9 @@ function applyJumahNoteMarkers(
 function applyPrayerLimits(input: {
   groups: MonthlyPlan["baseGroups"];
   baseBuckets: DayBucket[];
+  rawDays: RawDailyRecord[];
   customization: Customization;
+  yearZhuhrPeriods: YearZhuhrPeriod[];
   dstSplitStartDays: Set<number>;
 }): void {
   if (input.groups.length === 0 || input.baseBuckets.length === 0) {
@@ -210,13 +226,17 @@ function applyPrayerLimits(input: {
   const hasDstSwitch = input.dstSplitStartDays.size > 0;
   const allDays = input.baseBuckets.flatMap((bucket) => bucket.days);
   const monthWideRegion = inferRegionType(allDays);
+  const dayIsoByDayOfMonth = new Map<number, string>(input.rawDays.map((day) => [day.dayOfMonth, day.dateIso]));
 
   input.groups.forEach((group, idx) => {
     const bucket = input.baseBuckets[idx]!;
     if (!bucket || bucket.days.length === 0) {
       return;
     }
-    const regionType = hasDstSwitch ? inferRegionType(bucket.days) : monthWideRegion;
+    const bucketStartDay = bucket.days[0]!.dayOfMonth;
+    const bucketStartIso = dayIsoByDayOfMonth.get(bucketStartDay);
+    const yearRegionType = resolveRegionTypeFromPeriods(bucketStartIso, input.yearZhuhrPeriods);
+    const regionType = yearRegionType ?? (hasDstSwitch ? inferRegionType(bucket.days) : monthWideRegion);
 
     for (const prayer of PRAYER_ORDER) {
       const prayerConfig = input.customization.prayers[prayer];
@@ -237,6 +257,18 @@ function applyPrayerLimits(input: {
       }
     }
   });
+}
+
+function resolveRegionTypeFromPeriods(
+  dateIso: string | undefined,
+  periods: YearZhuhrPeriod[]
+): "standard" | "daylight" | null {
+  if (!dateIso || periods.length === 0) {
+    return null;
+  }
+
+  const matched = periods.find((period) => dateIso >= period.startIso && dateIso <= period.endIso);
+  return matched?.regionType ?? null;
 }
 
 function resolveLimitMinutes(limit: PrayerLimitConfig, regionType: "standard" | "daylight"): number {
@@ -483,6 +515,27 @@ function getDstSplitStartDays(days: DailyPrayerMinutes[]): Set<number> {
       splitDays.add(next.dayOfMonth);
     }
   }
+  return splitDays;
+}
+
+function getDstSplitStartDaysFromYearPeriods(
+  monthDays: RawDailyRecord[],
+  periods: YearZhuhrPeriod[]
+): Set<number> {
+  const splitDays = new Set<number>();
+  if (monthDays.length === 0 || periods.length <= 1) {
+    return splitDays;
+  }
+
+  const dayByIso = new Map<string, number>(monthDays.map((day) => [day.dateIso, day.dayOfMonth]));
+  for (let i = 1; i < periods.length; i += 1) {
+    const startIso = periods[i]!.startIso;
+    const day = dayByIso.get(startIso);
+    if (typeof day === "number") {
+      splitDays.add(day);
+    }
+  }
+
   return splitDays;
 }
 

@@ -10,12 +10,15 @@ import {
   GenerateOutputsResponseSchema
 } from "@shared/ipc";
 import { listAvailableMonths, readMonthTsv } from "@services/tsv-reader";
+import type { RawDailyRecord } from "@domain/types";
 import { buildMonthlyPlan } from "@domain/pipeline";
 import { writeXlsxFromTemplate } from "@services/xlsx-writer";
 import { renderPng } from "@services/png-renderer";
 
 type WindowGetter = () => BrowserWindow | null;
 const FIXED_TEMPLATE_FILE_NAME = "Mevlana Masjid Prayer Times_KALIP.xlsx";
+const STANDARD_ZHUHR_ANCHOR = (12 * 60) + 15;
+const DAYLIGHT_ZHUHR_ANCHOR = (13 * 60) + 15;
 
 function resolveFixedTemplateFile(): string {
   const candidates = [
@@ -54,6 +57,105 @@ function resolveTsvFolderPath(tsvFolder: string): string {
 }
 
 const PRAYER_ORDER: PrayerKey[] = ["fajr", "zhuhr", "asr", "maghrib", "isha"];
+type YearZhuhrPeriod = {
+  startIso: string;
+  endIso: string;
+  regionType: "standard" | "daylight";
+};
+
+function toMinutes(hhmm: string): number {
+  const [hRaw, mRaw] = hhmm.split(":");
+  return (Number(hRaw ?? 0) * 60) + Number(mRaw ?? 0);
+}
+
+function median(values: number[]): number {
+  if (values.length === 0) {
+    return 0;
+  }
+
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 1) {
+    return sorted[mid]!;
+  }
+
+  return Math.floor((sorted[mid - 1]! + sorted[mid]!) / 2);
+}
+
+function inferRegionFromZhuhr(zhuhrMinutes: number[]): "standard" | "daylight" {
+  const regionMedian = median(zhuhrMinutes);
+  return Math.abs(regionMedian - STANDARD_ZHUHR_ANCHOR) <= Math.abs(regionMedian - DAYLIGHT_ZHUHR_ANCHOR)
+    ? "standard"
+    : "daylight";
+}
+
+function buildYearZhuhrPeriods(days: RawDailyRecord[]): YearZhuhrPeriod[] {
+  if (days.length === 0) {
+    return [];
+  }
+
+  const sorted = [...days].sort((a, b) => a.dateIso.localeCompare(b.dateIso));
+  const splitIndexes: number[] = [];
+  for (let i = 0; i < sorted.length - 1; i += 1) {
+    const current = toMinutes(sorted[i]!.ogle);
+    const next = toMinutes(sorted[i + 1]!.ogle);
+    if (Math.abs(next - current) > 50) {
+      splitIndexes.push(i + 1);
+    }
+  }
+
+  const periods: YearZhuhrPeriod[] = [];
+  let segmentStart = 0;
+  for (const splitIndex of splitIndexes) {
+    const segment = sorted.slice(segmentStart, splitIndex);
+    if (segment.length > 0) {
+      periods.push({
+        startIso: segment[0]!.dateIso,
+        endIso: segment[segment.length - 1]!.dateIso,
+        regionType: inferRegionFromZhuhr(segment.map((day) => toMinutes(day.ogle)))
+      });
+    }
+    segmentStart = splitIndex;
+  }
+
+  const tail = sorted.slice(segmentStart);
+  if (tail.length > 0) {
+    periods.push({
+      startIso: tail[0]!.dateIso,
+      endIso: tail[tail.length - 1]!.dateIso,
+      regionType: inferRegionFromZhuhr(tail.map((day) => toMinutes(day.ogle)))
+    });
+  }
+
+  return periods;
+}
+
+async function computeYearZhuhrPeriods(tsvFolder: string, month: string): Promise<YearZhuhrPeriod[]> {
+  const [year] = month.split("-");
+  if (!year) {
+    return [];
+  }
+
+  const allMonths = await listAvailableMonths(tsvFolder);
+  const yearMonths = allMonths.filter((entry) => entry.startsWith(`${year}-`));
+  if (yearMonths.length === 0) {
+    return [];
+  }
+
+  const loaded = await Promise.all(yearMonths.map((entry) => readMonthTsv(tsvFolder, entry)));
+  const allDays = loaded.flat();
+  return buildYearZhuhrPeriods(allDays);
+}
+
+function formatYearZhuhrPeriods(periods: YearZhuhrPeriod[]): string {
+  if (periods.length === 0) {
+    return "none";
+  }
+
+  return periods
+    .map((period) => `${period.startIso}..${period.endIso}=${period.regionType}`)
+    .join(" | ");
+}
 
 function collectLimitWarnings(customization: Customization): string[] {
   const warnings: string[] = [];
@@ -97,6 +199,8 @@ export function registerIpcHandlers(_getWindow: WindowGetter): void {
     console.log("[ipc] GENERATE_OUTPUTS", options.month, targets.join(","), resolvedTsvFolder);
     const templateFile = resolveFixedTemplateFile();
     const days = await readMonthTsv(resolvedTsvFolder, options.month);
+    const yearZhuhrPeriods = await computeYearZhuhrPeriods(resolvedTsvFolder, options.month);
+    console.log("[ipc] ZHUHR_PERIODS", options.month, formatYearZhuhrPeriods(yearZhuhrPeriods));
     const plan = buildMonthlyPlan({
       month: options.month,
       locale: options.locale,
@@ -104,6 +208,7 @@ export function registerIpcHandlers(_getWindow: WindowGetter): void {
       customization: options.customization,
       baseGroupSize: options.baseGroupSize,
       ramazanHesabi: options.ramazanHesabi,
+      yearZhuhrPeriods,
       days
     });
 
