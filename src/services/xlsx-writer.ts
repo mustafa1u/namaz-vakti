@@ -62,7 +62,7 @@ export async function writeXlsxFromTemplate(input: XlsxWriteInput): Promise<stri
   applyRowHeights(sheet, slots, pairHeights, map);
   writeDayColumns(sheet, input.plan, map, slots);
   applyGroupStyles(sheet, input.plan, map, slots);
-  writePrayerColumns(sheet, input.plan, map, slots);
+  writePrayerColumns(sheet, input.plan, map, slots, XlsxPopulate);
   keepOnlySelectedSheet(workbook, map.sheetName);
 
   const outputPath = join(input.outputFolder, `iqamah_${input.plan.month}.xlsx`);
@@ -130,25 +130,45 @@ function writeHeader(
   announcementMessage: string,
   xlsxPopulate: any
 ): void {
-  const headerText = buildHeaderText(headerTemplate, plan, masjidName, masjidAddress);
+  const headerContent = buildHeaderContent(headerTemplate, plan, masjidName, masjidAddress);
+  const normalizedAnnouncement = normalizeAnnouncementMessage(announcementMessage);
+  const rich = new xlsxPopulate.RichText();
+  const headerLines: HeaderLineMetric[] = [];
+  addRichLine(rich, headerContent.titleLine, { fontSize: 20, bold: true }, headerLines);
+  if (headerContent.addressLine) {
+    addRichLine(rich, headerContent.addressLine, { fontSize: 14 }, headerLines);
+  }
+  addRichLine(rich, headerContent.monthLine, { fontSize: 18 }, headerLines);
+  rich.add("\n");
+  headerLines.push({ text: "", fontSize: 12, bold: false });
 
-  if (!announcementMessage) {
-    sheet.cell("A1").value(headerText);
-    return;
+  for (let i = 0; i < headerContent.jumahLines.length; i += 1) {
+    const line = headerContent.jumahLines[i]!;
+    const isFooter = i === headerContent.jumahLines.length - 1;
+    addRichLine(rich, line, { fontSize: isFooter ? 12 : 14, bold: true }, headerLines);
   }
 
-  const rich = new xlsxPopulate.RichText();
-  rich.add(`${announcementMessage}\n`, { fontSize: 14 });
-  rich.add(headerText);
+  if (normalizedAnnouncement) {
+    rich.add("\n");
+    headerLines.push({ text: "", fontSize: 12, bold: false });
+    addRichLine(rich, normalizedAnnouncement, { fontSize: 14 }, headerLines);
+  }
+
   sheet.cell("A1").value(rich);
+  try {
+    sheet.cell("A1").style("wrapText", true);
+  } catch {
+    // Ignore style assignment issues for header cell.
+  }
+  adjustHeaderTopBlockHeight(sheet, headerLines);
 }
 
-function buildHeaderText(
+function buildHeaderContent(
   headerTemplate: string,
   plan: MonthlyPlan,
   masjidName: string,
   masjidAddress: string
-): string {
+): { titleLine: string; addressLine: string; monthLine: string; jumahLines: string[] } {
   const monthLabel = formatMonthLabel(plan.month, plan.locale);
   const lines = headerTemplate.split(/\r?\n/);
   const titleLine = masjidName || (lines[0] ?? "Paterson Mevlana Camii");
@@ -159,33 +179,42 @@ function buildHeaderText(
     .replaceAll("[YIL]", plan.month.slice(0, 4));
 
   const jumahLines = buildJumahHeaderLines(plan);
-  return [titleLine, addressLine, monthLine, "", ...jumahLines].join("\n");
+  return { titleLine, addressLine, monthLine, jumahLines };
 }
 
 function buildJumahHeaderLines(plan: MonthlyPlan): string[] {
   const notes = plan.jumahNotes;
   const out: string[] = [];
+  const useTurkish = plan.locale === "tr";
 
   if (notes.length === 0) {
-    const firstFriday = plan.rawDays.find((day) => day.weekdayNameEn === "Fri" || day.weekdayNameTr === "Cuma");
+    const firstFriday = plan.rawDays.find((day) => day.weekdayIndex === 5 || day.weekdayNameEn === "Fri");
     const fallback = firstFriday ? formatMinutes(toMinutes(firstFriday.ogle), plan.locale, plan.timeFormat) : "N/A";
-    out.push(`(*)FRIDAY (JUM'AH): Adzan of Jum'ah is called at ${fallback}.`);
-    out.push("Iqamah is 20-25 MINS later");
+    out.push(useTurkish
+      ? `(*)CUMA: Cuma ezanı saati ${fallback}.`
+      : `(*)FRIDAY (JUM'AH): Adzan of Jum'ah is called at ${fallback}.`);
+    out.push(useTurkish ? "Kamet 20-25 dk sonra" : "Iqamah is 20-25 MINS later");
     return out;
   }
 
   if (notes.length === 1) {
-    out.push(`(*)FRIDAY (JUM'AH): Adzan of Jum'ah is called at ${formatMinutes(notes[0]!.adhanMinutes, plan.locale, plan.timeFormat)}.`);
-    out.push("Iqamah is 20-25 MINS later");
+    out.push(useTurkish
+      ? `(*)CUMA: Cuma ezanı saati ${formatMinutes(notes[0]!.adhanMinutes, plan.locale, plan.timeFormat)}.`
+      : `(*)FRIDAY (JUM'AH): Adzan of Jum'ah is called at ${formatMinutes(notes[0]!.adhanMinutes, plan.locale, plan.timeFormat)}.`);
+    out.push(useTurkish ? "Kamet 20-25 dk sonra" : "Iqamah is 20-25 MINS later");
     return out;
   }
 
   for (const note of notes) {
-    const range = note.startDay === note.endDay ? `Day ${note.startDay}` : `Days ${note.startDay}-${note.endDay}`;
+    const range = note.startDay === note.endDay
+      ? (useTurkish ? `Gün ${note.startDay}` : `Day ${note.startDay}`)
+      : (useTurkish ? `Günler ${note.startDay}-${note.endDay}` : `Days ${note.startDay}-${note.endDay}`);
     const time = formatMinutes(note.adhanMinutes, plan.locale, plan.timeFormat);
-    out.push(`(${note.marker})FRIDAY (JUM'AH): ${range}. Adzan of Jum'ah is called at ${time}.`);
+    out.push(useTurkish
+      ? `(${note.marker})CUMA: ${range}. Cuma ezanı saati ${time}.`
+      : `(${note.marker})FRIDAY (JUM'AH): ${range}. Adzan of Jum'ah is called at ${time}.`);
   }
-  out.push("Iqamah is 20-25 MINS later");
+  out.push(useTurkish ? "Kamet 20-25 dk sonra" : "Iqamah is 20-25 MINS later");
   return out;
 }
 
@@ -331,35 +360,44 @@ function writePrayerColumns(
   sheet: any,
   plan: MonthlyPlan,
   map: ReturnType<typeof getTemplateSheetMap>,
-  slots: DisplaySlot[]
+  slots: DisplaySlot[],
+  xlsxPopulate: any
 ): void {
+  const prayerStyleRefs = getPrayerStyleReferences(sheet, map);
+
   for (const prayer of PRAYERS) {
     const col = map.prayerColumns[prayer];
+    const styleRefs = prayerStyleRefs[prayer];
 
     for (const slot of slots) {
+      const startAddress = `${col.startCol}${slot.topRow}`;
+      normalizePrayerCellStyle(sheet, startAddress, styleRefs.start);
       const display = getDisplayText(slot.group, prayer, plan);
-      sheet.cell(`${col.startCol}${slot.topRow}`).value(display);
+      const topCell = sheet.cell(startAddress);
+      const rich = buildSpecialDisplayRichText(
+        display,
+        xlsxPopulate,
+        toRichFontColor(topCell.style("fontColor")),
+        topCell.style("bold") === true
+      );
+      topCell.value(rich ?? display);
       if (display.includes("\n")) {
         try {
-          sheet.cell(`${col.startCol}${slot.topRow}`).style("wrapText", true);
-        } catch {
-          // Ignore style assignment issues for this cell.
-        }
-      }
-      if (isRamadanMaghribDisplay(display)) {
-        try {
-          sheet.cell(`${col.startCol}${slot.topRow}`).style("fontSize", 15);
+          topCell.style("wrapText", true);
         } catch {
           // Ignore style assignment issues for this cell.
         }
       }
       if (col.endCol !== col.startCol) {
+        normalizePrayerCellStyle(sheet, `${col.endCol}${slot.topRow}`, styleRefs.end);
         sheet.cell(`${col.endCol}${slot.topRow}`).value("");
       }
 
       if (slot.rowCount === 2) {
+        normalizePrayerCellStyle(sheet, `${col.startCol}${slot.bottomRow}`, styleRefs.start);
         sheet.cell(`${col.startCol}${slot.bottomRow}`).value("");
         if (col.endCol !== col.startCol) {
+          normalizePrayerCellStyle(sheet, `${col.endCol}${slot.bottomRow}`, styleRefs.end);
           sheet.cell(`${col.endCol}${slot.bottomRow}`).value("");
         }
       }
@@ -614,8 +652,59 @@ function getDisplayText(group: GroupResult, prayer: PrayerKey, plan: MonthlyPlan
   return formatMinutes(group.iqamahByPrayer[prayer], plan.locale, plan.timeFormat);
 }
 
-function isRamadanMaghribDisplay(display: string): boolean {
-  return display.startsWith("ON TIME\n~");
+function buildSpecialDisplayRichText(
+  display: string,
+  xlsxPopulate: any,
+  fontColor: string | undefined,
+  bold: boolean
+): any | null {
+  const [line1, line2, ...extra] = display.split("\n");
+  if (!line2 || extra.length > 0) {
+    return null;
+  }
+
+  if (display.startsWith("ZAMANINDA\n~")) {
+    const rich = new xlsxPopulate.RichText();
+    rich.add(line1 ?? "ZAMANINDA", { fontSize: 13, bold, fontColor });
+    rich.add("\n");
+    rich.add(line2, { fontSize: 16, bold, fontColor });
+    return rich;
+  }
+
+  if (display.startsWith("ON TIME\n~")) {
+    const rich = new xlsxPopulate.RichText();
+    rich.add(line1 ?? "ON TIME", { fontSize: 16, bold, fontColor });
+    rich.add("\n");
+    rich.add(line2, { fontSize: 16, bold, fontColor });
+    return rich;
+  }
+
+  if (hasDoubleAsteriskReference(line2)) {
+    const rich = new xlsxPopulate.RichText();
+    rich.add(line1 ?? "", { fontSize: 18, bold, fontColor });
+    rich.add("\n");
+    rich.add(line2, { fontSize: 16, bold, fontColor });
+    return rich;
+  }
+
+  return null;
+}
+
+function hasDoubleAsteriskReference(line: string): boolean {
+  return /^\((Bkz\.|See)\s+\*{2}\)$/.test(line.trim());
+}
+
+function toRichFontColor(raw: unknown): string | undefined {
+  if (typeof raw === "string" && raw.trim()) {
+    return raw.trim();
+  }
+  if (raw && typeof raw === "object" && "rgb" in (raw as Record<string, unknown>)) {
+    const rgb = (raw as { rgb?: unknown }).rgb;
+    if (typeof rgb === "string" && rgb.trim()) {
+      return rgb.trim();
+    }
+  }
+  return undefined;
 }
 
 function normalizeAnnouncementMessage(input: string): string {
@@ -626,15 +715,88 @@ function normalizeHeaderLine(input: string): string {
   return input.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n")[0]?.trim() ?? "";
 }
 
-type DayStyleRef = {
-  fontFamily: string;
+type HeaderLineMetric = {
+  text: string;
   fontSize: number;
+  bold: boolean;
 };
 
-function getDayStyleReference(sheet: any, map: ReturnType<typeof getTemplateSheetMap>): DayStyleRef {
-  const refCell = sheet.cell(`${map.dayNumberColumn}${map.dataStartRow}`);
+function addRichLine(
+  rich: any,
+  text: string,
+  style: { fontSize: number; bold?: boolean },
+  metrics?: HeaderLineMetric[]
+): void {
+  const normalized = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const lines = normalized.split("\n");
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i] ?? "";
+    rich.add(line, style);
+    metrics?.push({ text: line, fontSize: style.fontSize, bold: style.bold === true });
+    if (i < lines.length - 1) {
+      rich.add("\n");
+    }
+  }
+  rich.add("\n");
+}
+
+function estimateHeaderHeightPoints(lines: HeaderLineMetric[]): number {
+  let total = 10;
+  for (const line of lines) {
+    if (!line.text.trim()) {
+      total += 8;
+      continue;
+    }
+    const weightBoost = line.bold ? 2 : 0;
+    total += (line.fontSize * 1.35) + weightBoost;
+  }
+  return total;
+}
+
+function adjustHeaderTopBlockHeight(sheet: any, lines: HeaderLineMetric[]): void {
+  const row1 = Number(sheet.row(1).height()) || 15;
+  const row2 = Number(sheet.row(2).height()) || 15;
+  const row3 = Number(sheet.row(3).height()) || 15;
+  const row4 = Number(sheet.row(4).height()) || 15;
+
+  const fixedTop = row1 + row2 + row3;
+  const defaultTotal = fixedTop + row4;
+  const estimatedTotal = estimateHeaderHeightPoints(lines);
+  if (estimatedTotal <= defaultTotal) {
+    return;
+  }
+
+  const targetRow4 = Math.max(row4, estimatedTotal - fixedTop);
+  try {
+    sheet.row(4).height(Math.ceil(targetRow4));
+  } catch {
+    // Ignore row-height assignment issues.
+  }
+}
+
+type PrayerStyleRef = {
+  fontFamily: string;
+  fontSize: number;
+  bold: boolean;
+  border: unknown;
+  numberFormat: string;
+  horizontalAlignment: string;
+  verticalAlignment: string;
+};
+
+type PrayerColumnStyleRef = {
+  start: PrayerStyleRef;
+  end: PrayerStyleRef;
+};
+
+function readPrayerStyleReference(refCell: any): PrayerStyleRef {
   let fontFamily = "Arial";
   let fontSize = 20;
+  let bold = true;
+  let border: unknown = { left: { style: "thin" }, right: { style: "thin" }, top: { style: "thin" }, bottom: { style: "thin" } };
+  let numberFormat = "General";
+  let horizontalAlignment = "center";
+  let verticalAlignment = "center";
 
   try {
     const family = refCell.style("fontFamily");
@@ -652,19 +814,73 @@ function getDayStyleReference(sheet: any, map: ReturnType<typeof getTemplateShee
   } catch {
     // Keep defaults.
   }
+  try {
+    bold = refCell.style("bold") === true;
+  } catch {
+    // Keep defaults.
+  }
+  try {
+    const rawBorder = refCell.style("border");
+    if (rawBorder) {
+      border = JSON.parse(JSON.stringify(rawBorder));
+    }
+  } catch {
+    // Keep defaults.
+  }
+  try {
+    const fmt = refCell.style("numberFormat");
+    if (typeof fmt === "string" && fmt.trim()) {
+      numberFormat = fmt;
+    }
+  } catch {
+    // Keep defaults.
+  }
+  try {
+    const h = refCell.style("horizontalAlignment");
+    if (typeof h === "string" && h.trim()) {
+      horizontalAlignment = h;
+    }
+  } catch {
+    // Keep defaults.
+  }
+  try {
+    const v = refCell.style("verticalAlignment");
+    if (typeof v === "string" && v.trim()) {
+      verticalAlignment = v;
+    }
+  } catch {
+    // Keep defaults.
+  }
 
-  return { fontFamily, fontSize };
+  return { fontFamily, fontSize, bold, border, numberFormat, horizontalAlignment, verticalAlignment };
 }
 
-function normalizeDayCellStyle(sheet: any, address: string, ref: DayStyleRef): void {
+function getPrayerStyleReferences(
+  sheet: any,
+  map: ReturnType<typeof getTemplateSheetMap>
+): Record<PrayerKey, PrayerColumnStyleRef> {
+  const refs = {} as Record<PrayerKey, PrayerColumnStyleRef>;
+  for (const prayer of PRAYERS) {
+    const col = map.prayerColumns[prayer];
+    const startCell = sheet.cell(`${col.startCol}${map.dataStartRow}`);
+    const endCell = sheet.cell(`${col.endCol}${map.dataStartRow}`);
+    refs[prayer] = {
+      start: readPrayerStyleReference(startCell),
+      end: readPrayerStyleReference(endCell)
+    };
+  }
+  return refs;
+}
+
+function normalizePrayerCellStyle(sheet: any, address: string, ref: PrayerStyleRef): void {
   const cell = sheet.cell(address);
   try {
-    cell.style("horizontalAlignment", "center");
+    cell.style("horizontalAlignment", ref.horizontalAlignment);
   } catch {
     // Ignore style assignment issues for this cell.
   }
   try {
-    cell.style("verticalAlignment", "center");
+    cell.style("verticalAlignment", ref.verticalAlignment);
   } catch {
     // Ignore style assignment issues for this cell.
   }
@@ -675,6 +891,122 @@ function normalizeDayCellStyle(sheet: any, address: string, ref: DayStyleRef): v
   }
   try {
     cell.style("fontSize", ref.fontSize);
+  } catch {
+    // Ignore style assignment issues for this cell.
+  }
+  try {
+    cell.style("bold", ref.bold);
+  } catch {
+    // Ignore style assignment issues for this cell.
+  }
+  try {
+    cell.style("border", ref.border);
+  } catch {
+    // Ignore style assignment issues for this cell.
+  }
+  try {
+    cell.style("numberFormat", "@");
+  } catch {
+    // Ignore style assignment issues for this cell.
+  }
+}
+
+type DayStyleRef = {
+  fontFamily: string;
+  fontSize: number;
+  bold: boolean;
+  border: unknown;
+  horizontalAlignment: string;
+  verticalAlignment: string;
+};
+
+function getDayStyleReference(sheet: any, map: ReturnType<typeof getTemplateSheetMap>): DayStyleRef {
+  const refCell = sheet.cell(`${map.dayNumberColumn}${map.dataStartRow}`);
+  let fontFamily = "Arial";
+  let fontSize = 20;
+  let bold = false;
+  let border: unknown = { left: { style: "thin" }, right: { style: "thin" }, top: { style: "thin" }, bottom: { style: "thin" } };
+  let horizontalAlignment = "center";
+  let verticalAlignment = "center";
+
+  try {
+    const family = refCell.style("fontFamily");
+    if (typeof family === "string" && family.trim()) {
+      fontFamily = family;
+    }
+  } catch {
+    // Keep defaults.
+  }
+  try {
+    const size = Number(refCell.style("fontSize"));
+    if (Number.isFinite(size) && size > 0) {
+      fontSize = size;
+    }
+  } catch {
+    // Keep defaults.
+  }
+  try {
+    bold = refCell.style("bold") === true;
+  } catch {
+    // Keep defaults.
+  }
+  try {
+    const rawBorder = refCell.style("border");
+    if (rawBorder) {
+      border = JSON.parse(JSON.stringify(rawBorder));
+    }
+  } catch {
+    // Keep defaults.
+  }
+  try {
+    const h = refCell.style("horizontalAlignment");
+    if (typeof h === "string" && h.trim()) {
+      horizontalAlignment = h;
+    }
+  } catch {
+    // Keep defaults.
+  }
+  try {
+    const v = refCell.style("verticalAlignment");
+    if (typeof v === "string" && v.trim()) {
+      verticalAlignment = v;
+    }
+  } catch {
+    // Keep defaults.
+  }
+
+  return { fontFamily, fontSize, bold, border, horizontalAlignment, verticalAlignment };
+}
+
+function normalizeDayCellStyle(sheet: any, address: string, ref: DayStyleRef): void {
+  const cell = sheet.cell(address);
+  try {
+    cell.style("horizontalAlignment", ref.horizontalAlignment);
+  } catch {
+    // Ignore style assignment issues for this cell.
+  }
+  try {
+    cell.style("verticalAlignment", ref.verticalAlignment);
+  } catch {
+    // Ignore style assignment issues for this cell.
+  }
+  try {
+    cell.style("fontFamily", ref.fontFamily);
+  } catch {
+    // Ignore style assignment issues for this cell.
+  }
+  try {
+    cell.style("fontSize", ref.fontSize);
+  } catch {
+    // Ignore style assignment issues for this cell.
+  }
+  try {
+    cell.style("bold", ref.bold);
+  } catch {
+    // Ignore style assignment issues for this cell.
+  }
+  try {
+    cell.style("border", ref.border);
   } catch {
     // Ignore style assignment issues for this cell.
   }

@@ -165,6 +165,8 @@ function buildExportHtml(
       th, td { border: 3px solid #222; text-align: center; padding: 8px 6px; font-size: 38px; font-weight: 700; }
       tr.single-day td { padding-top: 0; padding-bottom: 0; line-height: 0.95; }
       .ramadan-maghrib { font-size: 30px; line-height: 1.05; display: inline-block; }
+      .ramadan-maghrib-label-tr { font-size: 24px; line-height: 1.05; display: inline-block; }
+      .double-asterisk-ref { font-size: 30px; line-height: 1.03; display: inline-block; }
       .announcement {
         font-size: 14pt;
         text-align: center;
@@ -273,14 +275,34 @@ function getDisplayText(group: GroupResult, prayer: PrayerKey, plan: MonthlyPlan
 }
 
 function toHtmlDisplay(text: string): string {
+  if (text.startsWith("ZAMANINDA\n~")) {
+    const parts = text.split("\n");
+    const line1 = parts[0] ?? "ZAMANINDA";
+    const line2 = parts[1] ?? "";
+    return `<span class="ramadan-maghrib-label-tr">${line1}</span><br/>${line2}`;
+  }
   if (text.startsWith("ON TIME\n~")) {
     const parts = text.split("\n");
     const line1 = parts[0] ?? "";
     const line2 = parts[1] ?? "";
     return `<span class="ramadan-maghrib">${line1}<br/>${line2}</span>`;
   }
+  if (hasDoubleAsteriskReference(text)) {
+    const parts = text.split("\n");
+    const line1 = parts[0] ?? "";
+    const line2 = parts[1] ?? "";
+    return `${line1}<br/><span class="double-asterisk-ref">${line2}</span>`;
+  }
 
   return text.replace(/\n/g, "<br/>");
+}
+
+function hasDoubleAsteriskReference(text: string): boolean {
+  const parts = text.split("\n");
+  if (parts.length !== 2) {
+    return false;
+  }
+  return /^\((Bkz\.|See)\s+\*{2}\)$/.test((parts[1] ?? "").trim());
 }
 
 function buildRunMap(tokens: string[]): Map<number, { start: number; end: number }> {
@@ -308,26 +330,39 @@ function buildRunMap(tokens: string[]): Map<number, { start: number; end: number
 
 function renderJumahNotesHtml(plan: MonthlyPlan): string {
   const notes = plan.jumahNotes;
+  const useTurkish = plan.locale === "tr";
+  const footer = useTurkish ? "Kamet 20-25 dk sonra" : "Iqamah is 20-25 MINS later";
   if (notes.length === 0) {
-    const firstFriday = plan.rawDays.find((day) => day.weekdayNameEn === "Fri" || day.weekdayNameTr === "Cuma");
+    const firstFriday = plan.rawDays.find((day) => day.weekdayIndex === 5 || day.weekdayNameEn === "Fri");
     const fallback = firstFriday ? formatMinutes(toMinutes(firstFriday.ogle), plan.locale, plan.timeFormat) : "N/A";
-    return `<div class="jumah-note">(*)FRIDAY (JUM'AH): Adzan of Jum'ah is called at ${escapeHtml(fallback)}.</div><div class="jumah-foot">Iqamah is 20-25 MINS later</div>`;
+    const message = useTurkish
+      ? `(*) CUMA: Cuma ezanı saati ${escapeHtml(fallback)}.`
+      : `(*) FRIDAY (JUM'AH): Adzan of Jum'ah is called at ${escapeHtml(fallback)}.`;
+    return `<div class="jumah-note">${message}</div><div class="jumah-foot">${footer}</div>`;
   }
 
   if (notes.length === 1) {
     const time = formatMinutes(notes[0]!.adhanMinutes, plan.locale, plan.timeFormat);
-    return `<div class="jumah-note">(*)FRIDAY (JUM'AH): Adzan of Jum'ah is called at ${escapeHtml(time)}.</div><div class="jumah-foot">Iqamah is 20-25 MINS later</div>`;
+    const message = useTurkish
+      ? `(*) CUMA: Cuma ezanı saati ${escapeHtml(time)}.`
+      : `(*) FRIDAY (JUM'AH): Adzan of Jum'ah is called at ${escapeHtml(time)}.`;
+    return `<div class="jumah-note">${message}</div><div class="jumah-foot">${footer}</div>`;
   }
 
   const lines = notes
     .map((note) => {
-      const range = note.startDay === note.endDay ? `Day ${note.startDay}` : `Days ${note.startDay}-${note.endDay}`;
+      const range = note.startDay === note.endDay
+        ? (useTurkish ? `Gün ${note.startDay}` : `Day ${note.startDay}`)
+        : (useTurkish ? `Günler ${note.startDay}-${note.endDay}` : `Days ${note.startDay}-${note.endDay}`);
       const time = formatMinutes(note.adhanMinutes, plan.locale, plan.timeFormat);
-      return `<div class="jumah-note">(${escapeHtml(note.marker)})FRIDAY (JUM'AH): ${escapeHtml(range)}. Adzan of Jum'ah is called at ${escapeHtml(time)}.</div>`;
+      const message = useTurkish
+        ? `(${escapeHtml(note.marker)})CUMA: ${escapeHtml(range)}. Cuma ezanı saati ${escapeHtml(time)}.`
+        : `(${escapeHtml(note.marker)})FRIDAY (JUM'AH): ${escapeHtml(range)}. Adzan of Jum'ah is called at ${escapeHtml(time)}.`;
+      return `<div class="jumah-note">${message}</div>`;
     })
     .join("");
 
-  return `${lines}<div class="jumah-foot">Iqamah is 20-25 MINS later</div>`;
+  return `${lines}<div class="jumah-foot">${footer}</div>`;
 }
 
 function renderAnnouncementHtml(message: string): string {

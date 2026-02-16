@@ -17,15 +17,15 @@ const MONTH_EN = [
 
 const MONTH_TR = [
   "OCAK",
-  "SUBAT",
+  "ŞUBAT",
   "MART",
-  "NISAN",
+  "NİSAN",
   "MAYIS",
   "HAZIRAN",
   "TEMMUZ",
-  "AGUSTOS",
-  "EYLUL",
-  "EKIM",
+  "AĞUSTOS",
+  "EYLÜL",
+  "EKİM",
   "KASIM",
   "ARALIK"
 ];

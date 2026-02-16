@@ -41,23 +41,23 @@ export function getTemplateSheetMap(month: string): TemplateSheetMap {
       titleCell: "A1",
       rawHeaderTemplate:
         "Paterson Mevlana Camii\n291 Sussex St, Paterson, NJ, 07503\n[AYIN ADI], [YIL]\n\n(*)FRIDAY (JUM'AH): Adzan of Jum'ah is called at [CUMA SAATİ].\nIqamah is 20-25 MINS later",
-      dataStartRow: 7,
+      dataStartRow: 6,
       groupCount: 6,
       groupHeight: 2,
       dayNumberColumn: "A",
       weekdayColumn: "B",
       sourceRowsByToken: {
-        "a-light": 7,
-        "a-dark": 9,
-        "b-light": 11,
-        "b-dark": 13
+        "a-light": 6,
+        "a-dark": 8,
+        "b-light": 10,
+        "b-dark": 12
       },
       prayerColumns: {
-        fajr: { startCol: "C", endCol: "C", anchorCell: "C7" },
-        zhuhr: { startCol: "D", endCol: "D", anchorCell: "D7" },
-        asr: { startCol: "E", endCol: "E", anchorCell: "E7" },
-        maghrib: { startCol: "F", endCol: "F", anchorCell: "F7" },
-        isha: { startCol: "G", endCol: "G", anchorCell: "G7" }
+        fajr: { startCol: "C", endCol: "C", anchorCell: "C6" },
+        zhuhr: { startCol: "D", endCol: "D", anchorCell: "D6" },
+        asr: { startCol: "E", endCol: "E", anchorCell: "E6" },
+        maghrib: { startCol: "F", endCol: "F", anchorCell: "F6" },
+        isha: { startCol: "G", endCol: "G", anchorCell: "G6" }
       },
       colorTokenOrder: ["a-light", "a-dark", "b-light", "b-dark"],
       weekdaySource: "en",
@@ -70,23 +70,23 @@ export function getTemplateSheetMap(month: string): TemplateSheetMap {
     titleCell: "A1",
     rawHeaderTemplate:
       "Paterson Mevlana Camii (Mosque)\n291 Sussex St, Paterson, NJ, 07503\n[AYIN ADI], [YIL]\n\n(*)FRIDAY (JUM'AH): Adzan of Jum'ah is called at [CUMA SAATİ]\nIqamah is 20-25 MINS later",
-    dataStartRow: 7,
+    dataStartRow: 6,
     groupCount: 6,
     groupHeight: 2,
     dayNumberColumn: "A",
     weekdayColumn: "B",
     sourceRowsByToken: {
-      "a-light": 7,
-      "a-dark": 9,
-      "b-light": 11,
-      "b-dark": 13
+      "a-light": 6,
+      "a-dark": 8,
+      "b-light": 10,
+      "b-dark": 12
     },
     prayerColumns: {
-      fajr: { startCol: "C", endCol: "D", anchorCell: "C7" },
-      zhuhr: { startCol: "E", endCol: "F", anchorCell: "E7" },
-      asr: { startCol: "G", endCol: "H", anchorCell: "G7" },
-      maghrib: { startCol: "I", endCol: "J", anchorCell: "I7" },
-      isha: { startCol: "K", endCol: "L", anchorCell: "K7" }
+      fajr: { startCol: "C", endCol: "D", anchorCell: "C6" },
+      zhuhr: { startCol: "E", endCol: "F", anchorCell: "E6" },
+      asr: { startCol: "G", endCol: "H", anchorCell: "G6" },
+      maghrib: { startCol: "I", endCol: "J", anchorCell: "I6" },
+      isha: { startCol: "K", endCol: "L", anchorCell: "K6" }
     },
     colorTokenOrder: ["a-light", "a-dark", "b-light", "b-dark"],
     weekdaySource: "en",

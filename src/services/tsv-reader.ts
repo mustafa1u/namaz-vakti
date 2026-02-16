@@ -16,17 +16,8 @@ type TsvRow = {
   "Yatsı": string;
 };
 
-const WEEKDAY_EN: Record<string, string> = {
-  Pazartesi: "Mon",
-  Sali: "Tue",
-  "Salı": "Tue",
-  "Çarşamba": "Wed",
-  Persembe: "Thu",
-  "Perşembe": "Thu",
-  Cuma: "Fri",
-  Cumartesi: "Sat",
-  Pazar: "Sun"
-};
+const WEEKDAY_EN_BY_INDEX = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+const WEEKDAY_TR_BY_INDEX = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cts"] as const;
 
 export async function listAvailableMonths(tsvFolder: string): Promise<string[]> {
   const { readdir } = await import("node:fs/promises");
@@ -55,13 +46,15 @@ export async function readMonthTsv(tsvFolder: string, month: string): Promise<Ra
 
   return rows.map((row) => {
     const dayOfMonth = Number(row.Tarih.split("-")[2]);
-    const weekdayTr = row.GunAdi;
+    const weekdayIndex = new Date(`${row.Tarih}T00:00:00`).getDay();
+    const weekdayNameTr = WEEKDAY_TR_BY_INDEX[weekdayIndex] ?? row.GunAdi;
+    const weekdayNameEn = WEEKDAY_EN_BY_INDEX[weekdayIndex] ?? row.GunAdi;
     return {
       dateIso: row.Tarih,
       dayOfMonth,
-      weekdayIndex: new Date(`${row.Tarih}T00:00:00`).getDay(),
-      weekdayNameTr: weekdayTr,
-      weekdayNameEn: WEEKDAY_EN[weekdayTr] ?? weekdayTr,
+      weekdayIndex,
+      weekdayNameTr,
+      weekdayNameEn,
       hicriDate: row["Hicri Tarih"] ?? "",
       imsak: row["İmsak"],
       gunes: row["Güneş"],

@@ -179,9 +179,10 @@ function applyRamazanOverrides(
 
     group.iqamahByPrayer.fajr = fajrRounded;
     group.iqamahByPrayer.maghrib = maghribMedian;
+    const onTimeLabel = locale === "tr" ? "ZAMANINDA" : "ON TIME";
     group.displayByPrayer = {
       ...(group.displayByPrayer ?? {}),
-      maghrib: `ON TIME\n~${formatMinutes(maghribMedian, locale, timeFormat)}`
+      maghrib: `${onTimeLabel}\n~${formatMinutes(maghribMedian, locale, timeFormat)}`
     };
   });
 }
@@ -203,7 +204,9 @@ function applyJumahNoteMarkers(
     }
 
     const zhuhrDisplay = formatMinutes(group.iqamahByPrayer.zhuhr, locale, timeFormat);
-    const suffix = jumahNotes.length > 1 ? `(See ${note.marker})` : `(${note.marker})`;
+    const suffix = jumahNotes.length > 1
+      ? (locale === "tr" ? `(Bkz. ${note.marker})` : `(See ${note.marker})`)
+      : `(${note.marker})`;
     group.displayByPrayer = {
       ...(group.displayByPrayer ?? {}),
       zhuhr: `${zhuhrDisplay}\n${suffix}`
