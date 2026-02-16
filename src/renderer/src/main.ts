@@ -28,6 +28,8 @@ const localeSelect = getEl<HTMLSelectElement>("locale");
 const timeFormatSelect = getEl<HTMLSelectElement>("timeFormat");
 const baseGroupSizeSelect = getEl<HTMLSelectElement>("baseGroupSize");
 const ramazanHesabiInput = getEl<HTMLInputElement>("ramazanHesabi");
+const masjidNameInput = getEl<HTMLInputElement>("masjidName");
+const masjidAddressInput = getEl<HTMLInputElement>("masjidAddress");
 const announcementMessageInput = getEl<HTMLTextAreaElement>("announcementMessage");
 const advancedLimitRowsEl = getEl<HTMLElement>("advancedLimitRows");
 const openCustomizeButton = getEl<HTMLButtonElement>("openCustomize");
@@ -60,6 +62,8 @@ type LastEntries = {
   timeFormat: GenerationOptions["timeFormat"];
   baseGroupSize: string;
   ramazanHesabi: boolean;
+  masjidName: string;
+  masjidAddress: string;
   announcementMessage: string;
   customization: Customization;
 };
@@ -205,6 +209,10 @@ function bindPersistence(): void {
   });
   baseGroupSizeSelect.addEventListener("change", save);
   ramazanHesabiInput.addEventListener("change", save);
+  masjidNameInput.addEventListener("change", save);
+  masjidNameInput.addEventListener("input", save);
+  masjidAddressInput.addEventListener("change", save);
+  masjidAddressInput.addEventListener("input", save);
   announcementMessageInput.addEventListener("change", save);
   announcementMessageInput.addEventListener("input", save);
 }
@@ -244,6 +252,8 @@ async function restoreLastEntries(): Promise<void> {
   timeFormatSelect.value = saved.timeFormat;
   baseGroupSizeSelect.value = saved.baseGroupSize;
   ramazanHesabiInput.checked = saved.ramazanHesabi;
+  masjidNameInput.value = saved.masjidName;
+  masjidAddressInput.value = saved.masjidAddress;
   announcementMessageInput.value = saved.announcementMessage;
   customizationState = sanitizeCustomization(saved.customization);
 
@@ -269,6 +279,8 @@ function saveLastEntries(): void {
     timeFormat: timeFormatSelect.value === "24h" ? "24h" : "ampm",
     baseGroupSize: normalizeBaseGroupSize(baseGroupSizeSelect.value),
     ramazanHesabi: ramazanHesabiInput.checked,
+    masjidName: masjidNameInput.value,
+    masjidAddress: masjidAddressInput.value,
     announcementMessage: announcementMessageInput.value,
     customization: sanitizeCustomization(customizationState)
   };
@@ -317,6 +329,8 @@ function parseV4Entries(raw: string): LastEntries | null {
       timeFormat: parsed.timeFormat === "24h" ? "24h" : "ampm",
       baseGroupSize: normalizeBaseGroupSize(parsed.baseGroupSize),
       ramazanHesabi: parsed.ramazanHesabi !== false,
+      masjidName: parsed.masjidName ?? "",
+      masjidAddress: parsed.masjidAddress ?? "",
       announcementMessage: parsed.announcementMessage ?? "",
       customization: sanitizeCustomization(parsedCustomization.data)
     };
@@ -336,6 +350,8 @@ function parseLegacyEntries(raw: string): LastEntries | null {
       timeFormat: parsed.timeFormat === "24h" ? "24h" : "ampm",
       baseGroupSize: normalizeBaseGroupSize(parsed.baseGroupSize),
       ramazanHesabi: parsed.ramazanHesabi !== false,
+      masjidName: parsed.masjidName ?? "",
+      masjidAddress: parsed.masjidAddress ?? "",
       announcementMessage: parsed.announcementMessage ?? "",
       customization: migrateLegacyCustomization(parsed)
     };
@@ -395,6 +411,8 @@ function readOptions(): GenerationOptions {
     month: monthSelect.value,
     tsvFolder: tsvFolderInput.value.trim(),
     outputFolder: outputFolderInput.value.trim(),
+    masjidName: masjidNameInput.value,
+    masjidAddress: masjidAddressInput.value,
     announcementMessage: announcementMessageInput.value,
     locale: localeSelect.value === "tr" ? "tr" : "en",
     timeFormat: timeFormatSelect.value === "24h" ? "24h" : "ampm",
@@ -413,6 +431,8 @@ function applyFreshDefaults(): void {
   timeFormatSelect.value = "ampm";
   baseGroupSizeSelect.value = "5";
   ramazanHesabiInput.checked = true;
+  masjidNameInput.value = "";
+  masjidAddressInput.value = "";
   announcementMessageInput.value = "";
   customizationState = cloneCustomization(DEFAULT_CUSTOMIZATION);
   draftCustomizationState = cloneCustomization(DEFAULT_CUSTOMIZATION);

@@ -3721,6 +3721,8 @@ const GenerationOptionsSchema = objectType({
   month: stringType().regex(/^\d{4}-\d{2}$/),
   tsvFolder: stringType().min(1),
   outputFolder: stringType().min(1),
+  masjidName: stringType().default(""),
+  masjidAddress: stringType().default(""),
   announcementMessage: stringType().default(""),
   locale: LocaleSchema.default("en"),
   timeFormat: TimeFormatSchema.default("ampm"),
@@ -5967,12 +5969,12 @@ instance.hasLoadedNamespace;
 instance.loadNamespaces;
 instance.loadLanguages;
 const app$1 = { "windowTitle": "Namaz Vakti Desktop", "heading": "Iqamah Schedule Generator" };
-const labels$1 = { "uiLanguage": "Application Language", "uiLanguageShort": "Language", "tsvFolder": "TSV Folder", "outputFolder": "Output Folder", "month": "Month", "outputLocale": "Output Language (Generated Content)", "timeFormat": "Time Format", "baseGroupSize": "Base Group Size", "ramazanHesabi": "Ramadan calculation", "noEarlierLimit": "no earlier than limit", "noLaterLimit": "no later than limit", "fajrLatestLimitEnabled": "Fajr no later than limit", "zhuhrEarliestLimitEnabled": "Zhuhr no earlier than limit", "zhuhrSingleLimit": "Zhuhr single limit", "zhuhrStdDstLimits": "Zhuhr standard/daylight limits", "announcementMessage": "Announcement", "generatePane": "Generate", "customizeTitle": "Customize" };
+const labels$1 = { "uiLanguage": "Application Language", "uiLanguageShort": "Language", "tsvFolder": "TSV Folder", "outputFolder": "Output Folder", "month": "Month", "outputLocale": "Output Language (Generated Content)", "timeFormat": "Time Format", "baseGroupSize": "Base Group Size", "ramazanHesabi": "Ramadan calculation", "noEarlierLimit": "no earlier than limit", "noLaterLimit": "no later than limit", "fajrLatestLimitEnabled": "Fajr no later than limit", "zhuhrEarliestLimitEnabled": "Zhuhr no earlier than limit", "zhuhrSingleLimit": "Zhuhr single limit", "zhuhrStdDstLimits": "Zhuhr standard/daylight limits", "masjidName": "Name of Masjid", "masjidAddress": "Address", "announcementMessage": "Announcement", "generatePane": "Generate", "customizeTitle": "Customize" };
 const buttons$1 = { "browse": "Browse", "refresh": "Refresh", "advanced": "Advanced...", "customize": "Customize", "save": "Save", "cancel": "Cancel", "generatePng": "Generate PNG", "generateXlsx": "Generate XLSX", "resetDefaults": "Reset to defaults", "switchToEnglish": "English", "switchToTurkish": "Türkçe" };
 const options$1 = { "outputLocale": { "en": "English", "tr": "Turkish" }, "timeFormat": { "ampm": "AM/PM", "h24": "24h" }, "zhuhrLimitMode": { "single": "Single limit", "stdDst": "Standard/daylight" }, "zhuhrGroup": { "single": "Single", "standard": "Standard", "daylight": "Daylight" } };
 const prayers$1 = { "fajr": "Fajr", "zhuhr": "Zhuhr", "asr": "Asr", "maghrib": "Maghrib", "isha": "Isha" };
 const modal$1 = { "enabled": "Enabled", "direction": "Direction", "after": "After", "before": "Before", "offsetMinutes": "Offset minutes", "minuteMultiple": "Minute multiple", "minuteMultipleOptions": { "none": "1", "five": "5", "ten": "10" }, "noEarlierEnabled": "No earlier than", "noLaterEnabled": "No later than" };
-const placeholders$1 = { "announcementMessage": "Message shown above the table" };
+const placeholders$1 = { "masjidName": "Masjid name shown in header", "masjidAddress": "Masjid address shown in header", "announcementMessage": "Message shown above the table" };
 const languages$1 = { "en": "English", "tr": "Türkçe" };
 const time$1 = { "am": "AM", "pm": "PM" };
 const errors$1 = { "pickTsvFailed": "pickTsv failed", "pickOutputFailed": "pickOutput failed", "refreshMonthsFailed": "refreshMonths failed", "generateFailed": "generate failed" };
@@ -5997,12 +5999,12 @@ const en = {
   common: common$1
 };
 const app = { "windowTitle": "Namaz Vakti Masaüstü", "heading": "Kamet Çizelgesi Oluşturucu" };
-const labels = { "uiLanguage": "Uygulama dili", "uiLanguageShort": "Dil", "tsvFolder": "TSV klasörü", "outputFolder": "Çıktı klasörü", "month": "Ay", "outputLocale": "Çıktı dili (üretilen içerik)", "timeFormat": "Saat biçimi", "baseGroupSize": "Temel grup boyutu", "ramazanHesabi": "Ramazan hesabı", "noEarlierLimit": "en erken sınır", "noLaterLimit": "en geç sınır", "fajrLatestLimitEnabled": "Sabah en geç sınır", "zhuhrEarliestLimitEnabled": "Öğle en erken sınır", "zhuhrSingleLimit": "Öğle tek sınır", "zhuhrStdDstLimits": "Öğle kış/yaz saati sınırları", "announcementMessage": "Duyuru", "generatePane": "Üret", "customizeTitle": "Özelleştir" };
+const labels = { "uiLanguage": "Uygulama dili", "uiLanguageShort": "Dil", "tsvFolder": "TSV klasörü", "outputFolder": "Çıktı klasörü", "month": "Ay", "outputLocale": "Çıktı dili (üretilen içerik)", "timeFormat": "Saat biçimi", "baseGroupSize": "Temel grup boyutu", "ramazanHesabi": "Ramazan hesabı", "noEarlierLimit": "en erken sınır", "noLaterLimit": "en geç sınır", "fajrLatestLimitEnabled": "Sabah en geç sınır", "zhuhrEarliestLimitEnabled": "Öğle en erken sınır", "zhuhrSingleLimit": "Öğle tek sınır", "zhuhrStdDstLimits": "Öğle kış/yaz saati sınırları", "masjidName": "Cami adı", "masjidAddress": "Adres", "announcementMessage": "Duyuru", "generatePane": "Üret", "customizeTitle": "Özelleştir" };
 const buttons = { "browse": "Gözat", "refresh": "Yenile", "advanced": "Gelişmiş...", "customize": "Özelleştir", "save": "Kaydet", "cancel": "İptal", "generatePng": "PNG üret", "generateXlsx": "XLSX üret", "resetDefaults": "Varsayılana dön", "switchToEnglish": "English", "switchToTurkish": "Türkçe" };
 const options = { "outputLocale": { "en": "İngilizce", "tr": "Türkçe" }, "timeFormat": { "ampm": "ÖÖ/ÖS", "h24": "24 saat" }, "zhuhrLimitMode": { "single": "Tek sınır", "stdDst": "Kış/yaz saati" }, "zhuhrGroup": { "single": "Tek", "standard": "Kış saati", "daylight": "Yaz saati" } };
 const prayers = { "fajr": "Sabah", "zhuhr": "Öğle", "asr": "İkindi", "maghrib": "Akşam", "isha": "Yatsı" };
 const modal = { "enabled": "Etkin", "direction": "Yön", "after": "Sonra", "before": "Önce", "offsetMinutes": "Dakika farkı", "minuteMultiple": "Dakika katı", "minuteMultipleOptions": { "none": "1", "five": "5", "ten": "10" }, "noEarlierEnabled": "En erken sınırı uygula", "noLaterEnabled": "En geç sınırı uygula" };
-const placeholders = { "announcementMessage": "Tablonun üstünde gösterilen mesaj" };
+const placeholders = { "masjidName": "Başlıkta gösterilecek cami adı", "masjidAddress": "Başlıkta gösterilecek adres", "announcementMessage": "Tablonun üstünde gösterilen mesaj" };
 const languages = { "en": "English", "tr": "Türkçe" };
 const time = { "am": "ÖÖ", "pm": "ÖS" };
 const errors = { "pickTsvFailed": "TSV klasörü seçimi başarısız", "pickOutputFailed": "Çıktı klasörü seçimi başarısız", "refreshMonthsFailed": "Ay yenileme başarısız", "generateFailed": "Üretim başarısız" };
@@ -6080,6 +6082,8 @@ const localeSelect = getEl("locale");
 const timeFormatSelect = getEl("timeFormat");
 const baseGroupSizeSelect = getEl("baseGroupSize");
 const ramazanHesabiInput = getEl("ramazanHesabi");
+const masjidNameInput = getEl("masjidName");
+const masjidAddressInput = getEl("masjidAddress");
 const announcementMessageInput = getEl("announcementMessage");
 const advancedLimitRowsEl = getEl("advancedLimitRows");
 const openCustomizeButton = getEl("openCustomize");
@@ -6200,6 +6204,10 @@ function bindPersistence() {
   });
   baseGroupSizeSelect.addEventListener("change", save);
   ramazanHesabiInput.addEventListener("change", save);
+  masjidNameInput.addEventListener("change", save);
+  masjidNameInput.addEventListener("input", save);
+  masjidAddressInput.addEventListener("change", save);
+  masjidAddressInput.addEventListener("input", save);
   announcementMessageInput.addEventListener("change", save);
   announcementMessageInput.addEventListener("input", save);
 }
@@ -6233,6 +6241,8 @@ async function restoreLastEntries() {
   timeFormatSelect.value = saved.timeFormat;
   baseGroupSizeSelect.value = saved.baseGroupSize;
   ramazanHesabiInput.checked = saved.ramazanHesabi;
+  masjidNameInput.value = saved.masjidName;
+  masjidAddressInput.value = saved.masjidAddress;
   announcementMessageInput.value = saved.announcementMessage;
   customizationState = sanitizeCustomization(saved.customization);
   renderAdvancedLimitRows();
@@ -6254,6 +6264,8 @@ function saveLastEntries() {
     timeFormat: timeFormatSelect.value === "24h" ? "24h" : "ampm",
     baseGroupSize: normalizeBaseGroupSize(baseGroupSizeSelect.value),
     ramazanHesabi: ramazanHesabiInput.checked,
+    masjidName: masjidNameInput.value,
+    masjidAddress: masjidAddressInput.value,
     announcementMessage: announcementMessageInput.value,
     customization: sanitizeCustomization(customizationState)
   };
@@ -6295,6 +6307,8 @@ function parseV4Entries(raw) {
       timeFormat: parsed.timeFormat === "24h" ? "24h" : "ampm",
       baseGroupSize: normalizeBaseGroupSize(parsed.baseGroupSize),
       ramazanHesabi: parsed.ramazanHesabi !== false,
+      masjidName: parsed.masjidName ?? "",
+      masjidAddress: parsed.masjidAddress ?? "",
       announcementMessage: parsed.announcementMessage ?? "",
       customization: sanitizeCustomization(parsedCustomization.data)
     };
@@ -6313,6 +6327,8 @@ function parseLegacyEntries(raw) {
       timeFormat: parsed.timeFormat === "24h" ? "24h" : "ampm",
       baseGroupSize: normalizeBaseGroupSize(parsed.baseGroupSize),
       ramazanHesabi: parsed.ramazanHesabi !== false,
+      masjidName: parsed.masjidName ?? "",
+      masjidAddress: parsed.masjidAddress ?? "",
       announcementMessage: parsed.announcementMessage ?? "",
       customization: migrateLegacyCustomization(parsed)
     };
@@ -6365,6 +6381,8 @@ function readOptions() {
     month: monthSelect.value,
     tsvFolder: tsvFolderInput.value.trim(),
     outputFolder: outputFolderInput.value.trim(),
+    masjidName: masjidNameInput.value,
+    masjidAddress: masjidAddressInput.value,
     announcementMessage: announcementMessageInput.value,
     locale: localeSelect.value === "tr" ? "tr" : "en",
     timeFormat: timeFormatSelect.value === "24h" ? "24h" : "ampm",
@@ -6382,6 +6400,8 @@ function applyFreshDefaults() {
   timeFormatSelect.value = "ampm";
   baseGroupSizeSelect.value = "5";
   ramazanHesabiInput.checked = true;
+  masjidNameInput.value = "";
+  masjidAddressInput.value = "";
   announcementMessageInput.value = "";
   customizationState = cloneCustomization(DEFAULT_CUSTOMIZATION);
   draftCustomizationState = cloneCustomization(DEFAULT_CUSTOMIZATION);

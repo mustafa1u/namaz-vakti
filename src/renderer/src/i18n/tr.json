@@ -19,6 +19,8 @@
     "zhuhrEarliestLimitEnabled": "Öğle en erken sınır",
     "zhuhrSingleLimit": "Öğle tek sınır",
     "zhuhrStdDstLimits": "Öğle kış/yaz saati sınırları",
+    "masjidName": "Cami adı",
+    "masjidAddress": "Adres",
     "announcementMessage": "Duyuru",
     "generatePane": "Üret",
     "customizeTitle": "Özelleştir"
@@ -78,6 +80,8 @@
     "noLaterEnabled": "En geç sınırı uygula"
   },
   "placeholders": {
+    "masjidName": "Başlıkta gösterilecek cami adı",
+    "masjidAddress": "Başlıkta gösterilecek adres",
     "announcementMessage": "Tablonun üstünde gösterilen mesaj"
   },
   "languages": {

@@ -19,6 +19,8 @@
     "zhuhrEarliestLimitEnabled": "Zhuhr no earlier than limit",
     "zhuhrSingleLimit": "Zhuhr single limit",
     "zhuhrStdDstLimits": "Zhuhr standard/daylight limits",
+    "masjidName": "Name of Masjid",
+    "masjidAddress": "Address",
     "announcementMessage": "Announcement",
     "generatePane": "Generate",
     "customizeTitle": "Customize"
@@ -78,6 +80,8 @@
     "noLaterEnabled": "No later than"
   },
   "placeholders": {
+    "masjidName": "Masjid name shown in header",
+    "masjidAddress": "Masjid address shown in header",
     "announcementMessage": "Message shown above the table"
   },
   "languages": {

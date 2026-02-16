@@ -219,6 +219,8 @@ export function registerIpcHandlers(_getWindow: WindowGetter): void {
           outputFolder: options.outputFolder,
           templateFile,
           plan,
+          masjidName: options.masjidName,
+          masjidAddress: options.masjidAddress,
           announcementMessage: options.announcementMessage
         }).then((value) => ["xlsx", value] as const)
       );
@@ -228,6 +230,8 @@ export function registerIpcHandlers(_getWindow: WindowGetter): void {
         renderPng({
           outputFolder: options.outputFolder,
           plan,
+          masjidName: options.masjidName,
+          masjidAddress: options.masjidAddress,
           announcementMessage: options.announcementMessage
         }).then((value) => ["png", value] as const)
       );

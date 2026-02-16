@@ -5,10 +5,13 @@ import type { PrayerKey } from "@shared/ipc";
 import type { GroupResult, MonthlyPlan, RawDailyRecord } from "@domain/types";
 import { ODD_THEME, EVEN_THEME } from "@domain/pipeline";
 import { formatMinutes, formatMonthLabel } from "@domain/format";
+import { getTemplateSheetMap } from "./template-map";
 
 type PngRenderInput = {
   outputFolder: string;
   plan: MonthlyPlan;
+  masjidName: string;
+  masjidAddress: string;
   announcementMessage: string;
 };
 
@@ -37,7 +40,7 @@ const PRAYER_LABELS: Record<MonthlyPlan["locale"], Record<PrayerKey, string>> = 
 };
 
 export async function renderPng(input: PngRenderInput): Promise<string> {
-  const html = buildExportHtml(input.plan, input.announcementMessage);
+  const html = buildExportHtml(input.plan, input.masjidName, input.masjidAddress, input.announcementMessage);
   const win = new BrowserWindow({
     width: 1200,
     height: 1800,
@@ -69,7 +72,12 @@ export async function renderPng(input: PngRenderInput): Promise<string> {
   }
 }
 
-function buildExportHtml(plan: MonthlyPlan, announcementMessage: string): string {
+function buildExportHtml(
+  plan: MonthlyPlan,
+  masjidName: string,
+  masjidAddress: string,
+  announcementMessage: string
+): string {
   const theme = Number(plan.month.split("-")[1]) % 2 === 0 ? EVEN_THEME : ODD_THEME;
   const colorByToken = Object.fromEntries(theme.sequence.map((item) => [item.token, item]));
   const slots = buildSlots(plan.baseGroups);
@@ -136,6 +144,9 @@ function buildExportHtml(plan: MonthlyPlan, announcementMessage: string): string
   const announcementHtml = renderAnnouncementHtml(announcementMessage);
   const jumahNotesHtml = renderJumahNotesHtml(plan);
   const prayerLabels = PRAYER_LABELS[plan.locale];
+  const { titleLine, addressLine } = getTemplateHeaderLines(plan.month);
+  const resolvedMasjidName = normalizeHeaderLine(masjidName) || titleLine;
+  const resolvedMasjidAddress = normalizeHeaderLine(masjidAddress) || addressLine;
 
   return `<!doctype html>
 <html lang="en">
@@ -146,6 +157,7 @@ function buildExportHtml(plan: MonthlyPlan, announcementMessage: string): string
       .page { width: 1000px; margin: 20px auto; background: #fff; border: 1px solid #bbb; }
       .header { background: #ececec; text-align: center; padding: 24px 20px 10px; }
       .header h1 { margin: 0 0 8px; font-size: 54px; }
+      .header .address { margin: 0 0 8px; font-size: 24px; }
       .header p { margin: 0 0 8px; font-size: 30px; }
       .jumah-note { margin: 6px 0; font-size: 24px; font-weight: 700; }
       .jumah-foot { margin: 6px 0 0; font-size: 18px; font-weight: 600; }
@@ -169,7 +181,8 @@ function buildExportHtml(plan: MonthlyPlan, announcementMessage: string): string
   <body>
     <div class="page">
       <div class="header">
-        <h1>Paterson Mevlana Camii</h1>
+        <h1>${escapeHtml(resolvedMasjidName)}</h1>
+        ${resolvedMasjidAddress ? `<p class="address">${escapeHtml(resolvedMasjidAddress)}</p>` : ""}
         <p>${headerMonth}</p>
         ${jumahNotesHtml}
       </div>
@@ -324,6 +337,19 @@ function renderAnnouncementHtml(message: string): string {
   }
 
   return escapeHtml(trimmed).replace(/\r?\n/g, "<br/>");
+}
+
+function normalizeHeaderLine(value: string): string {
+  return value.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n")[0]?.trim() ?? "";
+}
+
+function getTemplateHeaderLines(month: string): { titleLine: string; addressLine: string } {
+  const headerTemplate = getTemplateSheetMap(month).rawHeaderTemplate;
+  const lines = headerTemplate.split(/\r?\n/);
+  return {
+    titleLine: lines[0] ?? "Paterson Mevlana Camii",
+    addressLine: lines[1] ?? ""
+  };
 }
 
 function escapeHtml(value: string): string {

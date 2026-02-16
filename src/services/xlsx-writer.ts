@@ -36,6 +36,8 @@ export type XlsxWriteInput = {
   outputFolder: string;
   templateFile: string;
   plan: MonthlyPlan;
+  masjidName: string;
+  masjidAddress: string;
   announcementMessage: string;
 };
 
@@ -51,9 +53,11 @@ export async function writeXlsxFromTemplate(input: XlsxWriteInput): Promise<stri
 
   const slots = buildDisplaySlots(input.plan.baseGroups, map.dataStartRow);
   const pairHeights = captureTemplatePairHeights(sheet, map);
+  const masjidName = normalizeHeaderLine(input.masjidName);
+  const masjidAddress = normalizeHeaderLine(input.masjidAddress);
   const announcementMessage = normalizeAnnouncementMessage(input.announcementMessage);
 
-  writeHeader(sheet, map.rawHeaderTemplate, input.plan, announcementMessage, XlsxPopulate);
+  writeHeader(sheet, map.rawHeaderTemplate, input.plan, masjidName, masjidAddress, announcementMessage, XlsxPopulate);
   writePrayerHeaders(sheet, input.plan, map);
   applyRowHeights(sheet, slots, pairHeights, map);
   writeDayColumns(sheet, input.plan, map, slots);
@@ -121,10 +125,12 @@ function writeHeader(
   sheet: any,
   headerTemplate: string,
   plan: MonthlyPlan,
+  masjidName: string,
+  masjidAddress: string,
   announcementMessage: string,
   xlsxPopulate: any
 ): void {
-  const headerText = buildHeaderText(headerTemplate, plan);
+  const headerText = buildHeaderText(headerTemplate, plan, masjidName, masjidAddress);
 
   if (!announcementMessage) {
     sheet.cell("A1").value(headerText);
@@ -137,11 +143,16 @@ function writeHeader(
   sheet.cell("A1").value(rich);
 }
 
-function buildHeaderText(headerTemplate: string, plan: MonthlyPlan): string {
+function buildHeaderText(
+  headerTemplate: string,
+  plan: MonthlyPlan,
+  masjidName: string,
+  masjidAddress: string
+): string {
   const monthLabel = formatMonthLabel(plan.month, plan.locale);
   const lines = headerTemplate.split(/\r?\n/);
-  const titleLine = lines[0] ?? "Paterson Mevlana Camii";
-  const addressLine = lines[1] ?? "";
+  const titleLine = masjidName || (lines[0] ?? "Paterson Mevlana Camii");
+  const addressLine = masjidAddress || (lines[1] ?? "");
   const monthLineTemplate = lines[2] ?? "[AYIN ADI], [YIL]";
   const monthLine = monthLineTemplate
     .replaceAll("[AYIN ADI]", monthLabel.split(",")[0] ?? monthLabel)
@@ -609,6 +620,10 @@ function isRamadanMaghribDisplay(display: string): boolean {
 
 function normalizeAnnouncementMessage(input: string): string {
   return input.replace(/\r\n/g, "\n").trim();
+}
+
+function normalizeHeaderLine(input: string): string {
+  return input.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n")[0]?.trim() ?? "";
 }
 
 type DayStyleRef = {

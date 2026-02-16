@@ -176,6 +176,8 @@ export const GenerationOptionsSchema = z.object({
   month: z.string().regex(/^\d{4}-\d{2}$/),
   tsvFolder: z.string().min(1),
   outputFolder: z.string().min(1),
+  masjidName: z.string().default(""),
+  masjidAddress: z.string().default(""),
   announcementMessage: z.string().default(""),
   locale: LocaleSchema.default("en"),
   timeFormat: TimeFormatSchema.default("ampm"),
