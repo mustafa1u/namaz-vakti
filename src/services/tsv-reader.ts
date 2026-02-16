@@ -1,4 +1,4 @@
-﻿import { readFile } from "node:fs/promises";
+﻿import { access, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parse } from "csv-parse/sync";
 import type { RawDailyRecord } from "@domain/types";
@@ -20,21 +20,13 @@ const WEEKDAY_EN_BY_INDEX = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as
 const WEEKDAY_TR_BY_INDEX = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cts"] as const;
 
 export async function listAvailableMonths(tsvFolder: string): Promise<string[]> {
-  const { readdir } = await import("node:fs/promises");
-  const entries = await readdir(tsvFolder, { withFileTypes: true });
-
-  return entries
-    .filter((entry) => entry.isFile() && /^.+_\d{4}-\d{2}\.tsv$/i.test(entry.name))
-    .map((entry) => {
-      const match = entry.name.match(/(\d{4}-\d{2})\.tsv$/i);
-      return match?.[1] ?? "";
-    })
-    .filter(Boolean)
-    .sort();
+  const found = new Set<string>();
+  await collectMonthsRecursive(tsvFolder, found);
+  return [...found].sort();
 }
 
 export async function readMonthTsv(tsvFolder: string, month: string): Promise<RawDailyRecord[]> {
-  const path = join(tsvFolder, `paterson_${month}.tsv`);
+  const path = await resolveMonthTsvPath(tsvFolder, month);
   const file = await readFile(path, "utf8");
 
   const rows = parse(file, {
@@ -64,4 +56,62 @@ export async function readMonthTsv(tsvFolder: string, month: string): Promise<Ra
       yatsi: row["Yatsı"]
     };
   });
+}
+
+async function collectMonthsRecursive(folder: string, out: Set<string>): Promise<void> {
+  const entries = await readdir(folder, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      await collectMonthsRecursive(join(folder, entry.name), out);
+      continue;
+    }
+    if (!entry.isFile()) {
+      continue;
+    }
+    const match = entry.name.match(/paterson_(\d{4}-\d{2})\.tsv$/i);
+    if (match?.[1]) {
+      out.add(match[1]);
+    }
+  }
+}
+
+async function resolveMonthTsvPath(tsvFolder: string, month: string): Promise<string> {
+  const fileName = `paterson_${month}.tsv`;
+  const [year] = month.split("-");
+  const candidates = [
+    join(tsvFolder, fileName),
+    join(tsvFolder, year ?? "", fileName)
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      await access(candidate);
+      return candidate;
+    } catch {
+      // Try next candidate.
+    }
+  }
+
+  const found = await findFileByNameRecursive(tsvFolder, fileName);
+  if (!found) {
+    throw new Error(`Month TSV not found for ${month} in ${tsvFolder}`);
+  }
+  return found;
+}
+
+async function findFileByNameRecursive(folder: string, fileName: string): Promise<string | null> {
+  const entries = await readdir(folder, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = join(folder, entry.name);
+    if (entry.isFile() && entry.name.toLowerCase() === fileName.toLowerCase()) {
+      return fullPath;
+    }
+    if (entry.isDirectory()) {
+      const nested = await findFileByNameRecursive(fullPath, fileName);
+      if (nested) {
+        return nested;
+      }
+    }
+  }
+  return null;
 }

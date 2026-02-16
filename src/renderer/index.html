@@ -63,6 +63,9 @@
       .compact-select {
         width: 110px;
       }
+      .compact-select-month {
+        width: 150px;
+      }
       .compact-select-locale {
         width: 120px;
       }
@@ -285,7 +288,10 @@
       <div class="row row-inline">
         <label for="month" data-i18n="labels.month">Month</label>
         <div class="field-inline">
-          <select id="month" class="compact-select"></select>
+          <label for="year" data-i18n="labels.year">Year</label>
+          <select id="year" class="compact-select"></select>
+          <label for="month" data-i18n="labels.month">Month</label>
+          <select id="month" class="compact-select-month"></select>
           <button id="refreshMonths" type="button" data-i18n="buttons.refresh">Refresh</button>
           <label for="timeFormat" data-i18n="labels.timeFormat">Time Format</label>
           <select id="timeFormat" class="compact-select">

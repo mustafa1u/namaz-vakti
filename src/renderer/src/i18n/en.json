@@ -8,6 +8,7 @@
     "uiLanguageShort": "Language",
     "tsvFolder": "TSV Folder",
     "outputFolder": "Output Folder",
+    "year": "Year",
     "month": "Month",
     "outputLocale": "Output Language (Generated Content)",
     "timeFormat": "Time Format",

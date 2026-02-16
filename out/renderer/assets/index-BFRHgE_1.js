@@ -5969,7 +5969,7 @@ instance.hasLoadedNamespace;
 instance.loadNamespaces;
 instance.loadLanguages;
 const app$1 = { "windowTitle": "Namaz Vakti Desktop", "heading": "Iqamah Schedule Generator" };
-const labels$1 = { "uiLanguage": "Application Language", "uiLanguageShort": "Language", "tsvFolder": "TSV Folder", "outputFolder": "Output Folder", "month": "Month", "outputLocale": "Output Language (Generated Content)", "timeFormat": "Time Format", "baseGroupSize": "Base Group Size", "ramazanHesabi": "Ramadan calculation", "noEarlierLimit": "no earlier than limit", "noLaterLimit": "no later than limit", "fajrLatestLimitEnabled": "Fajr no later than limit", "zhuhrEarliestLimitEnabled": "Zhuhr no earlier than limit", "zhuhrSingleLimit": "Zhuhr single limit", "zhuhrStdDstLimits": "Zhuhr standard/daylight limits", "masjidName": "Name of Masjid", "masjidAddress": "Address", "announcementMessage": "Announcement", "generatePane": "Generate", "customizeTitle": "Customize" };
+const labels$1 = { "uiLanguage": "Application Language", "uiLanguageShort": "Language", "tsvFolder": "TSV Folder", "outputFolder": "Output Folder", "year": "Year", "month": "Month", "outputLocale": "Output Language (Generated Content)", "timeFormat": "Time Format", "baseGroupSize": "Base Group Size", "ramazanHesabi": "Ramadan calculation", "noEarlierLimit": "no earlier than limit", "noLaterLimit": "no later than limit", "fajrLatestLimitEnabled": "Fajr no later than limit", "zhuhrEarliestLimitEnabled": "Zhuhr no earlier than limit", "zhuhrSingleLimit": "Zhuhr single limit", "zhuhrStdDstLimits": "Zhuhr standard/daylight limits", "masjidName": "Name of Masjid", "masjidAddress": "Address", "announcementMessage": "Announcement", "generatePane": "Generate", "customizeTitle": "Customize" };
 const buttons$1 = { "browse": "Browse", "refresh": "Refresh", "advanced": "Advanced...", "customize": "Customize", "save": "Save", "cancel": "Cancel", "generatePng": "Generate PNG", "generateXlsx": "Generate XLSX", "resetDefaults": "Reset to defaults", "switchToEnglish": "English", "switchToTurkish": "Türkçe" };
 const options$1 = { "outputLocale": { "en": "English", "tr": "Turkish" }, "timeFormat": { "ampm": "AM/PM", "h24": "24h" }, "zhuhrLimitMode": { "single": "Single limit", "stdDst": "Standard/daylight" }, "zhuhrGroup": { "single": "Single", "standard": "Standard", "daylight": "Daylight" } };
 const prayers$1 = { "fajr": "Fajr", "zhuhr": "Zhuhr", "asr": "Asr", "maghrib": "Maghrib", "isha": "Isha" };
@@ -5999,7 +5999,7 @@ const en = {
   common: common$1
 };
 const app = { "windowTitle": "Namaz Vakti Masaüstü", "heading": "Kamet Çizelgesi Oluşturucu" };
-const labels = { "uiLanguage": "Uygulama dili", "uiLanguageShort": "Dil", "tsvFolder": "TSV klasörü", "outputFolder": "Çıktı klasörü", "month": "Ay", "outputLocale": "Çıktı dili (üretilen içerik)", "timeFormat": "Saat biçimi", "baseGroupSize": "Temel grup boyutu", "ramazanHesabi": "Ramazan hesabı", "noEarlierLimit": "en erken sınır", "noLaterLimit": "en geç sınır", "fajrLatestLimitEnabled": "Sabah en geç sınır", "zhuhrEarliestLimitEnabled": "Öğle en erken sınır", "zhuhrSingleLimit": "Öğle tek sınır", "zhuhrStdDstLimits": "Öğle kış/yaz saati sınırları", "masjidName": "Cami adı", "masjidAddress": "Adres", "announcementMessage": "Duyuru", "generatePane": "Üret", "customizeTitle": "Özelleştir" };
+const labels = { "uiLanguage": "Uygulama dili", "uiLanguageShort": "Dil", "tsvFolder": "TSV klasörü", "outputFolder": "Çıktı klasörü", "year": "Yıl", "month": "Ay", "outputLocale": "Çıktı dili (üretilen içerik)", "timeFormat": "Saat biçimi", "baseGroupSize": "Temel grup boyutu", "ramazanHesabi": "Ramazan hesabı", "noEarlierLimit": "en erken sınır", "noLaterLimit": "en geç sınır", "fajrLatestLimitEnabled": "Sabah en geç sınır", "zhuhrEarliestLimitEnabled": "Öğle en erken sınır", "zhuhrSingleLimit": "Öğle tek sınır", "zhuhrStdDstLimits": "Öğle kış/yaz saati sınırları", "masjidName": "Cami adı", "masjidAddress": "Adres", "announcementMessage": "Duyuru", "generatePane": "Üret", "customizeTitle": "Özelleştir" };
 const buttons = { "browse": "Gözat", "refresh": "Yenile", "advanced": "Gelişmiş...", "customize": "Özelleştir", "save": "Kaydet", "cancel": "İptal", "generatePng": "PNG üret", "generateXlsx": "XLSX üret", "resetDefaults": "Varsayılana dön", "switchToEnglish": "English", "switchToTurkish": "Türkçe" };
 const options = { "outputLocale": { "en": "İngilizce", "tr": "Türkçe" }, "timeFormat": { "ampm": "ÖÖ/ÖS", "h24": "24 saat" }, "zhuhrLimitMode": { "single": "Tek sınır", "stdDst": "Kış/yaz saati" }, "zhuhrGroup": { "single": "Tek", "standard": "Kış saati", "daylight": "Yaz saati" } };
 const prayers = { "fajr": "Sabah", "zhuhr": "Öğle", "asr": "İkindi", "maghrib": "Akşam", "isha": "Yatsı" };
@@ -6077,6 +6077,7 @@ function translateStaticDocumentText() {
 const tsvFolderInput = getEl("tsvFolder");
 const outputFolderInput = getEl("outputFolder");
 const switchUiLanguageButton = getEl("switchUiLanguage");
+const yearSelect = getEl("year");
 const monthSelect = getEl("month");
 const localeSelect = getEl("locale");
 const timeFormatSelect = getEl("timeFormat");
@@ -6097,8 +6098,10 @@ const generateXlsxButton = getEl("generateXlsx");
 const resetDefaultsButton = getEl("resetDefaults");
 const PRAYER_ORDER = ["fajr", "zhuhr", "asr", "maghrib", "isha"];
 const LIMIT_ORDER = ["noEarlier", "noLater"];
-const DEFAULT_TSV_FOLDER = "assets/out_monthly";
+const DEFAULT_TSV_FOLDER = "assets/schedules";
 const RESET_DEFAULT_MONTH = "2026-01";
+const RESET_DEFAULT_YEAR = RESET_DEFAULT_MONTH.split("-")[0] ?? "2026";
+const RESET_DEFAULT_MONTH_NUMBER = RESET_DEFAULT_MONTH.split("-")[1] ?? "01";
 const LAST_ENTRIES_KEY = "namaz-vakti:last-entries:v4";
 const LEGACY_V3_KEY = "namaz-vakti:last-entries:v3";
 const LEGACY_V2_KEY = "namaz-vakti:last-entries:v2";
@@ -6106,6 +6109,7 @@ const RESET_DEFAULT_CUSTOMIZATION = buildResetDefaultCustomization();
 let customizationState = cloneCustomization(DEFAULT_CUSTOMIZATION);
 let draftCustomizationState = cloneCustomization(DEFAULT_CUSTOMIZATION);
 let isGenerating = false;
+let availableMonthsByYear = /* @__PURE__ */ new Map();
 void bootstrap();
 async function bootstrap() {
   const savedUiLanguage = localStorage.getItem(UI_LANGUAGE_STORAGE_KEY);
@@ -6169,35 +6173,124 @@ async function bootstrap() {
     }
   });
 }
-async function refreshMonths() {
+async function refreshMonths(allowDefaultFallback = true) {
   if (!tsvFolderInput.value.trim()) {
     log(t("logs.setTsvFolderFirst"));
     return;
   }
   log(t("logs.refreshMonthsFor", { folder: tsvFolderInput.value }));
   const months = await window.appApi.listMonths(tsvFolderInput.value);
-  const previousMonth = monthSelect.value;
-  monthSelect.innerHTML = "";
-  months.forEach((month) => {
+  const previousYear = yearSelect.value;
+  const previousMonthNumber = monthSelect.value;
+  availableMonthsByYear = buildAvailableMonthsByYear(months);
+  const years = [...availableMonthsByYear.keys()];
+  yearSelect.innerHTML = "";
+  years.forEach((year) => {
     const option = document.createElement("option");
-    option.value = month;
-    option.textContent = month;
-    monthSelect.appendChild(option);
+    option.value = year;
+    option.textContent = year;
+    yearSelect.appendChild(option);
   });
-  if (months.length === 0) {
+  if (years.length === 0) {
+    monthSelect.innerHTML = "";
+    if (allowDefaultFallback && tsvFolderInput.value.trim() !== DEFAULT_TSV_FOLDER) {
+      tsvFolderInput.value = DEFAULT_TSV_FOLDER;
+      await refreshMonths(false);
+      return;
+    }
     log(t("logs.noMonthFilesFound"));
     return;
   }
-  if (previousMonth && months.includes(previousMonth)) {
-    monthSelect.value = previousMonth;
+  if (previousYear && years.includes(previousYear)) {
+    yearSelect.value = previousYear;
+  } else if (years.includes(RESET_DEFAULT_YEAR)) {
+    yearSelect.value = RESET_DEFAULT_YEAR;
+  } else {
+    yearSelect.value = years[0] ?? "";
   }
+  renderMonthOptionsForSelectedYear(previousMonthNumber);
   saveLastEntries();
   log(t("logs.foundMonths", { months: months.join(", ") }));
+}
+function buildAvailableMonthsByYear(months) {
+  const out = /* @__PURE__ */ new Map();
+  for (const value of months) {
+    const parsed = parseYearMonth(value);
+    if (!parsed) {
+      continue;
+    }
+    const list = out.get(parsed.year) ?? [];
+    if (!list.includes(parsed.monthNumber)) {
+      list.push(parsed.monthNumber);
+    }
+    out.set(parsed.year, list);
+  }
+  const sortedYears = [...out.keys()].sort();
+  const sorted = /* @__PURE__ */ new Map();
+  for (const year of sortedYears) {
+    const monthNumbers = (out.get(year) ?? []).slice().sort();
+    sorted.set(year, monthNumbers);
+  }
+  return sorted;
+}
+function renderMonthOptionsForSelectedYear(preferredMonthNumber) {
+  const year = yearSelect.value;
+  const months = availableMonthsByYear.get(year) ?? [];
+  monthSelect.innerHTML = "";
+  for (const monthNumber of months) {
+    const option = document.createElement("option");
+    option.value = monthNumber;
+    option.textContent = `${monthNumber}-${formatMonthNameForUi(year, monthNumber)}`;
+    monthSelect.appendChild(option);
+  }
+  if (preferredMonthNumber && months.includes(preferredMonthNumber)) {
+    monthSelect.value = preferredMonthNumber;
+    return;
+  }
+  if (year === RESET_DEFAULT_YEAR && months.includes(RESET_DEFAULT_MONTH_NUMBER)) {
+    monthSelect.value = RESET_DEFAULT_MONTH_NUMBER;
+    return;
+  }
+  if (months.length > 0) {
+    monthSelect.value = months[0] ?? "";
+  }
+}
+function formatMonthNameForUi(year, monthNumber) {
+  const monthIndex = Number(monthNumber) - 1;
+  if (!Number.isFinite(monthIndex) || monthIndex < 0 || monthIndex > 11) {
+    return monthNumber;
+  }
+  const locale = getUiLanguage() === "tr" ? "tr-TR" : "en-US";
+  const date = new Date(Date.UTC(Number(year), monthIndex, 1));
+  const raw = new Intl.DateTimeFormat(locale, { month: "long" }).format(date);
+  if (!raw) {
+    return monthNumber;
+  }
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+function parseYearMonth(value) {
+  const match = value.match(/^(\d{4})-(\d{2})$/);
+  if (!match) {
+    return null;
+  }
+  return { year: match[1] ?? "", monthNumber: match[2] ?? "" };
+}
+function getSelectedYearMonth() {
+  const year = yearSelect.value;
+  const monthNumber = monthSelect.value;
+  if (!year || !monthNumber) {
+    return "";
+  }
+  return `${year}-${monthNumber}`;
 }
 function bindPersistence() {
   const save = () => saveLastEntries();
   tsvFolderInput.addEventListener("change", save);
   outputFolderInput.addEventListener("change", save);
+  yearSelect.addEventListener("change", () => {
+    renderMonthOptionsForSelectedYear();
+    save();
+  });
   monthSelect.addEventListener("change", save);
   localeSelect.addEventListener("change", save);
   timeFormatSelect.addEventListener("change", () => {
@@ -6225,6 +6318,7 @@ function bindUiLanguageSwitch() {
 }
 function applyUiTranslations() {
   translateStaticDocumentText();
+  renderMonthOptionsForSelectedYear(monthSelect.value);
   const currentLanguage = getUiLanguage();
   switchUiLanguageButton.textContent = currentLanguage === "en" ? t("buttons.switchToTurkish") : t("buttons.switchToEnglish");
 }
@@ -6239,6 +6333,7 @@ async function restoreLastEntries() {
   }
   tsvFolderInput.value = saved.tsvFolder.trim() || DEFAULT_TSV_FOLDER;
   outputFolderInput.value = saved.outputFolder;
+  yearSelect.value = saved.year || RESET_DEFAULT_YEAR;
   localeSelect.value = saved.locale;
   timeFormatSelect.value = saved.timeFormat;
   baseGroupSizeSelect.value = saved.baseGroupSize;
@@ -6250,8 +6345,15 @@ async function restoreLastEntries() {
   renderAdvancedLimitRows();
   if (tsvFolderInput.value.trim()) {
     await refreshMonths();
-    if (saved.month && Array.from(monthSelect.options).some((option) => option.value === saved.month)) {
-      monthSelect.value = saved.month;
+    const parsedSavedMonth = parseYearMonth(saved.month);
+    if (parsedSavedMonth && Array.from(yearSelect.options).some((option) => option.value === parsedSavedMonth.year)) {
+      yearSelect.value = parsedSavedMonth.year;
+      renderMonthOptionsForSelectedYear(parsedSavedMonth.monthNumber);
+    } else if (saved.year && Array.from(yearSelect.options).some((option) => option.value === saved.year)) {
+      yearSelect.value = saved.year;
+      renderMonthOptionsForSelectedYear();
+    } else {
+      renderMonthOptionsForSelectedYear();
     }
     saveLastEntries();
   }
@@ -6261,7 +6363,8 @@ function saveLastEntries() {
   const data = {
     tsvFolder: tsvFolderInput.value.trim(),
     outputFolder: outputFolderInput.value.trim(),
-    month: monthSelect.value,
+    year: yearSelect.value,
+    month: getSelectedYearMonth(),
     locale: localeSelect.value === "tr" ? "tr" : "en",
     timeFormat: timeFormatSelect.value === "24h" ? "24h" : "ampm",
     baseGroupSize: normalizeBaseGroupSize(baseGroupSizeSelect.value),
@@ -6304,6 +6407,7 @@ function parseV4Entries(raw) {
     return {
       tsvFolder: parsed.tsvFolder?.trim() || DEFAULT_TSV_FOLDER,
       outputFolder: parsed.outputFolder ?? "",
+      year: parsed.year ?? (parseYearMonth(parsed.month ?? "")?.year ?? RESET_DEFAULT_YEAR),
       month: parsed.month ?? "",
       locale: parsed.locale === "tr" ? "tr" : "en",
       timeFormat: parsed.timeFormat === "24h" ? "24h" : "ampm",
@@ -6324,6 +6428,7 @@ function parseLegacyEntries(raw) {
     return {
       tsvFolder: parsed.tsvFolder?.trim() || DEFAULT_TSV_FOLDER,
       outputFolder: parsed.outputFolder ?? "",
+      year: parseYearMonth(parsed.month ?? "")?.year ?? RESET_DEFAULT_YEAR,
       month: parsed.month ?? "",
       locale: parsed.locale === "tr" ? "tr" : "en",
       timeFormat: parsed.timeFormat === "24h" ? "24h" : "ampm",
@@ -6380,7 +6485,7 @@ function migrateLegacyCustomization(parsed) {
 }
 function readOptions() {
   return {
-    month: monthSelect.value,
+    month: getSelectedYearMonth(),
     tsvFolder: tsvFolderInput.value.trim(),
     outputFolder: outputFolderInput.value.trim(),
     masjidName: masjidNameInput.value,
@@ -6397,7 +6502,8 @@ function readOptions() {
 function applyFreshDefaults() {
   tsvFolderInput.value = DEFAULT_TSV_FOLDER;
   outputFolderInput.value = "";
-  monthSelect.value = RESET_DEFAULT_MONTH;
+  yearSelect.value = RESET_DEFAULT_YEAR;
+  monthSelect.value = RESET_DEFAULT_MONTH_NUMBER;
   localeSelect.value = "en";
   timeFormatSelect.value = "ampm";
   baseGroupSizeSelect.value = "5";
@@ -6419,8 +6525,9 @@ async function resetToDefaults() {
   masjidAddressInput.value = preservedMasjidAddress;
   renderAdvancedLimitRows();
   await refreshMonths();
-  if (Array.from(monthSelect.options).some((option) => option.value === RESET_DEFAULT_MONTH)) {
-    monthSelect.value = RESET_DEFAULT_MONTH;
+  if (Array.from(yearSelect.options).some((option) => option.value === RESET_DEFAULT_YEAR)) {
+    yearSelect.value = RESET_DEFAULT_YEAR;
+    renderMonthOptionsForSelectedYear(RESET_DEFAULT_MONTH_NUMBER);
   }
   saveLastEntries();
   showStatus(t("status.defaultsRestored"));
