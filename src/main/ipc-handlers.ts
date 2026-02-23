@@ -246,12 +246,6 @@ export function registerIpcHandlers(_getWindow: WindowGetter): void {
     });
   });
 
-  ipcMain.handle(APP_CHANNELS.SELECT_TSV_FOLDER, async () => {
-    console.log("[ipc] SELECT_TSV_FOLDER");
-    const result = await dialog.showOpenDialog({ properties: ["openDirectory"] });
-    return result.canceled ? null : result.filePaths[0] ?? null;
-  });
-
   ipcMain.handle(APP_CHANNELS.SELECT_OUTPUT_FOLDER, async () => {
     console.log("[ipc] SELECT_OUTPUT_FOLDER");
     const result = await dialog.showOpenDialog({ properties: ["openDirectory", "createDirectory"] });

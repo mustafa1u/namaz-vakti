@@ -3,7 +3,6 @@
 export const APP_CHANNELS = {
   LIST_MONTHS: "app:list-months",
   GENERATE_OUTPUTS: "app:generate-outputs",
-  SELECT_TSV_FOLDER: "app:select-tsv-folder",
   SELECT_OUTPUT_FOLDER: "app:select-output-folder"
 } as const;
 
@@ -219,6 +218,5 @@ export type GenerateOutputsResponse = z.infer<typeof GenerateOutputsResponseSche
 export type DesktopApi = {
   listMonths: (tsvFolder: string) => Promise<string[]>;
   generateOutputs: (request: GenerateOutputsRequest) => Promise<GenerateOutputsResponse>;
-  selectTsvFolder: () => Promise<string | null>;
   selectOutputFolder: () => Promise<string | null>;
 };

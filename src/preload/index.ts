@@ -13,10 +13,6 @@ const api: DesktopApi = {
     console.log("[preload] invoke generateOutputs", request.options.month, request.targets.join(","));
     return ipcRenderer.invoke(APP_CHANNELS.GENERATE_OUTPUTS, request);
   },
-  selectTsvFolder: () => {
-    console.log("[preload] invoke selectTsvFolder");
-    return ipcRenderer.invoke(APP_CHANNELS.SELECT_TSV_FOLDER);
-  },
   selectOutputFolder: () => {
     console.log("[preload] invoke selectOutputFolder");
     return ipcRenderer.invoke(APP_CHANNELS.SELECT_OUTPUT_FOLDER);

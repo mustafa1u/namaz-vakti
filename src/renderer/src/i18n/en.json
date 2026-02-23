@@ -6,7 +6,10 @@
   "labels": {
     "uiLanguage": "Application Language",
     "uiLanguageShort": "Language",
-    "tsvFolder": "TSV Folder",
+    "location": "Location",
+    "country": "Country",
+    "stateProvince": "State/Province",
+    "cityTown": "City/Town",
     "outputFolder": "Output Folder",
     "year": "Year",
     "month": "Month",
@@ -94,7 +97,6 @@
     "pm": "PM"
   },
   "errors": {
-    "pickTsvFailed": "pickTsv failed",
     "pickOutputFailed": "pickOutput failed",
     "refreshMonthsFailed": "refreshMonths failed",
     "generateFailed": "generate failed"
@@ -102,13 +104,10 @@
   "logs": {
     "preloadMissing": "ERROR: window.appApi is undefined. Preload did not load.",
     "appApiReady": "appApi ready. Methods: {{methods}}",
-    "pickTsvClicked": "pickTsv clicked",
-    "pickTsvResult": "pickTsv result: {{path}}",
     "pickOutputClicked": "pickOutput clicked",
     "pickOutputResult": "pickOutput result: {{path}}",
     "generateClicked": "generate {{target}} clicked for {{month}}",
-    "setTsvFolderFirst": "Set TSV folder first.",
-    "refreshMonthsFor": "refreshMonths for {{folder}}",
+    "refreshMonthsForLocation": "refreshMonths for {{country}}/{{state}}/{{city}} at {{folder}}",
     "noMonthFilesFound": "No month files found in folder.",
     "foundMonths": "Found months: {{months}}",
     "restoredLastEntries": "Restored last entries.",
@@ -116,8 +115,7 @@
   },
   "validation": {
     "monthRequired": "Month is required.",
-    "outputFolderRequired": "Output folder is required.",
-    "tsvFolderRequired": "TSV folder is required."
+    "outputFolderRequired": "Output folder is required."
   },
   "status": {
     "validationFailed": "Cannot generate. {{details}}",

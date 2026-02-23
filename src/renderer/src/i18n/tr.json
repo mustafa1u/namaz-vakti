@@ -6,7 +6,10 @@
   "labels": {
     "uiLanguage": "Uygulama dili",
     "uiLanguageShort": "Dil",
-    "tsvFolder": "TSV klasörü",
+    "location": "Konum",
+    "country": "Ülke",
+    "stateProvince": "Eyalet/İl",
+    "cityTown": "Şehir/İlçe",
     "outputFolder": "Çıktı klasörü",
     "year": "Yıl",
     "month": "Ay",
@@ -94,7 +97,6 @@
     "pm": "ÖS"
   },
   "errors": {
-    "pickTsvFailed": "TSV klasörü seçimi başarısız",
     "pickOutputFailed": "Çıktı klasörü seçimi başarısız",
     "refreshMonthsFailed": "Ay yenileme başarısız",
     "generateFailed": "Üretim başarısız"
@@ -102,13 +104,10 @@
   "logs": {
     "preloadMissing": "HATA: window.appApi tanımsız. Preload yüklenmedi.",
     "appApiReady": "appApi hazır. Yöntemler: {{methods}}",
-    "pickTsvClicked": "TSV seçimi düğmesine tıklandı",
-    "pickTsvResult": "TSV seçimi sonucu: {{path}}",
     "pickOutputClicked": "Çıktı klasörü seçimi düğmesine tıklandı",
     "pickOutputResult": "Çıktı klasörü seçimi sonucu: {{path}}",
     "generateClicked": "{{month}} için {{target}} üret tıklandı",
-    "setTsvFolderFirst": "Önce TSV klasörünü seçin.",
-    "refreshMonthsFor": "{{folder}} için aylar yenileniyor",
+    "refreshMonthsForLocation": "{{country}}/{{state}}/{{city}} için aylar yenileniyor ({{folder}})",
     "noMonthFilesFound": "Klasörde ay dosyası bulunamadı.",
     "foundMonths": "Bulunan aylar: {{months}}",
     "restoredLastEntries": "Son girişler geri yüklendi.",
@@ -116,8 +115,7 @@
   },
   "validation": {
     "monthRequired": "Ay seçimi zorunludur.",
-    "outputFolderRequired": "Çıktı klasörü zorunludur.",
-    "tsvFolderRequired": "TSV klasörü zorunludur."
+    "outputFolderRequired": "Çıktı klasörü zorunludur."
   },
   "status": {
     "validationFailed": "Üretim başlatılamadı. {{details}}",

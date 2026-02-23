@@ -1,4 +1,4 @@
-﻿import { access, readdir, readFile } from "node:fs/promises";
+﻿import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parse } from "csv-parse/sync";
 import type { RawDailyRecord } from "@domain/types";
@@ -68,7 +68,7 @@ async function collectMonthsRecursive(folder: string, out: Set<string>): Promise
     if (!entry.isFile()) {
       continue;
     }
-    const match = entry.name.match(/paterson_(\d{4}-\d{2})\.tsv$/i);
+    const match = entry.name.match(/_(\d{4}-\d{2})\.tsv$/i);
     if (match?.[1]) {
       out.add(match[1]);
     }
@@ -76,42 +76,29 @@ async function collectMonthsRecursive(folder: string, out: Set<string>): Promise
 }
 
 async function resolveMonthTsvPath(tsvFolder: string, month: string): Promise<string> {
-  const fileName = `paterson_${month}.tsv`;
-  const [year] = month.split("-");
-  const candidates = [
-    join(tsvFolder, fileName),
-    join(tsvFolder, year ?? "", fileName)
-  ];
-
-  for (const candidate of candidates) {
-    try {
-      await access(candidate);
-      return candidate;
-    } catch {
-      // Try next candidate.
-    }
-  }
-
-  const found = await findFileByNameRecursive(tsvFolder, fileName);
-  if (!found) {
+  const found = await findFilesByMonthRecursive(tsvFolder, month);
+  if (found.length === 0) {
     throw new Error(`Month TSV not found for ${month} in ${tsvFolder}`);
   }
-  return found;
+  if (found.length > 1) {
+    throw new Error(`Multiple month TSV files found for ${month} in ${tsvFolder}: ${found.join(" | ")}`);
+  }
+  return found[0]!;
 }
 
-async function findFileByNameRecursive(folder: string, fileName: string): Promise<string | null> {
+async function findFilesByMonthRecursive(folder: string, month: string): Promise<string[]> {
+  const out: string[] = [];
   const entries = await readdir(folder, { withFileTypes: true });
   for (const entry of entries) {
     const fullPath = join(folder, entry.name);
-    if (entry.isFile() && entry.name.toLowerCase() === fileName.toLowerCase()) {
-      return fullPath;
+    if (entry.isFile() && entry.name.toLowerCase().endsWith(`_${month.toLowerCase()}.tsv`)) {
+      out.push(fullPath);
+      continue;
     }
     if (entry.isDirectory()) {
-      const nested = await findFileByNameRecursive(fullPath, fileName);
-      if (nested) {
-        return nested;
-      }
+      const nested = await findFilesByMonthRecursive(fullPath, month);
+      out.push(...nested);
     }
   }
-  return null;
+  return out.sort();
 }

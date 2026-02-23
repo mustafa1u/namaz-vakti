@@ -9,6 +9,19 @@ import {
   type MinuteMultiple,
   type PrayerKey
 } from "@shared/ipc";
+import {
+  DEFAULT_LOCATION_SELECTION,
+  getCityOptions,
+  getCountryOptions,
+  getLocationLabels,
+  getScheduleFolderPath,
+  getStateOptions,
+  normalizeLocationSelection,
+  type CityId,
+  type CountryId,
+  type LocationSelection,
+  type StateProvinceId
+} from "@shared/locations";
 
 import {
   UI_LANGUAGE_STORAGE_KEY,
@@ -20,8 +33,10 @@ import {
   translateStaticDocumentText
 } from "./i18n";
 
-const tsvFolderInput = getEl<HTMLInputElement>("tsvFolder");
 const outputFolderInput = getEl<HTMLInputElement>("outputFolder");
+const countrySelect = getEl<HTMLSelectElement>("countrySelect");
+const stateSelect = getEl<HTMLSelectElement>("stateSelect");
+const citySelect = getEl<HTMLSelectElement>("citySelect");
 const switchUiLanguageButton = getEl<HTMLButtonElement>("switchUiLanguage");
 const yearSelect = getEl<HTMLSelectElement>("year");
 const monthSelect = getEl<HTMLSelectElement>("month");
@@ -45,11 +60,11 @@ const resetDefaultsButton = getEl<HTMLButtonElement>("resetDefaults");
 
 const PRAYER_ORDER: PrayerKey[] = ["fajr", "zhuhr", "asr", "maghrib", "isha"];
 const LIMIT_ORDER: Array<"noEarlier" | "noLater"> = ["noEarlier", "noLater"];
-const DEFAULT_TSV_FOLDER = "assets/schedules";
 const RESET_DEFAULT_MONTH = "2026-01";
 const RESET_DEFAULT_YEAR = RESET_DEFAULT_MONTH.split("-")[0] ?? "2026";
 const RESET_DEFAULT_MONTH_NUMBER = RESET_DEFAULT_MONTH.split("-")[1] ?? "01";
-const LAST_ENTRIES_KEY = "namaz-vakti:last-entries:v4";
+const LAST_ENTRIES_KEY = "namaz-vakti:last-entries:v5";
+const LEGACY_V4_KEY = "namaz-vakti:last-entries:v4";
 const LEGACY_V3_KEY = "namaz-vakti:last-entries:v3";
 const LEGACY_V2_KEY = "namaz-vakti:last-entries:v2";
 const RESET_DEFAULT_CUSTOMIZATION = buildResetDefaultCustomization();
@@ -60,7 +75,9 @@ type ActiveLimitRow = {
 };
 
 type LastEntries = {
-  tsvFolder: string;
+  countryId: CountryId;
+  stateId: StateProvinceId;
+  cityId: CityId;
   outputFolder: string;
   year: string;
   month: string;
@@ -74,7 +91,22 @@ type LastEntries = {
   customization: Customization;
 };
 
-type LegacyEntriesV3 = Partial<LastEntries> & {
+type LegacyEntriesV4 = Partial<{
+  tsvFolder: string;
+  outputFolder: string;
+  year: string;
+  month: string;
+  locale: GenerationOptions["locale"];
+  timeFormat: GenerationOptions["timeFormat"];
+  baseGroupSize: string;
+  ramazanHesabi: boolean;
+  masjidName: string;
+  masjidAddress: string;
+  announcementMessage: string;
+  customization: unknown;
+}>;
+
+type LegacyEntriesV3 = LegacyEntriesV4 & {
   zhuhrUseStandardDaylightLimits?: boolean;
   zhuhrEarliestLimitMinutes?: number;
   zhuhrStandardEarliestLimitMinutes?: number;
@@ -120,21 +152,6 @@ async function bootstrap(): Promise<void> {
 
   log(t("logs.appApiReady", { methods: Object.keys(window.appApi).join(", ") }));
 
-  getEl<HTMLButtonElement>("pickTsv").addEventListener("click", async () => {
-    try {
-      log(t("logs.pickTsvClicked"));
-      const path = await window.appApi.selectTsvFolder();
-      log(t("logs.pickTsvResult", { path: path ?? t("common.cancelled") }));
-      if (path) {
-        tsvFolderInput.value = path;
-        saveLastEntries();
-        await refreshMonths();
-      }
-    } catch (error) {
-      logError("errors.pickTsvFailed", error);
-    }
-  });
-
   getEl<HTMLButtonElement>("pickOutput").addEventListener("click", async () => {
     try {
       log(t("logs.pickOutputClicked"));
@@ -174,14 +191,17 @@ async function bootstrap(): Promise<void> {
   });
 }
 
-async function refreshMonths(allowDefaultFallback = true): Promise<void> {
-  if (!tsvFolderInput.value.trim()) {
-    log(t("logs.setTsvFolderFirst"));
-    return;
-  }
-
-  log(t("logs.refreshMonthsFor", { folder: tsvFolderInput.value }));
-  const months = await window.appApi.listMonths(tsvFolderInput.value);
+async function refreshMonths(): Promise<void> {
+  const selection = getSelectedLocationSelection();
+  const folder = getScheduleFolderPath(selection);
+  const labels = getLocationLabels(selection);
+  log(t("logs.refreshMonthsForLocation", {
+    country: labels.country,
+    state: labels.state,
+    city: labels.city,
+    folder
+  }));
+  const months = await window.appApi.listMonths(folder);
   const previousYear = yearSelect.value;
   const previousMonthNumber = monthSelect.value;
   availableMonthsByYear = buildAvailableMonthsByYear(months);
@@ -197,11 +217,7 @@ async function refreshMonths(allowDefaultFallback = true): Promise<void> {
 
   if (years.length === 0) {
     monthSelect.innerHTML = "";
-    if (allowDefaultFallback && tsvFolderInput.value.trim() !== DEFAULT_TSV_FOLDER) {
-      tsvFolderInput.value = DEFAULT_TSV_FOLDER;
-      await refreshMonths(false);
-      return;
-    }
+    saveLastEntries();
     log(t("logs.noMonthFilesFound"));
     return;
   }
@@ -298,10 +314,97 @@ function getSelectedYearMonth(): string {
   }
   return `${year}-${monthNumber}`;
 }
+
+function syncLocationSelectors(partial: Partial<LocationSelection>): LocationSelection {
+  const normalized = normalizeLocationSelection(partial);
+
+  renderSelectOptions(
+    countrySelect,
+    getCountryOptions().map((entry) => ({ value: entry.id, label: entry.label })),
+    normalized.countryId
+  );
+  renderSelectOptions(
+    stateSelect,
+    getStateOptions(normalized.countryId).map((entry) => ({ value: entry.id, label: entry.label })),
+    normalized.stateId
+  );
+  renderSelectOptions(
+    citySelect,
+    getCityOptions(normalized.countryId, normalized.stateId).map((entry) => ({ value: entry.id, label: entry.label })),
+    normalized.cityId
+  );
+
+  return normalized;
+}
+
+function getSelectedLocationSelection(): LocationSelection {
+  return normalizeLocationSelection({
+    countryId: countrySelect.value as CountryId,
+    stateId: stateSelect.value as StateProvinceId,
+    cityId: citySelect.value as CityId
+  });
+}
+
+function getSelectedScheduleFolderPath(): string {
+  return getScheduleFolderPath(getSelectedLocationSelection());
+}
+
+function renderSelectOptions(
+  select: HTMLSelectElement,
+  options: Array<{ value: string; label: string }>,
+  selectedValue: string
+): void {
+  select.innerHTML = "";
+  for (const optionData of options) {
+    const option = document.createElement("option");
+    option.value = optionData.value;
+    option.textContent = optionData.label;
+    select.appendChild(option);
+  }
+
+  if (options.some((entry) => entry.value === selectedValue)) {
+    select.value = selectedValue;
+  } else if (options.length > 0) {
+    select.value = options[0]!.value;
+  }
+}
+
 function bindPersistence(): void {
   const save = () => saveLastEntries();
 
-  tsvFolderInput.addEventListener("change", save);
+  countrySelect.addEventListener("change", () => {
+    syncLocationSelectors({
+      countryId: countrySelect.value as CountryId,
+      stateId: stateSelect.value as StateProvinceId,
+      cityId: citySelect.value as CityId
+    });
+    save();
+    void refreshMonths().catch((error) => {
+      logError("errors.refreshMonthsFailed", error);
+    });
+  });
+  stateSelect.addEventListener("change", () => {
+    syncLocationSelectors({
+      countryId: countrySelect.value as CountryId,
+      stateId: stateSelect.value as StateProvinceId,
+      cityId: citySelect.value as CityId
+    });
+    save();
+    void refreshMonths().catch((error) => {
+      logError("errors.refreshMonthsFailed", error);
+    });
+  });
+  citySelect.addEventListener("change", () => {
+    syncLocationSelectors({
+      countryId: countrySelect.value as CountryId,
+      stateId: stateSelect.value as StateProvinceId,
+      cityId: citySelect.value as CityId
+    });
+    save();
+    void refreshMonths().catch((error) => {
+      logError("errors.refreshMonthsFailed", error);
+    });
+  });
   outputFolderInput.addEventListener("change", save);
   yearSelect.addEventListener("change", () => {
     renderMonthOptionsForSelectedYear();
@@ -353,7 +456,11 @@ async function restoreLastEntries(): Promise<void> {
     return;
   }
 
-  tsvFolderInput.value = saved.tsvFolder.trim() || DEFAULT_TSV_FOLDER;
+  syncLocationSelectors({
+    countryId: saved.countryId,
+    stateId: saved.stateId,
+    cityId: saved.cityId
+  });
   outputFolderInput.value = saved.outputFolder;
   yearSelect.value = saved.year || RESET_DEFAULT_YEAR;
   localeSelect.value = saved.locale;
@@ -367,27 +474,28 @@ async function restoreLastEntries(): Promise<void> {
 
   renderAdvancedLimitRows();
 
-  if (tsvFolderInput.value.trim()) {
-    await refreshMonths();
-    const parsedSavedMonth = parseYearMonth(saved.month);
-    if (parsedSavedMonth && Array.from(yearSelect.options).some((option) => option.value === parsedSavedMonth.year)) {
-      yearSelect.value = parsedSavedMonth.year;
-      renderMonthOptionsForSelectedYear(parsedSavedMonth.monthNumber);
-    } else if (saved.year && Array.from(yearSelect.options).some((option) => option.value === saved.year)) {
-      yearSelect.value = saved.year;
-      renderMonthOptionsForSelectedYear();
-    } else {
-      renderMonthOptionsForSelectedYear();
-    }
-    saveLastEntries();
+  await refreshMonths();
+  const parsedSavedMonth = parseYearMonth(saved.month);
+  if (parsedSavedMonth && Array.from(yearSelect.options).some((option) => option.value === parsedSavedMonth.year)) {
+    yearSelect.value = parsedSavedMonth.year;
+    renderMonthOptionsForSelectedYear(parsedSavedMonth.monthNumber);
+  } else if (saved.year && Array.from(yearSelect.options).some((option) => option.value === saved.year)) {
+    yearSelect.value = saved.year;
+    renderMonthOptionsForSelectedYear();
+  } else {
+    renderMonthOptionsForSelectedYear();
   }
+  saveLastEntries();
 
   log(t("logs.restoredLastEntries"));
 }
 
 function saveLastEntries(): void {
+  const location = getSelectedLocationSelection();
   const data: LastEntries = {
-    tsvFolder: tsvFolderInput.value.trim(),
+    countryId: location.countryId,
+    stateId: location.stateId,
+    cityId: location.cityId,
     outputFolder: outputFolderInput.value.trim(),
     year: yearSelect.value,
     month: getSelectedYearMonth(),
@@ -405,11 +513,19 @@ function saveLastEntries(): void {
 }
 
 function loadLastEntries(): LastEntries | null {
-  const v4Raw = localStorage.getItem(LAST_ENTRIES_KEY);
+  const v5Raw = localStorage.getItem(LAST_ENTRIES_KEY);
+  if (v5Raw) {
+    const parsedV5 = parseV5Entries(v5Raw);
+    if (parsedV5) {
+      return parsedV5;
+    }
+  }
+
+  const v4Raw = localStorage.getItem(LEGACY_V4_KEY);
   if (v4Raw) {
-    const parsedV4 = parseV4Entries(v4Raw);
-    if (parsedV4) {
-      return parsedV4;
+    const migratedV4 = parseLegacyV4Entries(v4Raw);
+    if (migratedV4) {
+      return migratedV4;
     }
   }
 
@@ -429,7 +545,7 @@ function loadLastEntries(): LastEntries | null {
   return null;
 }
 
-function parseV4Entries(raw: string): LastEntries | null {
+function parseV5Entries(raw: string): LastEntries | null {
   try {
     const parsed = JSON.parse(raw) as Partial<LastEntries>;
     const parsedCustomization = CustomizationSchema.safeParse(parsed.customization);
@@ -437,8 +553,45 @@ function parseV4Entries(raw: string): LastEntries | null {
       return null;
     }
 
+    const location = normalizeLocationSelection({
+      countryId: parsed.countryId,
+      stateId: parsed.stateId,
+      cityId: parsed.cityId
+    });
+
     return {
-      tsvFolder: parsed.tsvFolder?.trim() || DEFAULT_TSV_FOLDER,
+      countryId: location.countryId,
+      stateId: location.stateId,
+      cityId: location.cityId,
+      outputFolder: parsed.outputFolder ?? "",
+      year: parsed.year ?? (parseYearMonth(parsed.month ?? "")?.year ?? RESET_DEFAULT_YEAR),
+      month: parsed.month ?? "",
+      locale: parsed.locale === "tr" ? "tr" : "en",
+      timeFormat: parsed.timeFormat === "24h" ? "24h" : "ampm",
+      baseGroupSize: normalizeBaseGroupSize(parsed.baseGroupSize),
+      ramazanHesabi: parsed.ramazanHesabi !== false,
+      masjidName: parsed.masjidName ?? "",
+      masjidAddress: parsed.masjidAddress ?? "",
+      announcementMessage: parsed.announcementMessage ?? "",
+      customization: sanitizeCustomization(parsedCustomization.data)
+    };
+  } catch {
+    return null;
+  }
+}
+
+function parseLegacyV4Entries(raw: string): LastEntries | null {
+  try {
+    const parsed = JSON.parse(raw) as LegacyEntriesV4;
+    const parsedCustomization = CustomizationSchema.safeParse(parsed.customization);
+    if (!parsedCustomization.success) {
+      return null;
+    }
+
+    return {
+      countryId: DEFAULT_LOCATION_SELECTION.countryId,
+      stateId: DEFAULT_LOCATION_SELECTION.stateId,
+      cityId: DEFAULT_LOCATION_SELECTION.cityId,
       outputFolder: parsed.outputFolder ?? "",
       year: parsed.year ?? (parseYearMonth(parsed.month ?? "")?.year ?? RESET_DEFAULT_YEAR),
       month: parsed.month ?? "",
@@ -460,7 +613,9 @@ function parseLegacyEntries(raw: string): LastEntries | null {
   try {
     const parsed = JSON.parse(raw) as LegacyEntriesV3;
     return {
-      tsvFolder: parsed.tsvFolder?.trim() || DEFAULT_TSV_FOLDER,
+      countryId: DEFAULT_LOCATION_SELECTION.countryId,
+      stateId: DEFAULT_LOCATION_SELECTION.stateId,
+      cityId: DEFAULT_LOCATION_SELECTION.cityId,
       outputFolder: parsed.outputFolder ?? "",
       year: parseYearMonth(parsed.month ?? "")?.year ?? RESET_DEFAULT_YEAR,
       month: parsed.month ?? "",
@@ -527,7 +682,7 @@ function migrateLegacyCustomization(parsed: LegacyEntriesV3): Customization {
 function readOptions(): GenerationOptions {
   return {
     month: getSelectedYearMonth(),
-    tsvFolder: tsvFolderInput.value.trim(),
+    tsvFolder: getSelectedScheduleFolderPath(),
     outputFolder: outputFolderInput.value.trim(),
     masjidName: masjidNameInput.value,
     masjidAddress: masjidAddressInput.value,
@@ -542,7 +697,7 @@ function readOptions(): GenerationOptions {
 }
 
 function applyFreshDefaults(): void {
-  tsvFolderInput.value = DEFAULT_TSV_FOLDER;
+  syncLocationSelectors(DEFAULT_LOCATION_SELECTION);
   outputFolderInput.value = "";
   yearSelect.value = RESET_DEFAULT_YEAR;
   monthSelect.value = RESET_DEFAULT_MONTH_NUMBER;
@@ -562,6 +717,7 @@ async function resetToDefaults(): Promise<void> {
   const preservedMasjidAddress = masjidAddressInput.value;
 
   localStorage.removeItem(LAST_ENTRIES_KEY);
+  localStorage.removeItem(LEGACY_V4_KEY);
   localStorage.removeItem(LEGACY_V3_KEY);
   localStorage.removeItem(LEGACY_V2_KEY);
   applyFreshDefaults();
@@ -584,9 +740,6 @@ function validateBeforeGenerate(options: GenerationOptions): string[] {
   }
   if (!options.outputFolder.trim()) {
     errors.push(t("validation.outputFolderRequired"));
-  }
-  if (!options.tsvFolder.trim()) {
-    errors.push(t("validation.tsvFolderRequired"));
   }
   return errors;
 }

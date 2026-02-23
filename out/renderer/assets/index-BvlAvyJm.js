@@ -3748,6 +3748,276 @@ objectType({
   pngPath: stringType().nullable(),
   warnings: arrayType(stringType())
 });
+const SCHEDULES_BASE_FOLDER = "assets/schedules/2026";
+const LOCATION_ENTRIES = [
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "nj",
+    stateLabel: "NJ",
+    cityId: "paterson",
+    cityLabel: "Paterson",
+    scheduleFolder: "Paterson-NJ"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "dc",
+    stateLabel: "DC",
+    cityId: "washington",
+    cityLabel: "Washington",
+    scheduleFolder: "Washington-DC"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "ny",
+    stateLabel: "NY",
+    cityId: "new-york-city",
+    cityLabel: "New York City",
+    scheduleFolder: "New York City-NY"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "il",
+    stateLabel: "IL",
+    cityId: "chicago",
+    cityLabel: "Chicago",
+    scheduleFolder: "Chicago-IL"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "tx",
+    stateLabel: "TX",
+    cityId: "houston",
+    cityLabel: "Houston",
+    scheduleFolder: "Houston-TX"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "tx",
+    stateLabel: "TX",
+    cityId: "dallas",
+    cityLabel: "Dallas",
+    scheduleFolder: "Dallas-TX"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "ca",
+    stateLabel: "CA",
+    cityId: "fresno",
+    cityLabel: "Fresno",
+    scheduleFolder: "Fresno-CA"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "pa",
+    stateLabel: "PA",
+    cityId: "harrisburg",
+    cityLabel: "Harrisburg",
+    scheduleFolder: "Harrisburg-PA"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "ca",
+    stateLabel: "CA",
+    cityId: "irvine",
+    cityLabel: "Irvine",
+    scheduleFolder: "Irvine-CA"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "ny",
+    stateLabel: "NY",
+    cityId: "ithaca",
+    cityLabel: "Ithaca",
+    scheduleFolder: "Ithaca-NY"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "ca",
+    stateLabel: "CA",
+    cityId: "los-angeles",
+    cityLabel: "Los Angeles",
+    scheduleFolder: "Los Angeles-CA"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "nj",
+    stateLabel: "NJ",
+    cityId: "new-brunswick",
+    cityLabel: "New Brunswick",
+    scheduleFolder: "New Brunswick-NJ"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "nj",
+    stateLabel: "NJ",
+    cityId: "newark",
+    cityLabel: "Newark",
+    scheduleFolder: "Newark-NJ"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "pa",
+    stateLabel: "PA",
+    cityId: "philadelphia",
+    cityLabel: "Philadelphia",
+    scheduleFolder: "Philadelphia-PA"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "pa",
+    stateLabel: "PA",
+    cityId: "pittsburgh",
+    cityLabel: "Pittsburgh",
+    scheduleFolder: "Pittsburgh-PA"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "ny",
+    stateLabel: "NY",
+    cityId: "rochester",
+    cityLabel: "Rochester",
+    scheduleFolder: "Rochester-NY"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "tx",
+    stateLabel: "TX",
+    cityId: "san-antonio",
+    cityLabel: "San Antonio",
+    scheduleFolder: "San Antonio-TX"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "ca",
+    stateLabel: "CA",
+    cityId: "san-francisco",
+    cityLabel: "San Francisco",
+    scheduleFolder: "San Francisco-CA"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "ny",
+    stateLabel: "NY",
+    cityId: "syracuse",
+    cityLabel: "Syracuse",
+    scheduleFolder: "Syracuse-NY"
+  },
+  {
+    countryId: "turkiye",
+    countryLabel: "Turkiye",
+    stateId: "ankara",
+    stateLabel: "Ankara",
+    cityId: "cankaya",
+    cityLabel: "Çankaya",
+    scheduleFolder: "Çankaya-Ankara"
+  },
+  {
+    countryId: "turkiye",
+    countryLabel: "Turkiye",
+    stateId: "istanbul",
+    stateLabel: "İstanbul",
+    cityId: "kadikoy",
+    cityLabel: "Kadıkoy",
+    scheduleFolder: "Kadıkoy-İstanbul"
+  },
+  {
+    countryId: "turkiye",
+    countryLabel: "Turkiye",
+    stateId: "aydin",
+    stateLabel: "Aydın",
+    cityId: "aydin",
+    cityLabel: "Aydın",
+    scheduleFolder: "Aydın-Aydın"
+  }
+];
+const DEFAULT_LOCATION_SELECTION = {
+  countryId: "usa",
+  stateId: "nj",
+  cityId: "paterson"
+};
+function getCountryOptions() {
+  const out = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const entry of LOCATION_ENTRIES) {
+    if (seen.has(entry.countryId)) {
+      continue;
+    }
+    seen.add(entry.countryId);
+    out.push({ id: entry.countryId, label: entry.countryLabel });
+  }
+  return out;
+}
+function getStateOptions(countryId) {
+  const out = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const entry of LOCATION_ENTRIES) {
+    if (entry.countryId !== countryId || seen.has(entry.stateId)) {
+      continue;
+    }
+    seen.add(entry.stateId);
+    out.push({ id: entry.stateId, label: entry.stateLabel });
+  }
+  return out;
+}
+function getCityOptions(countryId, stateId) {
+  return LOCATION_ENTRIES.filter((entry) => entry.countryId === countryId && entry.stateId === stateId).map((entry) => ({ id: entry.cityId, label: entry.cityLabel }));
+}
+function normalizeLocationSelection(input) {
+  const countryIds = getCountryOptions().map((item) => item.id);
+  const countryId = countryIds.includes(input?.countryId ?? "") ? input?.countryId : DEFAULT_LOCATION_SELECTION.countryId;
+  const stateIds = getStateOptions(countryId).map((item) => item.id);
+  const stateId = stateIds.includes(input?.stateId ?? "") ? input?.stateId : stateIds[0] ?? DEFAULT_LOCATION_SELECTION.stateId;
+  const cityIds = getCityOptions(countryId, stateId).map((item) => item.id);
+  const cityId = cityIds.includes(input?.cityId ?? "") ? input?.cityId : cityIds[0] ?? DEFAULT_LOCATION_SELECTION.cityId;
+  const found = LOCATION_ENTRIES.find(
+    (entry) => entry.countryId === countryId && entry.stateId === stateId && entry.cityId === cityId
+  );
+  if (!found) {
+    return { ...DEFAULT_LOCATION_SELECTION };
+  }
+  return {
+    countryId: found.countryId,
+    stateId: found.stateId,
+    cityId: found.cityId
+  };
+}
+function getLocationLabels(selection) {
+  const found = findLocation(selection);
+  return {
+    country: found?.countryLabel ?? "",
+    state: found?.stateLabel ?? "",
+    city: found?.cityLabel ?? ""
+  };
+}
+function getScheduleFolderPath(selection) {
+  const found = findLocation(selection);
+  const folder = found?.scheduleFolder ?? findLocation(DEFAULT_LOCATION_SELECTION)?.scheduleFolder ?? "Paterson-NJ";
+  return `${SCHEDULES_BASE_FOLDER}/${folder}`;
+}
+function findLocation(selection) {
+  return LOCATION_ENTRIES.find(
+    (entry) => entry.countryId === selection.countryId && entry.stateId === selection.stateId && entry.cityId === selection.cityId
+  );
+}
 const isString = (obj) => typeof obj === "string";
 const defer = () => {
   let res;
@@ -5969,7 +6239,7 @@ instance.hasLoadedNamespace;
 instance.loadNamespaces;
 instance.loadLanguages;
 const app$1 = { "windowTitle": "Namaz Vakti Desktop", "heading": "Iqamah Schedule Generator" };
-const labels$1 = { "uiLanguage": "Application Language", "uiLanguageShort": "Language", "tsvFolder": "TSV Folder", "outputFolder": "Output Folder", "year": "Year", "month": "Month", "outputLocale": "Output Language (Generated Content)", "timeFormat": "Time Format", "baseGroupSize": "Base Group Size", "ramazanHesabi": "Ramadan calculation", "noEarlierLimit": "no earlier than limit", "noLaterLimit": "no later than limit", "fajrLatestLimitEnabled": "Fajr no later than limit", "zhuhrEarliestLimitEnabled": "Zhuhr no earlier than limit", "zhuhrSingleLimit": "Zhuhr single limit", "zhuhrStdDstLimits": "Zhuhr standard/daylight limits", "masjidName": "Name of Masjid", "masjidAddress": "Address", "announcementMessage": "Announcement", "generatePane": "Generate", "customizeTitle": "Customize" };
+const labels$1 = { "uiLanguage": "Application Language", "uiLanguageShort": "Language", "location": "Location", "country": "Country", "stateProvince": "State/Province", "cityTown": "City/Town", "outputFolder": "Output Folder", "year": "Year", "month": "Month", "outputLocale": "Output Language (Generated Content)", "timeFormat": "Time Format", "baseGroupSize": "Base Group Size", "ramazanHesabi": "Ramadan calculation", "noEarlierLimit": "no earlier than limit", "noLaterLimit": "no later than limit", "fajrLatestLimitEnabled": "Fajr no later than limit", "zhuhrEarliestLimitEnabled": "Zhuhr no earlier than limit", "zhuhrSingleLimit": "Zhuhr single limit", "zhuhrStdDstLimits": "Zhuhr standard/daylight limits", "masjidName": "Name of Masjid", "masjidAddress": "Address", "announcementMessage": "Announcement", "generatePane": "Generate", "customizeTitle": "Customize" };
 const buttons$1 = { "browse": "Browse", "refresh": "Refresh", "advanced": "Advanced...", "customize": "Customize", "save": "Save", "cancel": "Cancel", "generatePng": "Generate PNG", "generateXlsx": "Generate XLSX", "resetDefaults": "Reset to defaults", "switchToEnglish": "English", "switchToTurkish": "Türkçe" };
 const options$1 = { "outputLocale": { "en": "English", "tr": "Turkish" }, "timeFormat": { "ampm": "AM/PM", "h24": "24h" }, "zhuhrLimitMode": { "single": "Single limit", "stdDst": "Standard/daylight" }, "zhuhrGroup": { "single": "Single", "standard": "Standard", "daylight": "Daylight" } };
 const prayers$1 = { "fajr": "Fajr", "zhuhr": "Zhuhr", "asr": "Asr", "maghrib": "Maghrib", "isha": "Isha" };
@@ -5977,9 +6247,9 @@ const modal$1 = { "enabled": "Enabled", "direction": "Direction", "after": "Afte
 const placeholders$1 = { "masjidName": "Masjid name shown in header", "masjidAddress": "Masjid address shown in header", "announcementMessage": "Message shown above the table" };
 const languages$1 = { "en": "English", "tr": "Türkçe" };
 const time$1 = { "am": "AM", "pm": "PM" };
-const errors$1 = { "pickTsvFailed": "pickTsv failed", "pickOutputFailed": "pickOutput failed", "refreshMonthsFailed": "refreshMonths failed", "generateFailed": "generate failed" };
-const logs$1 = { "preloadMissing": "ERROR: window.appApi is undefined. Preload did not load.", "appApiReady": "appApi ready. Methods: {{methods}}", "pickTsvClicked": "pickTsv clicked", "pickTsvResult": "pickTsv result: {{path}}", "pickOutputClicked": "pickOutput clicked", "pickOutputResult": "pickOutput result: {{path}}", "generateClicked": "generate {{target}} clicked for {{month}}", "setTsvFolderFirst": "Set TSV folder first.", "refreshMonthsFor": "refreshMonths for {{folder}}", "noMonthFilesFound": "No month files found in folder.", "foundMonths": "Found months: {{months}}", "restoredLastEntries": "Restored last entries.", "errorWithDetails": "ERROR: {{prefix}} -> {{details}}" };
-const validation$1 = { "monthRequired": "Month is required.", "outputFolderRequired": "Output folder is required.", "tsvFolderRequired": "TSV folder is required." };
+const errors$1 = { "pickOutputFailed": "pickOutput failed", "refreshMonthsFailed": "refreshMonths failed", "generateFailed": "generate failed" };
+const logs$1 = { "preloadMissing": "ERROR: window.appApi is undefined. Preload did not load.", "appApiReady": "appApi ready. Methods: {{methods}}", "pickOutputClicked": "pickOutput clicked", "pickOutputResult": "pickOutput result: {{path}}", "generateClicked": "generate {{target}} clicked for {{month}}", "refreshMonthsForLocation": "refreshMonths for {{country}}/{{state}}/{{city}} at {{folder}}", "noMonthFilesFound": "No month files found in folder.", "foundMonths": "Found months: {{months}}", "restoredLastEntries": "Restored last entries.", "errorWithDetails": "ERROR: {{prefix}} -> {{details}}" };
+const validation$1 = { "monthRequired": "Month is required.", "outputFolderRequired": "Output folder is required." };
 const status$1 = { "validationFailed": "Cannot generate. {{details}}", "generateFailed": "Generate {{target}} failed: {{details}}", "defaultsRestored": "Defaults restored." };
 const common$1 = { "cancelled": "<cancelled>", "none": "none" };
 const en = {
@@ -5999,7 +6269,7 @@ const en = {
   common: common$1
 };
 const app = { "windowTitle": "Namaz Vakti Masaüstü", "heading": "Kamet Çizelgesi Oluşturucu" };
-const labels = { "uiLanguage": "Uygulama dili", "uiLanguageShort": "Dil", "tsvFolder": "TSV klasörü", "outputFolder": "Çıktı klasörü", "year": "Yıl", "month": "Ay", "outputLocale": "Çıktı dili (üretilen içerik)", "timeFormat": "Saat biçimi", "baseGroupSize": "Temel grup boyutu", "ramazanHesabi": "Ramazan hesabı", "noEarlierLimit": "en erken sınır", "noLaterLimit": "en geç sınır", "fajrLatestLimitEnabled": "Sabah en geç sınır", "zhuhrEarliestLimitEnabled": "Öğle en erken sınır", "zhuhrSingleLimit": "Öğle tek sınır", "zhuhrStdDstLimits": "Öğle kış/yaz saati sınırları", "masjidName": "Cami adı", "masjidAddress": "Adres", "announcementMessage": "Duyuru", "generatePane": "Üret", "customizeTitle": "Özelleştir" };
+const labels = { "uiLanguage": "Uygulama dili", "uiLanguageShort": "Dil", "location": "Konum", "country": "Ülke", "stateProvince": "Eyalet/İl", "cityTown": "Şehir/İlçe", "outputFolder": "Çıktı klasörü", "year": "Yıl", "month": "Ay", "outputLocale": "Çıktı dili (üretilen içerik)", "timeFormat": "Saat biçimi", "baseGroupSize": "Temel grup boyutu", "ramazanHesabi": "Ramazan hesabı", "noEarlierLimit": "en erken sınır", "noLaterLimit": "en geç sınır", "fajrLatestLimitEnabled": "Sabah en geç sınır", "zhuhrEarliestLimitEnabled": "Öğle en erken sınır", "zhuhrSingleLimit": "Öğle tek sınır", "zhuhrStdDstLimits": "Öğle kış/yaz saati sınırları", "masjidName": "Cami adı", "masjidAddress": "Adres", "announcementMessage": "Duyuru", "generatePane": "Üret", "customizeTitle": "Özelleştir" };
 const buttons = { "browse": "Gözat", "refresh": "Yenile", "advanced": "Gelişmiş...", "customize": "Özelleştir", "save": "Kaydet", "cancel": "İptal", "generatePng": "PNG üret", "generateXlsx": "XLSX üret", "resetDefaults": "Varsayılana dön", "switchToEnglish": "English", "switchToTurkish": "Türkçe" };
 const options = { "outputLocale": { "en": "İngilizce", "tr": "Türkçe" }, "timeFormat": { "ampm": "ÖÖ/ÖS", "h24": "24 saat" }, "zhuhrLimitMode": { "single": "Tek sınır", "stdDst": "Kış/yaz saati" }, "zhuhrGroup": { "single": "Tek", "standard": "Kış saati", "daylight": "Yaz saati" } };
 const prayers = { "fajr": "Sabah", "zhuhr": "Öğle", "asr": "İkindi", "maghrib": "Akşam", "isha": "Yatsı" };
@@ -6007,9 +6277,9 @@ const modal = { "enabled": "Etkin", "direction": "Yön", "after": "Sonra", "befo
 const placeholders = { "masjidName": "Başlıkta gösterilecek cami adı", "masjidAddress": "Başlıkta gösterilecek adres", "announcementMessage": "Tablonun üstünde gösterilen mesaj" };
 const languages = { "en": "English", "tr": "Türkçe" };
 const time = { "am": "ÖÖ", "pm": "ÖS" };
-const errors = { "pickTsvFailed": "TSV klasörü seçimi başarısız", "pickOutputFailed": "Çıktı klasörü seçimi başarısız", "refreshMonthsFailed": "Ay yenileme başarısız", "generateFailed": "Üretim başarısız" };
-const logs = { "preloadMissing": "HATA: window.appApi tanımsız. Preload yüklenmedi.", "appApiReady": "appApi hazır. Yöntemler: {{methods}}", "pickTsvClicked": "TSV seçimi düğmesine tıklandı", "pickTsvResult": "TSV seçimi sonucu: {{path}}", "pickOutputClicked": "Çıktı klasörü seçimi düğmesine tıklandı", "pickOutputResult": "Çıktı klasörü seçimi sonucu: {{path}}", "generateClicked": "{{month}} için {{target}} üret tıklandı", "setTsvFolderFirst": "Önce TSV klasörünü seçin.", "refreshMonthsFor": "{{folder}} için aylar yenileniyor", "noMonthFilesFound": "Klasörde ay dosyası bulunamadı.", "foundMonths": "Bulunan aylar: {{months}}", "restoredLastEntries": "Son girişler geri yüklendi.", "errorWithDetails": "HATA: {{prefix}} -> {{details}}" };
-const validation = { "monthRequired": "Ay seçimi zorunludur.", "outputFolderRequired": "Çıktı klasörü zorunludur.", "tsvFolderRequired": "TSV klasörü zorunludur." };
+const errors = { "pickOutputFailed": "Çıktı klasörü seçimi başarısız", "refreshMonthsFailed": "Ay yenileme başarısız", "generateFailed": "Üretim başarısız" };
+const logs = { "preloadMissing": "HATA: window.appApi tanımsız. Preload yüklenmedi.", "appApiReady": "appApi hazır. Yöntemler: {{methods}}", "pickOutputClicked": "Çıktı klasörü seçimi düğmesine tıklandı", "pickOutputResult": "Çıktı klasörü seçimi sonucu: {{path}}", "generateClicked": "{{month}} için {{target}} üret tıklandı", "refreshMonthsForLocation": "{{country}}/{{state}}/{{city}} için aylar yenileniyor ({{folder}})", "noMonthFilesFound": "Klasörde ay dosyası bulunamadı.", "foundMonths": "Bulunan aylar: {{months}}", "restoredLastEntries": "Son girişler geri yüklendi.", "errorWithDetails": "HATA: {{prefix}} -> {{details}}" };
+const validation = { "monthRequired": "Ay seçimi zorunludur.", "outputFolderRequired": "Çıktı klasörü zorunludur." };
 const status = { "validationFailed": "Üretim başlatılamadı. {{details}}", "generateFailed": "{{target}} üretimi başarısız: {{details}}", "defaultsRestored": "Varsayılanlar yüklendi." };
 const common = { "cancelled": "<iptal edildi>", "none": "yok" };
 const tr = {
@@ -6074,8 +6344,10 @@ function translateStaticDocumentText() {
     el.setAttribute("placeholder", t(key));
   });
 }
-const tsvFolderInput = getEl("tsvFolder");
 const outputFolderInput = getEl("outputFolder");
+const countrySelect = getEl("countrySelect");
+const stateSelect = getEl("stateSelect");
+const citySelect = getEl("citySelect");
 const switchUiLanguageButton = getEl("switchUiLanguage");
 const yearSelect = getEl("year");
 const monthSelect = getEl("month");
@@ -6098,11 +6370,11 @@ const generateXlsxButton = getEl("generateXlsx");
 const resetDefaultsButton = getEl("resetDefaults");
 const PRAYER_ORDER = ["fajr", "zhuhr", "asr", "maghrib", "isha"];
 const LIMIT_ORDER = ["noEarlier", "noLater"];
-const DEFAULT_TSV_FOLDER = "assets/schedules";
 const RESET_DEFAULT_MONTH = "2026-01";
 const RESET_DEFAULT_YEAR = RESET_DEFAULT_MONTH.split("-")[0] ?? "2026";
 const RESET_DEFAULT_MONTH_NUMBER = RESET_DEFAULT_MONTH.split("-")[1] ?? "01";
-const LAST_ENTRIES_KEY = "namaz-vakti:last-entries:v4";
+const LAST_ENTRIES_KEY = "namaz-vakti:last-entries:v5";
+const LEGACY_V4_KEY = "namaz-vakti:last-entries:v4";
 const LEGACY_V3_KEY = "namaz-vakti:last-entries:v3";
 const LEGACY_V2_KEY = "namaz-vakti:last-entries:v2";
 const RESET_DEFAULT_CUSTOMIZATION = buildResetDefaultCustomization();
@@ -6125,20 +6397,6 @@ async function bootstrap() {
   bindCustomizeModalHandlers();
   await restoreLastEntries();
   log(t("logs.appApiReady", { methods: Object.keys(window.appApi).join(", ") }));
-  getEl("pickTsv").addEventListener("click", async () => {
-    try {
-      log(t("logs.pickTsvClicked"));
-      const path = await window.appApi.selectTsvFolder();
-      log(t("logs.pickTsvResult", { path: path ?? t("common.cancelled") }));
-      if (path) {
-        tsvFolderInput.value = path;
-        saveLastEntries();
-        await refreshMonths();
-      }
-    } catch (error) {
-      logError("errors.pickTsvFailed", error);
-    }
-  });
   getEl("pickOutput").addEventListener("click", async () => {
     try {
       log(t("logs.pickOutputClicked"));
@@ -6173,13 +6431,17 @@ async function bootstrap() {
     }
   });
 }
-async function refreshMonths(allowDefaultFallback = true) {
-  if (!tsvFolderInput.value.trim()) {
-    log(t("logs.setTsvFolderFirst"));
-    return;
-  }
-  log(t("logs.refreshMonthsFor", { folder: tsvFolderInput.value }));
-  const months = await window.appApi.listMonths(tsvFolderInput.value);
+async function refreshMonths() {
+  const selection = getSelectedLocationSelection();
+  const folder = getScheduleFolderPath(selection);
+  const labels2 = getLocationLabels(selection);
+  log(t("logs.refreshMonthsForLocation", {
+    country: labels2.country,
+    state: labels2.state,
+    city: labels2.city,
+    folder
+  }));
+  const months = await window.appApi.listMonths(folder);
   const previousYear = yearSelect.value;
   const previousMonthNumber = monthSelect.value;
   availableMonthsByYear = buildAvailableMonthsByYear(months);
@@ -6193,11 +6455,7 @@ async function refreshMonths(allowDefaultFallback = true) {
   });
   if (years.length === 0) {
     monthSelect.innerHTML = "";
-    if (allowDefaultFallback && tsvFolderInput.value.trim() !== DEFAULT_TSV_FOLDER) {
-      tsvFolderInput.value = DEFAULT_TSV_FOLDER;
-      await refreshMonths(false);
-      return;
-    }
+    saveLastEntries();
     log(t("logs.noMonthFilesFound"));
     return;
   }
@@ -6283,9 +6541,84 @@ function getSelectedYearMonth() {
   }
   return `${year}-${monthNumber}`;
 }
+function syncLocationSelectors(partial) {
+  const normalized = normalizeLocationSelection(partial);
+  renderSelectOptions(
+    countrySelect,
+    getCountryOptions().map((entry) => ({ value: entry.id, label: entry.label })),
+    normalized.countryId
+  );
+  renderSelectOptions(
+    stateSelect,
+    getStateOptions(normalized.countryId).map((entry) => ({ value: entry.id, label: entry.label })),
+    normalized.stateId
+  );
+  renderSelectOptions(
+    citySelect,
+    getCityOptions(normalized.countryId, normalized.stateId).map((entry) => ({ value: entry.id, label: entry.label })),
+    normalized.cityId
+  );
+  return normalized;
+}
+function getSelectedLocationSelection() {
+  return normalizeLocationSelection({
+    countryId: countrySelect.value,
+    stateId: stateSelect.value,
+    cityId: citySelect.value
+  });
+}
+function getSelectedScheduleFolderPath() {
+  return getScheduleFolderPath(getSelectedLocationSelection());
+}
+function renderSelectOptions(select, options2, selectedValue) {
+  select.innerHTML = "";
+  for (const optionData of options2) {
+    const option = document.createElement("option");
+    option.value = optionData.value;
+    option.textContent = optionData.label;
+    select.appendChild(option);
+  }
+  if (options2.some((entry) => entry.value === selectedValue)) {
+    select.value = selectedValue;
+  } else if (options2.length > 0) {
+    select.value = options2[0].value;
+  }
+}
 function bindPersistence() {
   const save = () => saveLastEntries();
-  tsvFolderInput.addEventListener("change", save);
+  countrySelect.addEventListener("change", () => {
+    syncLocationSelectors({
+      countryId: countrySelect.value,
+      stateId: stateSelect.value,
+      cityId: citySelect.value
+    });
+    save();
+    void refreshMonths().catch((error) => {
+      logError("errors.refreshMonthsFailed", error);
+    });
+  });
+  stateSelect.addEventListener("change", () => {
+    syncLocationSelectors({
+      countryId: countrySelect.value,
+      stateId: stateSelect.value,
+      cityId: citySelect.value
+    });
+    save();
+    void refreshMonths().catch((error) => {
+      logError("errors.refreshMonthsFailed", error);
+    });
+  });
+  citySelect.addEventListener("change", () => {
+    syncLocationSelectors({
+      countryId: countrySelect.value,
+      stateId: stateSelect.value,
+      cityId: citySelect.value
+    });
+    save();
+    void refreshMonths().catch((error) => {
+      logError("errors.refreshMonthsFailed", error);
+    });
+  });
   outputFolderInput.addEventListener("change", save);
   yearSelect.addEventListener("change", () => {
     renderMonthOptionsForSelectedYear();
@@ -6331,7 +6664,11 @@ async function restoreLastEntries() {
     saveLastEntries();
     return;
   }
-  tsvFolderInput.value = saved.tsvFolder.trim() || DEFAULT_TSV_FOLDER;
+  syncLocationSelectors({
+    countryId: saved.countryId,
+    stateId: saved.stateId,
+    cityId: saved.cityId
+  });
   outputFolderInput.value = saved.outputFolder;
   yearSelect.value = saved.year || RESET_DEFAULT_YEAR;
   localeSelect.value = saved.locale;
@@ -6343,25 +6680,26 @@ async function restoreLastEntries() {
   announcementMessageInput.value = saved.announcementMessage;
   customizationState = sanitizeCustomization(saved.customization);
   renderAdvancedLimitRows();
-  if (tsvFolderInput.value.trim()) {
-    await refreshMonths();
-    const parsedSavedMonth = parseYearMonth(saved.month);
-    if (parsedSavedMonth && Array.from(yearSelect.options).some((option) => option.value === parsedSavedMonth.year)) {
-      yearSelect.value = parsedSavedMonth.year;
-      renderMonthOptionsForSelectedYear(parsedSavedMonth.monthNumber);
-    } else if (saved.year && Array.from(yearSelect.options).some((option) => option.value === saved.year)) {
-      yearSelect.value = saved.year;
-      renderMonthOptionsForSelectedYear();
-    } else {
-      renderMonthOptionsForSelectedYear();
-    }
-    saveLastEntries();
+  await refreshMonths();
+  const parsedSavedMonth = parseYearMonth(saved.month);
+  if (parsedSavedMonth && Array.from(yearSelect.options).some((option) => option.value === parsedSavedMonth.year)) {
+    yearSelect.value = parsedSavedMonth.year;
+    renderMonthOptionsForSelectedYear(parsedSavedMonth.monthNumber);
+  } else if (saved.year && Array.from(yearSelect.options).some((option) => option.value === saved.year)) {
+    yearSelect.value = saved.year;
+    renderMonthOptionsForSelectedYear();
+  } else {
+    renderMonthOptionsForSelectedYear();
   }
+  saveLastEntries();
   log(t("logs.restoredLastEntries"));
 }
 function saveLastEntries() {
+  const location = getSelectedLocationSelection();
   const data = {
-    tsvFolder: tsvFolderInput.value.trim(),
+    countryId: location.countryId,
+    stateId: location.stateId,
+    cityId: location.cityId,
     outputFolder: outputFolderInput.value.trim(),
     year: yearSelect.value,
     month: getSelectedYearMonth(),
@@ -6377,11 +6715,18 @@ function saveLastEntries() {
   localStorage.setItem(LAST_ENTRIES_KEY, JSON.stringify(data));
 }
 function loadLastEntries() {
-  const v4Raw = localStorage.getItem(LAST_ENTRIES_KEY);
+  const v5Raw = localStorage.getItem(LAST_ENTRIES_KEY);
+  if (v5Raw) {
+    const parsedV5 = parseV5Entries(v5Raw);
+    if (parsedV5) {
+      return parsedV5;
+    }
+  }
+  const v4Raw = localStorage.getItem(LEGACY_V4_KEY);
   if (v4Raw) {
-    const parsedV4 = parseV4Entries(v4Raw);
-    if (parsedV4) {
-      return parsedV4;
+    const migratedV4 = parseLegacyV4Entries(v4Raw);
+    if (migratedV4) {
+      return migratedV4;
     }
   }
   const v3Raw = localStorage.getItem(LEGACY_V3_KEY);
@@ -6397,7 +6742,39 @@ function loadLastEntries() {
   }
   return null;
 }
-function parseV4Entries(raw) {
+function parseV5Entries(raw) {
+  try {
+    const parsed = JSON.parse(raw);
+    const parsedCustomization = CustomizationSchema.safeParse(parsed.customization);
+    if (!parsedCustomization.success) {
+      return null;
+    }
+    const location = normalizeLocationSelection({
+      countryId: parsed.countryId,
+      stateId: parsed.stateId,
+      cityId: parsed.cityId
+    });
+    return {
+      countryId: location.countryId,
+      stateId: location.stateId,
+      cityId: location.cityId,
+      outputFolder: parsed.outputFolder ?? "",
+      year: parsed.year ?? (parseYearMonth(parsed.month ?? "")?.year ?? RESET_DEFAULT_YEAR),
+      month: parsed.month ?? "",
+      locale: parsed.locale === "tr" ? "tr" : "en",
+      timeFormat: parsed.timeFormat === "24h" ? "24h" : "ampm",
+      baseGroupSize: normalizeBaseGroupSize(parsed.baseGroupSize),
+      ramazanHesabi: parsed.ramazanHesabi !== false,
+      masjidName: parsed.masjidName ?? "",
+      masjidAddress: parsed.masjidAddress ?? "",
+      announcementMessage: parsed.announcementMessage ?? "",
+      customization: sanitizeCustomization(parsedCustomization.data)
+    };
+  } catch {
+    return null;
+  }
+}
+function parseLegacyV4Entries(raw) {
   try {
     const parsed = JSON.parse(raw);
     const parsedCustomization = CustomizationSchema.safeParse(parsed.customization);
@@ -6405,7 +6782,9 @@ function parseV4Entries(raw) {
       return null;
     }
     return {
-      tsvFolder: parsed.tsvFolder?.trim() || DEFAULT_TSV_FOLDER,
+      countryId: DEFAULT_LOCATION_SELECTION.countryId,
+      stateId: DEFAULT_LOCATION_SELECTION.stateId,
+      cityId: DEFAULT_LOCATION_SELECTION.cityId,
       outputFolder: parsed.outputFolder ?? "",
       year: parsed.year ?? (parseYearMonth(parsed.month ?? "")?.year ?? RESET_DEFAULT_YEAR),
       month: parsed.month ?? "",
@@ -6426,7 +6805,9 @@ function parseLegacyEntries(raw) {
   try {
     const parsed = JSON.parse(raw);
     return {
-      tsvFolder: parsed.tsvFolder?.trim() || DEFAULT_TSV_FOLDER,
+      countryId: DEFAULT_LOCATION_SELECTION.countryId,
+      stateId: DEFAULT_LOCATION_SELECTION.stateId,
+      cityId: DEFAULT_LOCATION_SELECTION.cityId,
       outputFolder: parsed.outputFolder ?? "",
       year: parseYearMonth(parsed.month ?? "")?.year ?? RESET_DEFAULT_YEAR,
       month: parsed.month ?? "",
@@ -6486,7 +6867,7 @@ function migrateLegacyCustomization(parsed) {
 function readOptions() {
   return {
     month: getSelectedYearMonth(),
-    tsvFolder: tsvFolderInput.value.trim(),
+    tsvFolder: getSelectedScheduleFolderPath(),
     outputFolder: outputFolderInput.value.trim(),
     masjidName: masjidNameInput.value,
     masjidAddress: masjidAddressInput.value,
@@ -6500,7 +6881,7 @@ function readOptions() {
   };
 }
 function applyFreshDefaults() {
-  tsvFolderInput.value = DEFAULT_TSV_FOLDER;
+  syncLocationSelectors(DEFAULT_LOCATION_SELECTION);
   outputFolderInput.value = "";
   yearSelect.value = RESET_DEFAULT_YEAR;
   monthSelect.value = RESET_DEFAULT_MONTH_NUMBER;
@@ -6518,6 +6899,7 @@ async function resetToDefaults() {
   const preservedMasjidName = masjidNameInput.value;
   const preservedMasjidAddress = masjidAddressInput.value;
   localStorage.removeItem(LAST_ENTRIES_KEY);
+  localStorage.removeItem(LEGACY_V4_KEY);
   localStorage.removeItem(LEGACY_V3_KEY);
   localStorage.removeItem(LEGACY_V2_KEY);
   applyFreshDefaults();
@@ -6539,9 +6921,6 @@ function validateBeforeGenerate(options2) {
   }
   if (!options2.outputFolder.trim()) {
     errors2.push(t("validation.outputFolderRequired"));
-  }
-  if (!options2.tsvFolder.trim()) {
-    errors2.push(t("validation.tsvFolderRequired"));
   }
   return errors2;
 }

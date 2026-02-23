@@ -72,6 +72,9 @@
       .compact-select-base {
         width: 70px;
       }
+      .compact-select-location {
+        width: 170px;
+      }
       details.advanced {
         border: 1px solid #d5d5d5;
         padding: 0.75rem;
@@ -268,7 +271,7 @@
         gap: 0.5rem;
       }
     </style>
-    <script type="module" crossorigin src="./assets/index-BFRHgE_1.js"></script>
+    <script type="module" crossorigin src="./assets/index-BvlAvyJm.js"></script>
   </head>
   <body>
     <main class="shell">
@@ -284,6 +287,19 @@
         <label for="outputFolder" data-i18n="labels.outputFolder">Output Folder</label>
         <input id="outputFolder" type="text" />
         <button id="pickOutput" type="button" data-i18n="buttons.browse">Browse</button>
+      </div>
+
+      <div class="row row-inline">
+        <label for="countrySelect" data-i18n="labels.location">Location</label>
+        <div class="field-inline">
+          <label for="countrySelect" data-i18n="labels.country">Country</label>
+          <select id="countrySelect" class="compact-select-location"></select>
+          <label for="stateSelect" data-i18n="labels.stateProvince">State/Province</label>
+          <select id="stateSelect" class="compact-select-location"></select>
+          <label for="citySelect" data-i18n="labels.cityTown">City/Town</label>
+          <select id="citySelect" class="compact-select-location"></select>
+        </div>
+        <span></span>
       </div>
 
       <div class="row row-inline">
@@ -326,12 +342,6 @@
         <div class="advanced-content">
           <div class="advanced-actions">
             <button id="openCustomize" type="button" data-i18n="buttons.customize">Customize</button>
-          </div>
-
-          <div class="row">
-            <label for="tsvFolder" data-i18n="labels.tsvFolder">TSV Folder</label>
-            <input id="tsvFolder" type="text" />
-            <button id="pickTsv" type="button" data-i18n="buttons.browse">Browse</button>
           </div>
 
           <div class="row">
