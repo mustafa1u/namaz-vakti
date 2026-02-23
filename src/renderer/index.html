@@ -49,6 +49,57 @@
         align-items: center;
         gap: 0.5rem;
       }
+      .field-stack {
+        display: grid;
+        gap: 0.5rem;
+      }
+      .mosque-modal-grid {
+        display: grid;
+        gap: 0.9rem;
+      }
+      .mosque-modal-section {
+        border: 1px solid #d9dfe3;
+        padding: 0.75rem;
+      }
+      .mosque-modal-section h3 {
+        margin: 0 0 0.55rem;
+        font-size: 14px;
+      }
+      .mosque-modal-row {
+        display: grid;
+        gap: 0.55rem;
+        margin-bottom: 0.55rem;
+      }
+      .mosque-modal-inline {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .mosque-add-details > summary {
+        cursor: pointer;
+        font-weight: 600;
+        margin-bottom: 0.55rem;
+      }
+      .mosque-add-body {
+        margin-top: 0.55rem;
+      }
+      .mosque-modal-inline .spacer {
+        flex: 1;
+      }
+      .mosque-modal-list {
+        width: 100%;
+      }
+      .mosque-modal-message {
+        min-height: 1.25rem;
+        margin: 0.25rem 0 0;
+      }
+      .mosque-modal-message[data-variant="error"] {
+        color: #b42318;
+      }
+      .mosque-modal-message[data-variant="ok"] {
+        color: #166534;
+      }
       .advanced-inline {
         display: flex;
         align-items: center;
@@ -320,8 +371,10 @@
 
       <div class="row">
         <label for="masjidName" data-i18n="labels.masjidName">Name of Masjid</label>
-        <input id="masjidName" type="text" data-i18n-placeholder="placeholders.masjidName" placeholder="Masjid name shown in header" />
-        <span></span>
+        <div class="field-stack">
+          <input id="masjidName" type="text" data-i18n-placeholder="placeholders.masjidName" placeholder="Masjid name shown in header" />
+        </div>
+        <button id="loadMosque" type="button" data-i18n="buttons.loadMosque">Load Mosque</button>
       </div>
 
       <div class="row">
@@ -384,6 +437,58 @@
         <button id="resetDefaults" type="button" data-i18n="buttons.resetDefaults">Reset to defaults</button>
       </div>
     </main>
+
+    <div id="mosqueModal" class="modal-backdrop" hidden>
+      <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="mosqueModalTitle">
+        <h2 id="mosqueModalTitle" data-i18n="mosqueModal.title">Cami yükle</h2>
+        <div class="mosque-modal-grid">
+          <section class="mosque-modal-section">
+            <h3 data-i18n="mosqueModal.availableTitle">Available Mosques</h3>
+            <div class="mosque-modal-row">
+              <select id="mosqueListSelect" class="mosque-modal-list"></select>
+            </div>
+            <div class="mosque-modal-inline">
+              <button id="loadSelectedMosque" type="button" data-i18n="mosqueModal.buttons.load">Load</button>
+              <span class="spacer"></span>
+              <button id="deleteSelectedMosque" type="button" data-i18n="mosqueModal.buttons.delete">Delete Mosque</button>
+            </div>
+            <p id="mosqueModalMessage" class="mosque-modal-message" aria-live="polite"></p>
+          </section>
+
+          <details id="mosqueAddPane" class="mosque-modal-section mosque-add-details">
+            <summary data-i18n="mosqueModal.addTitle">Add Mosque</summary>
+            <div class="mosque-add-body">
+            <div class="mosque-modal-row">
+              <label for="mosqueModalCountry" data-i18n="labels.country">Country</label>
+              <select id="mosqueModalCountry"></select>
+            </div>
+            <div class="mosque-modal-row">
+              <label for="mosqueModalState" data-i18n="labels.stateProvince">State/Province</label>
+              <select id="mosqueModalState"></select>
+            </div>
+            <div class="mosque-modal-row">
+              <label for="mosqueModalCity" data-i18n="labels.cityTown">City/Town</label>
+              <select id="mosqueModalCity"></select>
+            </div>
+            <div class="mosque-modal-row">
+              <label for="mosqueModalName" data-i18n="labels.masjidName">Name of Masjid</label>
+              <input id="mosqueModalName" type="text" />
+            </div>
+            <div class="mosque-modal-row">
+              <label for="mosqueModalAddress" data-i18n="labels.masjidAddress">Address</label>
+              <input id="mosqueModalAddress" type="text" />
+            </div>
+            <div class="mosque-modal-inline">
+              <button id="addMosque" type="button" data-i18n="mosqueModal.buttons.add">Add</button>
+            </div>
+            </div>
+          </details>
+        </div>
+        <div class="modal-actions">
+          <button id="closeMosqueModal" type="button" data-i18n="buttons.cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
 
     <div id="customizeModal" class="modal-backdrop" hidden>
       <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="customizeTitle">

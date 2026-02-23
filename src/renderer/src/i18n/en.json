@@ -31,6 +31,7 @@
   },
   "buttons": {
     "browse": "Browse",
+    "loadMosque": "Load Mosque",
     "refresh": "Refresh",
     "advanced": "Advanced...",
     "customize": "Customize",
@@ -121,6 +122,31 @@
     "validationFailed": "Cannot generate. {{details}}",
     "generateFailed": "Generate {{target}} failed: {{details}}",
     "defaultsRestored": "Defaults restored."
+  },
+  "mosqueModal": {
+    "title": "Load Mosque",
+    "availableTitle": "Available Mosques",
+    "addTitle": "Add Mosque",
+    "buttons": {
+      "load": "Load",
+      "add": "Add",
+      "showAdd": "Add Mosque",
+      "hideAdd": "Hide Add Mosque",
+      "delete": "Delete Mosque"
+    },
+    "messages": {
+      "added": "Mosque added.",
+      "deleted": "Mosque deleted."
+    },
+    "errors": {
+      "selectMosque": "Select a mosque to load.",
+      "requiredFields": "Location, mosque name, and address are required.",
+      "duplicate": "A mosque with this location and address already exists.",
+      "deleteBuiltin": "Built-in mosques cannot be deleted."
+    },
+    "confirm": {
+      "delete": "Delete mosque \"{{name}}\"?"
+    }
   },
   "common": {
     "cancelled": "<cancelled>",

@@ -1,6 +1,6 @@
 export type CountryId = "usa" | "turkiye";
-export type StateProvinceId = "nj" | "dc" | "ny" | "il" | "tx" | "ca" | "pa" | "ankara" | "istanbul" | "aydin";
-export type CityId = "paterson" | "washington" | "new-york-city" | "chicago" | "houston" | "dallas" | "fresno" | "harrisburg" | "irvine" | "ithaca" | "los-angeles" | "new-brunswick" | "newark" | "philadelphia" | "pittsburgh" | "rochester" | "san-antonio" | "san-francisco" | "syracuse" | "cankaya" | "kadikoy" | "aydin";
+export type StateProvinceId = "nj" | "dc" | "ny" | "il" | "tx" | "ca" | "pa" | "md" | "ankara" | "istanbul" | "aydin";
+export type CityId = "paterson" | "washington" | "new-york-city" | "chicago" | "houston" | "dallas" | "fresno" | "harrisburg" | "irvine" | "ithaca" | "los-angeles" | "new-brunswick" | "newark" | "philadelphia" | "pittsburgh" | "rochester" | "san-antonio" | "san-francisco" | "syracuse" | "lanham" | "cankaya" | "kadikoy" | "aydin";
 
 export type LocationSelection = {
   countryId: CountryId;
@@ -193,6 +193,15 @@ const LOCATION_ENTRIES: LocationEntry[] = [
     cityId: "syracuse",
     cityLabel: "Syracuse",
     scheduleFolder: "Syracuse-NY"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "md",
+    stateLabel: "MD",
+    cityId: "lanham",
+    cityLabel: "Lanham",
+    scheduleFolder: "Lanham-MD"
   },
   {
     countryId: "turkiye",

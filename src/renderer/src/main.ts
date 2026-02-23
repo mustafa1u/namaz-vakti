@@ -45,7 +45,21 @@ const timeFormatSelect = getEl<HTMLSelectElement>("timeFormat");
 const baseGroupSizeSelect = getEl<HTMLSelectElement>("baseGroupSize");
 const ramazanHesabiInput = getEl<HTMLInputElement>("ramazanHesabi");
 const masjidNameInput = getEl<HTMLInputElement>("masjidName");
+const loadMosqueButton = getEl<HTMLButtonElement>("loadMosque");
 const masjidAddressInput = getEl<HTMLInputElement>("masjidAddress");
+const mosqueModal = getEl<HTMLElement>("mosqueModal");
+const mosqueListSelect = getEl<HTMLSelectElement>("mosqueListSelect");
+const loadSelectedMosqueButton = getEl<HTMLButtonElement>("loadSelectedMosque");
+const closeMosqueModalButton = getEl<HTMLButtonElement>("closeMosqueModal");
+const deleteSelectedMosqueButton = getEl<HTMLButtonElement>("deleteSelectedMosque");
+const mosqueAddPane = getEl<HTMLDetailsElement>("mosqueAddPane");
+const addMosqueButton = getEl<HTMLButtonElement>("addMosque");
+const mosqueModalCountrySelect = getEl<HTMLSelectElement>("mosqueModalCountry");
+const mosqueModalStateSelect = getEl<HTMLSelectElement>("mosqueModalState");
+const mosqueModalCitySelect = getEl<HTMLSelectElement>("mosqueModalCity");
+const mosqueModalNameInput = getEl<HTMLInputElement>("mosqueModalName");
+const mosqueModalAddressInput = getEl<HTMLInputElement>("mosqueModalAddress");
+const mosqueModalMessageEl = getEl<HTMLElement>("mosqueModalMessage");
 const announcementMessageInput = getEl<HTMLTextAreaElement>("announcementMessage");
 const advancedLimitRowsEl = getEl<HTMLElement>("advancedLimitRows");
 const openCustomizeButton = getEl<HTMLButtonElement>("openCustomize");
@@ -67,7 +81,71 @@ const LAST_ENTRIES_KEY = "namaz-vakti:last-entries:v5";
 const LEGACY_V4_KEY = "namaz-vakti:last-entries:v4";
 const LEGACY_V3_KEY = "namaz-vakti:last-entries:v3";
 const LEGACY_V2_KEY = "namaz-vakti:last-entries:v2";
+const CUSTOM_MOSQUES_KEY = "namaz-vakti:custom-mosques:v1";
+const CUSTOM_MOSQUES_VERSION = 1;
 const RESET_DEFAULT_CUSTOMIZATION = buildResetDefaultCustomization();
+const BUILTIN_MOSQUE_ID_DEFAULT = "paterson-mevlana";
+
+type MosqueLocation = LocationSelection;
+
+type BuiltinMosque = {
+  kind: "builtin";
+  id: string;
+  nameEn: string;
+  nameTr: string;
+  address: string;
+  location: MosqueLocation;
+};
+
+type CustomMosque = {
+  kind: "custom";
+  id: string;
+  name: string;
+  address: string;
+  location: MosqueLocation;
+};
+
+type MosqueRecord = BuiltinMosque | CustomMosque;
+
+type CustomMosquesStore = {
+  version: typeof CUSTOM_MOSQUES_VERSION;
+  items: CustomMosque[];
+};
+
+const BUILTIN_MOSQUES: BuiltinMosque[] = [
+  {
+    kind: "builtin",
+    id: "paterson-mevlana",
+    nameEn: "Paterson Mevlana Mosque",
+    nameTr: "Paterson Mevlana Camii",
+    address: "291 Sussex St, Paterson, NJ, 07503",
+    location: { countryId: "usa", stateId: "nj", cityId: "paterson" }
+  },
+  {
+    kind: "builtin",
+    id: "ulu-cami",
+    nameEn: "Ulu Cami Mosque",
+    nameTr: "Ulu Cami",
+    address: "408 Knickerbocker Ave, Paterson, NJ 07503",
+    location: { countryId: "usa", stateId: "nj", cityId: "paterson" }
+  },
+  {
+    kind: "builtin",
+    id: "mimar-sinan-sunnyside",
+    nameEn: "Mimar Sinan Sunnyside Mosque",
+    nameTr: "Mimar Sinan Sunnyside Camii",
+    address: "45-06 Skillman Ave, Sunnyside, NY 11104",
+    location: { countryId: "usa", stateId: "ny", cityId: "new-york-city" }
+  },
+  {
+    kind: "builtin",
+    id: "diyanet-center-of-america",
+    nameEn: "Diyanet Center of America",
+    nameTr: "Amerika Diyanet Merkezi",
+    address: "9610 Good Luck Rd, Lanham, MD 20706",
+    location: { countryId: "usa", stateId: "md", cityId: "lanham" }
+  }
+];
 
 type ActiveLimitRow = {
   prayer: PrayerKey;
@@ -89,6 +167,7 @@ type LastEntries = {
   masjidAddress: string;
   announcementMessage: string;
   customization: Customization;
+  selectedMosqueId?: string;
 };
 
 type LegacyEntriesV4 = Partial<{
@@ -129,6 +208,9 @@ let customizationState = cloneCustomization(DEFAULT_CUSTOMIZATION);
 let draftCustomizationState = cloneCustomization(DEFAULT_CUSTOMIZATION);
 let isGenerating = false;
 let availableMonthsByYear = new Map<string, string[]>();
+let customMosquesState: CustomMosque[] = [];
+let selectedMosqueId = BUILTIN_MOSQUE_ID_DEFAULT;
+let mosqueModalLocationState: LocationSelection = { ...DEFAULT_LOCATION_SELECTION };
 
 void bootstrap();
 
@@ -147,6 +229,7 @@ async function bootstrap(): Promise<void> {
   bindPersistence();
   bindUiLanguageSwitch();
   bindCustomizeModalHandlers();
+  bindMosqueModalHandlers();
 
   await restoreLastEntries();
 
@@ -349,6 +432,391 @@ function getSelectedScheduleFolderPath(): string {
   return getScheduleFolderPath(getSelectedLocationSelection());
 }
 
+function getBuiltinMosqueById(id: string): BuiltinMosque {
+  return BUILTIN_MOSQUES.find((entry) => entry.id === id) ?? BUILTIN_MOSQUES[0]!;
+}
+
+function getBuiltinMosqueDisplayName(entry: BuiltinMosque): string {
+  return getUiLanguage() === "tr" ? entry.nameTr : entry.nameEn;
+}
+
+function getMosqueDisplayName(entry: MosqueRecord): string {
+  if (entry.kind === "builtin") {
+    return getBuiltinMosqueDisplayName(entry);
+  }
+  return entry.name;
+}
+
+function getAllMosques(): MosqueRecord[] {
+  return [...BUILTIN_MOSQUES, ...customMosquesState];
+}
+
+function getMosqueById(id: string): MosqueRecord | null {
+  return getAllMosques().find((entry) => entry.id === id) ?? null;
+}
+
+function isSameLocation(a: LocationSelection, b: LocationSelection): boolean {
+  return a.countryId === b.countryId && a.stateId === b.stateId && a.cityId === b.cityId;
+}
+
+function normalizeForCompare(value: string): string {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function isRecordAppliedToForm(record: MosqueRecord): boolean {
+  const location = getSelectedLocationSelection();
+  if (!isSameLocation(location, record.location)) {
+    return false;
+  }
+  if (normalizeForCompare(masjidAddressInput.value) !== normalizeForCompare(record.address)) {
+    return false;
+  }
+  if (record.kind === "custom") {
+    return normalizeForCompare(masjidNameInput.value) === normalizeForCompare(record.name);
+  }
+  return true;
+}
+
+function resolveSelectedMosqueId(candidate: string | null | undefined): string {
+  if (candidate && getMosqueById(candidate)) {
+    return candidate;
+  }
+  return BUILTIN_MOSQUE_ID_DEFAULT;
+}
+
+function syncSelectedMosqueFromCurrentFields(): void {
+  const location = getSelectedLocationSelection();
+  const address = normalizeForCompare(masjidAddressInput.value);
+  const name = normalizeForCompare(masjidNameInput.value);
+  const found = getAllMosques().find((entry) =>
+    isSameLocation(entry.location, location)
+    && normalizeForCompare(entry.address) === address
+    && (entry.kind === "builtin" || normalizeForCompare(entry.name) === name)
+  );
+  selectedMosqueId = found?.id ?? BUILTIN_MOSQUE_ID_DEFAULT;
+  if (!mosqueModal.hidden) {
+    renderMosqueList(selectedMosqueId);
+  }
+}
+
+function sanitizeCustomMosques(items: unknown): CustomMosque[] {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  const out: CustomMosque[] = [];
+  const seen = new Set<string>();
+  for (const rawItem of items) {
+    if (!rawItem || typeof rawItem !== "object") {
+      continue;
+    }
+    const item = rawItem as Partial<CustomMosque> & { location?: Partial<LocationSelection> };
+    const id = typeof item.id === "string" ? item.id.trim() : "";
+    const name = typeof item.name === "string" ? item.name.trim() : "";
+    const address = typeof item.address === "string" ? item.address.trim() : "";
+    const locationInput = item.location;
+    if (!id || !name || !address || !locationInput || typeof locationInput !== "object") {
+      continue;
+    }
+    const location = normalizeLocationSelection(locationInput);
+    if (
+      locationInput.countryId !== location.countryId
+      || locationInput.stateId !== location.stateId
+      || locationInput.cityId !== location.cityId
+      || seen.has(id)
+    ) {
+      continue;
+    }
+    out.push({
+      kind: "custom",
+      id,
+      name,
+      address,
+      location
+    });
+    seen.add(id);
+  }
+
+  return out;
+}
+
+function loadCustomMosques(): CustomMosque[] {
+  const raw = localStorage.getItem(CUSTOM_MOSQUES_KEY);
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<CustomMosquesStore>;
+    if (parsed.version !== CUSTOM_MOSQUES_VERSION) {
+      return [];
+    }
+    return sanitizeCustomMosques(parsed.items);
+  } catch {
+    return [];
+  }
+}
+
+function saveCustomMosques(items: CustomMosque[] = customMosquesState): void {
+  const sanitized = sanitizeCustomMosques(items);
+  customMosquesState = sanitized;
+  const payload: CustomMosquesStore = {
+    version: CUSTOM_MOSQUES_VERSION,
+    items: sanitized
+  };
+  localStorage.setItem(CUSTOM_MOSQUES_KEY, JSON.stringify(payload));
+}
+
+function makeCustomMosqueId(name: string, location: LocationSelection): string {
+  const base = `${name}-${location.cityId}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "mosque";
+  const used = new Set(getAllMosques().map((entry) => entry.id));
+  let candidate = `custom-${base}`;
+  let suffix = 2;
+  while (used.has(candidate)) {
+    candidate = `custom-${base}-${suffix}`;
+    suffix += 1;
+  }
+  return candidate;
+}
+
+function getMosqueOptionLabel(entry: MosqueRecord): string {
+  const labels = getLocationLabels(entry.location);
+  return `${getMosqueDisplayName(entry)} (${labels.city}, ${labels.state}, ${labels.country})`;
+}
+
+function renderMosqueList(selectedId = selectedMosqueId): void {
+  const records = getAllMosques();
+  mosqueListSelect.innerHTML = "";
+
+  for (const record of records) {
+    const option = document.createElement("option");
+    option.value = record.id;
+    option.textContent = getMosqueOptionLabel(record);
+    mosqueListSelect.appendChild(option);
+  }
+
+  const resolved = resolveSelectedMosqueId(selectedId);
+  mosqueListSelect.value = records.some((entry) => entry.id === resolved)
+    ? resolved
+    : BUILTIN_MOSQUE_ID_DEFAULT;
+  selectedMosqueId = mosqueListSelect.value || BUILTIN_MOSQUE_ID_DEFAULT;
+}
+
+function setMosqueModalMessage(message: string, isError = false): void {
+  mosqueModalMessageEl.textContent = message;
+  if (!message) {
+    delete mosqueModalMessageEl.dataset.variant;
+    return;
+  }
+  mosqueModalMessageEl.dataset.variant = isError ? "error" : "ok";
+}
+
+function setMosqueAddPaneVisible(visible: boolean): void {
+  mosqueAddPane.open = visible;
+}
+
+function syncMosqueModalLocationSelectors(partial: Partial<LocationSelection>): LocationSelection {
+  const normalized = normalizeLocationSelection(partial);
+  renderSelectOptions(
+    mosqueModalCountrySelect,
+    getCountryOptions().map((entry) => ({ value: entry.id, label: entry.label })),
+    normalized.countryId
+  );
+  renderSelectOptions(
+    mosqueModalStateSelect,
+    getStateOptions(normalized.countryId).map((entry) => ({ value: entry.id, label: entry.label })),
+    normalized.stateId
+  );
+  renderSelectOptions(
+    mosqueModalCitySelect,
+    getCityOptions(normalized.countryId, normalized.stateId).map((entry) => ({ value: entry.id, label: entry.label })),
+    normalized.cityId
+  );
+  mosqueModalLocationState = normalized;
+  return normalized;
+}
+
+function getMosqueModalLocationSelection(): LocationSelection {
+  mosqueModalLocationState = normalizeLocationSelection({
+    countryId: mosqueModalCountrySelect.value as CountryId,
+    stateId: mosqueModalStateSelect.value as StateProvinceId,
+    cityId: mosqueModalCitySelect.value as CityId
+  });
+  return mosqueModalLocationState;
+}
+
+async function applyMosqueRecord(record: MosqueRecord, shouldRefreshMonths: boolean): Promise<void> {
+  selectedMosqueId = record.id;
+  syncLocationSelectors(record.location);
+  masjidNameInput.value = getMosqueDisplayName(record);
+  masjidAddressInput.value = record.address;
+  if (shouldRefreshMonths) {
+    await refreshMonths();
+  }
+  saveLastEntries();
+}
+
+function openMosqueModal(): void {
+  syncSelectedMosqueFromCurrentFields();
+  renderMosqueList(selectedMosqueId);
+  syncMosqueModalLocationSelectors(getSelectedLocationSelection());
+  setMosqueAddPaneVisible(false);
+  mosqueModalNameInput.value = "";
+  mosqueModalAddressInput.value = "";
+  setMosqueModalMessage("");
+  mosqueModal.hidden = false;
+  mosqueListSelect.focus();
+}
+
+function closeMosqueModal(): void {
+  setMosqueAddPaneVisible(false);
+  mosqueModal.hidden = true;
+  setMosqueModalMessage("");
+}
+
+async function loadSelectedMosqueFromModal(): Promise<void> {
+  const selected = getMosqueById(mosqueListSelect.value);
+  if (!selected) {
+    setMosqueModalMessage(t("mosqueModal.errors.selectMosque"), true);
+    return;
+  }
+  await applyMosqueRecord(selected, true);
+  closeMosqueModal();
+}
+
+function addCustomMosqueFromModal(): void {
+  const location = getMosqueModalLocationSelection();
+  const name = mosqueModalNameInput.value.trim();
+  const address = mosqueModalAddressInput.value.trim();
+
+  if (!name || !address) {
+    setMosqueModalMessage(t("mosqueModal.errors.requiredFields"), true);
+    return;
+  }
+
+  const duplicate = getAllMosques().find((entry) =>
+    isSameLocation(entry.location, location)
+    && normalizeForCompare(entry.address) === normalizeForCompare(address)
+  );
+  if (duplicate) {
+    setMosqueModalMessage(t("mosqueModal.errors.duplicate"), true);
+    return;
+  }
+
+  const record: CustomMosque = {
+    kind: "custom",
+    id: makeCustomMosqueId(name, location),
+    name,
+    address,
+    location
+  };
+  customMosquesState = [...customMosquesState, record];
+  saveCustomMosques(customMosquesState);
+  selectedMosqueId = record.id;
+  renderMosqueList(record.id);
+  mosqueModalNameInput.value = "";
+  mosqueModalAddressInput.value = "";
+  setMosqueModalMessage(t("mosqueModal.messages.added"));
+  saveLastEntries();
+}
+
+function deleteSelectedMosqueFromModal(): void {
+  const selected = getMosqueById(mosqueListSelect.value);
+  if (!selected) {
+    setMosqueModalMessage(t("mosqueModal.errors.selectMosque"), true);
+    return;
+  }
+  if (selected.kind === "builtin") {
+    setMosqueModalMessage(t("mosqueModal.errors.deleteBuiltin"), true);
+    return;
+  }
+
+  const confirmed = window.confirm(t("mosqueModal.confirm.delete", { name: selected.name }));
+  if (!confirmed) {
+    return;
+  }
+
+  customMosquesState = customMosquesState.filter((entry) => entry.id !== selected.id);
+  saveCustomMosques(customMosquesState);
+  selectedMosqueId = BUILTIN_MOSQUE_ID_DEFAULT;
+  renderMosqueList(selectedMosqueId);
+  syncSelectedMosqueFromCurrentFields();
+  setMosqueModalMessage(t("mosqueModal.messages.deleted"));
+  saveLastEntries();
+}
+
+function bindMosqueModalHandlers(): void {
+  loadMosqueButton.addEventListener("click", () => {
+    openMosqueModal();
+  });
+
+  closeMosqueModalButton.addEventListener("click", () => {
+    closeMosqueModal();
+  });
+
+  mosqueModal.addEventListener("click", (event) => {
+    if (event.target === mosqueModal) {
+      closeMosqueModal();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !mosqueModal.hidden) {
+      closeMosqueModal();
+    }
+  });
+
+  mosqueListSelect.addEventListener("change", () => {
+    selectedMosqueId = resolveSelectedMosqueId(mosqueListSelect.value);
+    setMosqueModalMessage("");
+  });
+
+  loadSelectedMosqueButton.addEventListener("click", () => {
+    void loadSelectedMosqueFromModal().catch((error) => {
+      logError("errors.refreshMonthsFailed", error);
+    });
+  });
+
+  addMosqueButton.addEventListener("click", () => {
+    addCustomMosqueFromModal();
+  });
+
+  deleteSelectedMosqueButton.addEventListener("click", () => {
+    deleteSelectedMosqueFromModal();
+  });
+
+  mosqueAddPane.addEventListener("toggle", () => {
+    if (!mosqueAddPane.open) {
+      return;
+    }
+    syncMosqueModalLocationSelectors(getSelectedLocationSelection());
+    mosqueModalNameInput.focus();
+  });
+
+  mosqueModalCountrySelect.addEventListener("change", () => {
+    syncMosqueModalLocationSelectors({
+      countryId: mosqueModalCountrySelect.value as CountryId,
+      stateId: mosqueModalStateSelect.value as StateProvinceId,
+      cityId: mosqueModalCitySelect.value as CityId
+    });
+  });
+
+  mosqueModalStateSelect.addEventListener("change", () => {
+    syncMosqueModalLocationSelectors({
+      countryId: mosqueModalCountrySelect.value as CountryId,
+      stateId: mosqueModalStateSelect.value as StateProvinceId,
+      cityId: mosqueModalCitySelect.value as CityId
+    });
+  });
+
+  mosqueModalCitySelect.addEventListener("change", () => {
+    mosqueModalLocationState = getMosqueModalLocationSelection();
+  });
+}
+
 function renderSelectOptions(
   select: HTMLSelectElement,
   options: Array<{ value: string; label: string }>,
@@ -378,6 +846,7 @@ function bindPersistence(): void {
       stateId: stateSelect.value as StateProvinceId,
       cityId: citySelect.value as CityId
     });
+    syncSelectedMosqueFromCurrentFields();
     save();
     void refreshMonths().catch((error) => {
       logError("errors.refreshMonthsFailed", error);
@@ -389,6 +858,7 @@ function bindPersistence(): void {
       stateId: stateSelect.value as StateProvinceId,
       cityId: citySelect.value as CityId
     });
+    syncSelectedMosqueFromCurrentFields();
     save();
     void refreshMonths().catch((error) => {
       logError("errors.refreshMonthsFailed", error);
@@ -400,6 +870,7 @@ function bindPersistence(): void {
       stateId: stateSelect.value as StateProvinceId,
       cityId: citySelect.value as CityId
     });
+    syncSelectedMosqueFromCurrentFields();
     save();
     void refreshMonths().catch((error) => {
       logError("errors.refreshMonthsFailed", error);
@@ -418,10 +889,22 @@ function bindPersistence(): void {
   });
   baseGroupSizeSelect.addEventListener("change", save);
   ramazanHesabiInput.addEventListener("change", save);
-  masjidNameInput.addEventListener("change", save);
-  masjidNameInput.addEventListener("input", save);
-  masjidAddressInput.addEventListener("change", save);
-  masjidAddressInput.addEventListener("input", save);
+  masjidNameInput.addEventListener("change", () => {
+    syncSelectedMosqueFromCurrentFields();
+    save();
+  });
+  masjidNameInput.addEventListener("input", () => {
+    syncSelectedMosqueFromCurrentFields();
+    save();
+  });
+  masjidAddressInput.addEventListener("change", () => {
+    syncSelectedMosqueFromCurrentFields();
+    save();
+  });
+  masjidAddressInput.addEventListener("input", () => {
+    syncSelectedMosqueFromCurrentFields();
+    save();
+  });
   announcementMessageInput.addEventListener("change", save);
   announcementMessageInput.addEventListener("input", save);
 }
@@ -440,6 +923,16 @@ function bindUiLanguageSwitch(): void {
 function applyUiTranslations(): void {
   translateStaticDocumentText();
   renderMonthOptionsForSelectedYear(monthSelect.value);
+  syncSelectedMosqueFromCurrentFields();
+  const selected = getMosqueById(selectedMosqueId);
+  if (selected && selected.kind === "builtin" && isRecordAppliedToForm(selected)) {
+    masjidNameInput.value = getMosqueDisplayName(selected);
+  }
+  if (!mosqueModal.hidden) {
+    renderMosqueList(selectedMosqueId);
+    syncMosqueModalLocationSelectors(mosqueModalLocationState);
+    setMosqueAddPaneVisible(mosqueAddPane.open);
+  }
   const currentLanguage = getUiLanguage();
   switchUiLanguageButton.textContent = currentLanguage === "en"
     ? t("buttons.switchToTurkish")
@@ -447,6 +940,7 @@ function applyUiTranslations(): void {
 }
 
 async function restoreLastEntries(): Promise<void> {
+  customMosquesState = loadCustomMosques();
   const saved = loadLastEntries();
   if (!saved) {
     applyFreshDefaults();
@@ -471,6 +965,11 @@ async function restoreLastEntries(): Promise<void> {
   masjidAddressInput.value = saved.masjidAddress;
   announcementMessageInput.value = saved.announcementMessage;
   customizationState = sanitizeCustomization(saved.customization);
+  if (saved.selectedMosqueId) {
+    selectedMosqueId = resolveSelectedMosqueId(saved.selectedMosqueId);
+  } else {
+    syncSelectedMosqueFromCurrentFields();
+  }
 
   renderAdvancedLimitRows();
 
@@ -506,7 +1005,8 @@ function saveLastEntries(): void {
     masjidName: masjidNameInput.value,
     masjidAddress: masjidAddressInput.value,
     announcementMessage: announcementMessageInput.value,
-    customization: sanitizeCustomization(customizationState)
+    customization: sanitizeCustomization(customizationState),
+    selectedMosqueId: resolveSelectedMosqueId(selectedMosqueId)
   };
 
   localStorage.setItem(LAST_ENTRIES_KEY, JSON.stringify(data));
@@ -573,7 +1073,8 @@ function parseV5Entries(raw: string): LastEntries | null {
       masjidName: parsed.masjidName ?? "",
       masjidAddress: parsed.masjidAddress ?? "",
       announcementMessage: parsed.announcementMessage ?? "",
-      customization: sanitizeCustomization(parsedCustomization.data)
+      customization: sanitizeCustomization(parsedCustomization.data),
+      selectedMosqueId: typeof parsed.selectedMosqueId === "string" ? parsed.selectedMosqueId : undefined
     };
   } catch {
     return null;
@@ -602,7 +1103,8 @@ function parseLegacyV4Entries(raw: string): LastEntries | null {
       masjidName: parsed.masjidName ?? "",
       masjidAddress: parsed.masjidAddress ?? "",
       announcementMessage: parsed.announcementMessage ?? "",
-      customization: sanitizeCustomization(parsedCustomization.data)
+      customization: sanitizeCustomization(parsedCustomization.data),
+      selectedMosqueId: BUILTIN_MOSQUE_ID_DEFAULT
     };
   } catch {
     return null;
@@ -626,7 +1128,8 @@ function parseLegacyEntries(raw: string): LastEntries | null {
       masjidName: parsed.masjidName ?? "",
       masjidAddress: parsed.masjidAddress ?? "",
       announcementMessage: parsed.announcementMessage ?? "",
-      customization: migrateLegacyCustomization(parsed)
+      customization: migrateLegacyCustomization(parsed),
+      selectedMosqueId: BUILTIN_MOSQUE_ID_DEFAULT
     };
   } catch {
     return null;
@@ -697,7 +1200,9 @@ function readOptions(): GenerationOptions {
 }
 
 function applyFreshDefaults(): void {
-  syncLocationSelectors(DEFAULT_LOCATION_SELECTION);
+  selectedMosqueId = BUILTIN_MOSQUE_ID_DEFAULT;
+  const defaultMosque = getBuiltinMosqueById(BUILTIN_MOSQUE_ID_DEFAULT);
+  syncLocationSelectors(defaultMosque.location);
   outputFolderInput.value = "";
   yearSelect.value = RESET_DEFAULT_YEAR;
   monthSelect.value = RESET_DEFAULT_MONTH_NUMBER;
@@ -705,24 +1210,19 @@ function applyFreshDefaults(): void {
   timeFormatSelect.value = "ampm";
   baseGroupSizeSelect.value = "5";
   ramazanHesabiInput.checked = true;
-  masjidNameInput.value = "";
-  masjidAddressInput.value = "";
+  masjidNameInput.value = getBuiltinMosqueDisplayName(defaultMosque);
+  masjidAddressInput.value = defaultMosque.address;
   announcementMessageInput.value = "";
   customizationState = cloneCustomization(RESET_DEFAULT_CUSTOMIZATION);
   draftCustomizationState = cloneCustomization(RESET_DEFAULT_CUSTOMIZATION);
 }
 
 async function resetToDefaults(): Promise<void> {
-  const preservedMasjidName = masjidNameInput.value;
-  const preservedMasjidAddress = masjidAddressInput.value;
-
   localStorage.removeItem(LAST_ENTRIES_KEY);
   localStorage.removeItem(LEGACY_V4_KEY);
   localStorage.removeItem(LEGACY_V3_KEY);
   localStorage.removeItem(LEGACY_V2_KEY);
   applyFreshDefaults();
-  masjidNameInput.value = preservedMasjidName;
-  masjidAddressInput.value = preservedMasjidAddress;
   renderAdvancedLimitRows();
   await refreshMonths();
   if (Array.from(yearSelect.options).some((option) => option.value === RESET_DEFAULT_YEAR)) {

@@ -31,6 +31,7 @@
   },
   "buttons": {
     "browse": "Gözat",
+    "loadMosque": "Cami yükle",
     "refresh": "Yenile",
     "advanced": "Gelişmiş...",
     "customize": "Özelleştir",
@@ -38,7 +39,7 @@
     "cancel": "İptal",
     "generatePng": "PNG üret",
     "generateXlsx": "XLSX üret",
-    "resetDefaults": "Varsayılana dön",
+    "resetDefaults": "Varsayılanlara dön",
     "switchToEnglish": "English",
     "switchToTurkish": "Türkçe"
   },
@@ -125,5 +126,30 @@
   "common": {
     "cancelled": "<iptal edildi>",
     "none": "yok"
+  },
+  "mosqueModal": {
+    "title": "Cami y\u00fckle",
+    "availableTitle": "Mevcut Camiler",
+    "addTitle": "Cami Ekle",
+    "buttons": {
+      "load": "Y\u00fckle",
+      "add": "Ekle",
+      "showAdd": "Cami Ekle",
+      "hideAdd": "Cami Eklemeyi Gizle",
+      "delete": "Camiyi Sil"
+    },
+    "messages": {
+      "added": "Cami eklendi.",
+      "deleted": "Cami silindi."
+    },
+    "errors": {
+      "selectMosque": "Y\u00fcklemek i\u00e7in bir cami se\u00e7in.",
+      "requiredFields": "Konum, cami ad\u0131 ve adres zorunludur.",
+      "duplicate": "Bu konum ve adres i\u00e7in cami zaten var.",
+      "deleteBuiltin": "Yerle\u015fik camiler silinemez."
+    },
+    "confirm": {
+      "delete": "\"{{name}}\" camisini silmek istiyor musunuz?"
+    }
   }
 }
