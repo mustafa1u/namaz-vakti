@@ -335,10 +335,19 @@ function applyGroupStyles(
 ): void {
   const theme = Number(plan.month.split("-")[1]) % 2 === 0 ? EVEN_THEME : ODD_THEME;
   const colorByToken = Object.fromEntries(theme.sequence.map((entry) => [entry.token, entry]));
+  const fallbackToken = map.colorTokenOrder[0] ?? theme.sequence[0]?.token;
+  if (!fallbackToken) {
+    return;
+  }
 
   for (const slot of slots) {
-    const token = plan.colorByGroupIndex[slot.groupIndex] ?? map.colorTokenOrder[slot.groupIndex % map.colorTokenOrder.length];
-    const palette = colorByToken[token] ?? colorByToken[map.colorTokenOrder[0]!];
+    const token = plan.colorByGroupIndex[slot.groupIndex]
+      ?? (map.colorTokenOrder.length > 0 ? map.colorTokenOrder[slot.groupIndex % map.colorTokenOrder.length] : undefined)
+      ?? fallbackToken;
+    const palette = colorByToken[token] ?? colorByToken[fallbackToken];
+    if (!palette) {
+      continue;
+    }
 
     applyRowPalette(sheet, slot.topRow, [map.dayNumberColumn, map.weekdayColumn], palette.fillHex, palette.textHex);
     if (slot.rowCount === 2) {
@@ -546,6 +555,9 @@ function replaceMergeBlock(xml: string, refs: string[]): string {
 
 function parseRangeRef(ref: string): { startCol: number; endCol: number; startRow: number; endRow: number } | null {
   const [startCellRaw, endCellRaw] = ref.split(":");
+  if (!startCellRaw) {
+    return null;
+  }
   const startCell = parseCell(startCellRaw);
   const endCell = parseCell(endCellRaw ?? startCellRaw);
 

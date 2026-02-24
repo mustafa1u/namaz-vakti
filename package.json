@@ -9,6 +9,7 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
+    "schedules:combine-yearly": "node scripts/combine-schedules-to-yearly.mjs",
     "typecheck": "tsc --noEmit",
     "i18n:check": "node scripts/check-i18n-keys.mjs"
   },
@@ -23,5 +24,26 @@
     "electron-vite": "^3.1.0",
     "typescript": "^5.7.3",
     "vite": "^6.1.0"
+  },
+  "build": {
+    "appId": "com.namazvakti.desktop",
+    "productName": "Namaz Vakti Desktop",
+    "directories": {
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "build/icons/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "icons/app.ico"
+    },
+    "mac": {
+      "icon": "icons/app.icns"
+    },
+    "linux": {
+      "icon": "icons"
+    }
   }
 }

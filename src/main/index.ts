@@ -5,6 +5,26 @@ import { registerIpcHandlers } from "./ipc-handlers";
 
 let mainWindow: BrowserWindow | null = null;
 
+function resolveAppIconPath(): string | undefined {
+  const iconNames = process.platform === "win32"
+    ? ["app.ico", "app.png"]
+    : ["app.png"];
+  const bases = [
+    app.getAppPath(),
+    process.cwd(),
+    join(process.cwd(), "desktop-app"),
+    join(__dirname, ".."),
+    join(__dirname, "../.."),
+    join(__dirname, "../../..")
+  ];
+  const candidates = bases.flatMap((base) => iconNames.map((name) => join(base, "build/icons", name)));
+  const resolved = candidates.find((candidate) => existsSync(candidate));
+  if (!resolved) {
+    console.log(`[main] icon lookup failed. appPath=${app.getAppPath()} cwd=${process.cwd()} __dirname=${__dirname}`);
+  }
+  return resolved;
+}
+
 function createMainWindow(): void {
   const preloadCandidates = [
     join(__dirname, "../preload/index.mjs"),
@@ -16,11 +36,14 @@ function createMainWindow(): void {
   console.log("[main] creating window");
   console.log(`[main] preload path: ${preloadPath}`);
   console.log(`[main] preload exists: ${existsSync(preloadPath)}`);
+  const iconPath = resolveAppIconPath();
+  console.log(`[main] icon path: ${iconPath ?? "<none>"}`);
 
   mainWindow = new BrowserWindow({
     width: 1160,
     height: 860,
     show: false,
+    icon: iconPath,
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
@@ -53,7 +76,15 @@ function createMainWindow(): void {
   registerIpcHandlers(() => mainWindow);
 }
 
-app.whenReady().then(createMainWindow);
+app.whenReady().then(() => {
+  if (process.platform === "darwin" && app.dock) {
+    const dockIconPath = join(app.getAppPath(), "build/icons/app.png");
+    if (existsSync(dockIconPath)) {
+      app.dock.setIcon(dockIconPath);
+    }
+  }
+  createMainWindow();
+});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {

@@ -9,7 +9,7 @@ import {
   GenerateOutputsRequestSchema,
   GenerateOutputsResponseSchema
 } from "@shared/ipc";
-import { listAvailableMonths, readMonthTsv } from "@services/tsv-reader";
+import { listAvailableMonths, readMonthTsv, readYearTsv } from "@services/tsv-reader";
 import type { RawDailyRecord } from "@domain/types";
 import { buildMonthlyPlan } from "@domain/pipeline";
 import { writeXlsxFromTemplate } from "@services/xlsx-writer";
@@ -136,14 +136,7 @@ async function computeYearZhuhrPeriods(tsvFolder: string, month: string): Promis
     return [];
   }
 
-  const allMonths = await listAvailableMonths(tsvFolder);
-  const yearMonths = allMonths.filter((entry) => entry.startsWith(`${year}-`));
-  if (yearMonths.length === 0) {
-    return [];
-  }
-
-  const loaded = await Promise.all(yearMonths.map((entry) => readMonthTsv(tsvFolder, entry)));
-  const allDays = loaded.flat();
+  const allDays = await readYearTsv(tsvFolder, year);
   return buildYearZhuhrPeriods(allDays);
 }
 
