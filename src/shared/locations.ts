@@ -1,6 +1,40 @@
 export type CountryId = "usa" | "turkiye";
-export type StateProvinceId = "nj" | "dc" | "ny" | "il" | "tx" | "ca" | "pa" | "md" | "ankara" | "istanbul" | "aydin";
-export type CityId = "paterson" | "washington" | "new-york-city" | "chicago" | "houston" | "dallas" | "fresno" | "harrisburg" | "irvine" | "ithaca" | "los-angeles" | "new-brunswick" | "newark" | "philadelphia" | "pittsburgh" | "rochester" | "san-antonio" | "san-francisco" | "syracuse" | "lanham" | "cankaya" | "kadikoy" | "aydin";
+export type StateProvinceId = "nj" | "dc" | "ny" | "il" | "tx" | "ca" | "pa" | "md" | "ct" | "ma" | "de" | "ankara" | "istanbul" | "aydin";
+export type CityId =
+  | "paterson"
+  | "washington"
+  | "new-york-city"
+  | "brooklyn"
+  | "chicago"
+  | "houston"
+  | "dallas"
+  | "fresno"
+  | "harrisburg"
+  | "irvine"
+  | "ithaca"
+  | "los-angeles"
+  | "new-brunswick"
+  | "newark"
+  | "philadelphia"
+  | "pittsburgh"
+  | "rochester"
+  | "san-antonio"
+  | "san-francisco"
+  | "syracuse"
+  | "lanham"
+  | "albany"
+  | "new-haven"
+  | "springfield"
+  | "new-castle"
+  | "levittown"
+  | "lancaster"
+  | "cliffside-park"
+  | "monroeville"
+  | "burlington"
+  | "port-jefferson-station"
+  | "altindag"
+  | "fatih"
+  | "efeler";
 
 export type LocationSelection = {
   countryId: CountryId;
@@ -48,6 +82,15 @@ const LOCATION_ENTRIES: LocationEntry[] = [
     stateLabel: "NY",
     cityId: "new-york-city",
     cityLabel: "New York City",
+    scheduleFolder: "New York City-NY"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "ny",
+    stateLabel: "NY",
+    cityId: "brooklyn",
+    cityLabel: "Brooklyn",
     scheduleFolder: "New York City-NY"
   },
   {
@@ -204,31 +247,121 @@ const LOCATION_ENTRIES: LocationEntry[] = [
     scheduleFolder: "Lanham-MD"
   },
   {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "ny",
+    stateLabel: "NY",
+    cityId: "albany",
+    cityLabel: "Albany",
+    scheduleFolder: "albany-NY"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "ct",
+    stateLabel: "CT",
+    cityId: "new-haven",
+    cityLabel: "New Haven",
+    scheduleFolder: "new-haven-CT"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "ma",
+    stateLabel: "MA",
+    cityId: "springfield",
+    cityLabel: "Springfield",
+    scheduleFolder: "springfield-MA"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "de",
+    stateLabel: "DE",
+    cityId: "new-castle",
+    cityLabel: "New Castle",
+    scheduleFolder: "new-castle-DE"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "pa",
+    stateLabel: "PA",
+    cityId: "levittown",
+    cityLabel: "Levittown",
+    scheduleFolder: "levittown-PA"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "pa",
+    stateLabel: "PA",
+    cityId: "lancaster",
+    cityLabel: "Lancaster",
+    scheduleFolder: "lancaster-PA"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "nj",
+    stateLabel: "NJ",
+    cityId: "cliffside-park",
+    cityLabel: "Cliffside Park",
+    scheduleFolder: "cliffside-park-NJ"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "nj",
+    stateLabel: "NJ",
+    cityId: "burlington",
+    cityLabel: "Burlington",
+    scheduleFolder: "burlington-NJ"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "ny",
+    stateLabel: "NY",
+    cityId: "port-jefferson-station",
+    cityLabel: "Port Jefferson Station",
+    scheduleFolder: "port-jefferson-NY"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "nj",
+    stateLabel: "NJ",
+    cityId: "monroeville",
+    cityLabel: "Monroeville",
+    scheduleFolder: "monroeville-NJ"
+  },
+  {
     countryId: "turkiye",
-    countryLabel: "Turkiye",
+    countryLabel: "Türkiye",
     stateId: "ankara",
     stateLabel: "Ankara",
-    cityId: "cankaya",
-    cityLabel: "\u00C7ankaya",
-    scheduleFolder: "\u00C7ankaya-Ankara"
+    cityId: "altindag",
+    cityLabel: "Altındağ",
+    scheduleFolder: "Altındağ-Ankara"
   },
   {
     countryId: "turkiye",
-    countryLabel: "Turkiye",
+    countryLabel: "Türkiye",
     stateId: "istanbul",
     stateLabel: "\u0130stanbul",
-    cityId: "kadikoy",
-    cityLabel: "Kad\u0131koy",
-    scheduleFolder: "Kad\u0131koy-\u0130stanbul"
+    cityId: "fatih",
+    cityLabel: "Fatih",
+    scheduleFolder: "Fatih-İstanbul"
   },
   {
     countryId: "turkiye",
-    countryLabel: "Turkiye",
+    countryLabel: "Türkiye",
     stateId: "aydin",
     stateLabel: "Ayd\u0131n",
-    cityId: "aydin",
-    cityLabel: "Ayd\u0131n",
-    scheduleFolder: "Ayd\u0131n-Ayd\u0131n"
+    cityId: "efeler",
+    cityLabel: "Efeler",
+    scheduleFolder: "Efeler-Aydın"
   }
 ];
 

@@ -131,6 +131,22 @@ const BUILTIN_MOSQUES: BuiltinMosque[] = [
   },
   {
     kind: "builtin",
+    id: "mevlana-efeler",
+    nameEn: "Mevlana Mosque",
+    nameTr: "Mevlana Camii",
+    address: "Efeler Mah., 1464. Sk. No:2, 09020 Efeler/Aydın",
+    location: { countryId: "turkiye", stateId: "aydin", cityId: "efeler" }
+  },
+  {
+    kind: "builtin",
+    id: "yavuz-sultan-selim-efeler",
+    nameEn: "Yavuz Sultan Selim Mosque",
+    nameTr: "Yavuz Sultan Selim Cami",
+    address: "Girne Mah., Şehitler Blv. No:24, 09100 Efeler/Aydın",
+    location: { countryId: "turkiye", stateId: "aydin", cityId: "efeler" }
+  },
+  {
+    kind: "builtin",
     id: "mimar-sinan-sunnyside",
     nameEn: "Mimar Sinan Sunnyside Mosque",
     nameTr: "Mimar Sinan Sunnyside Camii",
@@ -144,6 +160,86 @@ const BUILTIN_MOSQUES: BuiltinMosque[] = [
     nameTr: "Amerika Diyanet Merkezi",
     address: "9610 Good Luck Rd, Lanham, MD 20706",
     location: { countryId: "usa", stateId: "md", cityId: "lanham" }
+  },
+  {
+    kind: "builtin",
+    id: "diyanet-new-haven",
+    nameEn: "Diyanet Mosque of New Haven",
+    nameTr: "New Haven Diyanet Camii",
+    address: "531 Middletown Ave, New Haven, CT 06513, United States",
+    location: { countryId: "usa", stateId: "ct", cityId: "new-haven" }
+  },
+  {
+    kind: "builtin",
+    id: "diyanet-springfield-imam-buhari",
+    nameEn: "Diyanet Imam Buhari Mosque Cami",
+    nameTr: "Springfield Diyanet İmam Buhari Camii",
+    address: "50 Pinevale St, Springfield, MA 01151, United States",
+    location: { countryId: "usa", stateId: "ma", cityId: "springfield" }
+  },
+  {
+    kind: "builtin",
+    id: "diyanet-brooklyn-eyup-sultan",
+    nameEn: "Diyanet Mosque of Brooklyn Eyup Sultan",
+    nameTr: "Brooklyn Eyüp Sultan Diyanet Camii",
+    address: "2812 Brighton 3rd St, Brooklyn, NY 11235, United States",
+    location: { countryId: "usa", stateId: "ny", cityId: "brooklyn" }
+  },
+  {
+    kind: "builtin",
+    id: "diyanet-delaware",
+    nameEn: "Diyanet Mosque of Delaware",
+    nameTr: "Delaware Diyanet Camii",
+    address: "249 Appleby Rd #5403, New Castle, DE 19720, United States",
+    location: { countryId: "usa", stateId: "de", cityId: "new-castle" }
+  },
+  {
+    kind: "builtin",
+    id: "tamca-levittown",
+    nameEn: "TAMCA (Diyanet Mosque of Levittown)",
+    nameTr: "Levittown Diyanet Yunus Emre Camii",
+    address: "541 Levittown Pkwy, Levittown, PA 19054, United States",
+    location: { countryId: "usa", stateId: "pa", cityId: "levittown" }
+  },
+  {
+    kind: "builtin",
+    id: "diyanet-lancaster-ahiska",
+    nameEn: "Diyanet Mosque of Lancaster Ahiska Turks",
+    nameTr: "Lancaster Diyanet Ahıska Türk Camii",
+    address: "747 Centerville Rd, Lancaster, PA 17601, United States",
+    location: { countryId: "usa", stateId: "pa", cityId: "lancaster" }
+  },
+  {
+    kind: "builtin",
+    id: "diyanet-bergen",
+    nameEn: "Diyanet Mosque of Bergen",
+    nameTr: "Bergen Diyanet Camii",
+    address: "240 Knox Ave, Cliffside Park, NJ 07010, United States",
+    location: { countryId: "usa", stateId: "nj", cityId: "cliffside-park" }
+  },
+  {
+    kind: "builtin",
+    id: "murat-monroeville",
+    nameEn: "Murat Mosque",
+    nameTr: "Monroeville Diyanet Murat Camii",
+    address: "379 Monroeville Rd, Monroeville, NJ 08343, United States",
+    location: { countryId: "usa", stateId: "nj", cityId: "monroeville" }
+  },
+  {
+    kind: "builtin",
+    id: "selimiye-burlington",
+    nameEn: "Selimiye Mosque",
+    nameTr: "Burlington Diyanet Selimiye Camii",
+    address: "203 Fountain Ave, Burlington, NJ 08016, United States",
+    location: { countryId: "usa", stateId: "nj", cityId: "burlington" }
+  },
+  {
+    kind: "builtin",
+    id: "long-island-mevlana",
+    nameEn: "Long Island Mevlana Mosque",
+    nameTr: "Long Island Diyanet Mevlana Camii",
+    address: "366 Terryville Rd, Port Jefferson Station, NY 11776, United States",
+    location: { countryId: "usa", stateId: "ny", cityId: "port-jefferson-station" }
   }
 ];
 
