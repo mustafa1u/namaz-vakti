@@ -25,6 +25,9 @@ export default defineConfig({
     }
   },
   renderer: {
+    build: {
+      outDir: "dist/renderer"
+    },
     resolve: {
       alias: {
         "@shared": resolve("src/shared")

@@ -19,6 +19,13 @@ type WindowGetter = () => BrowserWindow | null;
 const FIXED_TEMPLATE_FILE_NAME = "Mevlana Masjid Prayer Times_KALIP.xlsx";
 const STANDARD_ZHUHR_ANCHOR = (12 * 60) + 15;
 const DAYLIGHT_ZHUHR_ANCHOR = (13 * 60) + 15;
+const IS_DEV = !app.isPackaged;
+
+function devLog(...args: unknown[]): void {
+  if (IS_DEV) {
+    console.log(...args);
+  }
+}
 
 function resolveFixedTemplateFile(): string {
   const candidates = [
@@ -177,11 +184,11 @@ function collectLimitWarnings(customization: Customization): string[] {
 }
 
 export function registerIpcHandlers(_getWindow: WindowGetter): void {
-  console.log("[main] registering IPC handlers");
+  devLog("[main] registering IPC handlers");
 
   ipcMain.handle(APP_CHANNELS.LIST_MONTHS, async (_event, tsvFolder: string) => {
     const resolvedTsvFolder = resolveTsvFolderPath(tsvFolder);
-    console.log("[ipc] LIST_MONTHS", tsvFolder, "->", resolvedTsvFolder);
+    devLog("[ipc] LIST_MONTHS", tsvFolder, "->", resolvedTsvFolder);
     return listAvailableMonths(resolvedTsvFolder);
   });
 
@@ -189,11 +196,11 @@ export function registerIpcHandlers(_getWindow: WindowGetter): void {
     const request = GenerateOutputsRequestSchema.parse(rawRequest);
     const { options, targets } = request;
     const resolvedTsvFolder = resolveTsvFolderPath(options.tsvFolder);
-    console.log("[ipc] GENERATE_OUTPUTS", options.month, targets.join(","), resolvedTsvFolder);
+    devLog("[ipc] GENERATE_OUTPUTS", options.month, targets.join(","), resolvedTsvFolder);
     const templateFile = resolveFixedTemplateFile();
     const days = await readMonthTsv(resolvedTsvFolder, options.month);
     const yearZhuhrPeriods = await computeYearZhuhrPeriods(resolvedTsvFolder, options.month);
-    console.log("[ipc] ZHUHR_PERIODS", options.month, formatYearZhuhrPeriods(yearZhuhrPeriods));
+    devLog("[ipc] ZHUHR_PERIODS", options.month, formatYearZhuhrPeriods(yearZhuhrPeriods));
     const plan = buildMonthlyPlan({
       month: options.month,
       locale: options.locale,
@@ -240,7 +247,7 @@ export function registerIpcHandlers(_getWindow: WindowGetter): void {
   });
 
   ipcMain.handle(APP_CHANNELS.SELECT_OUTPUT_FOLDER, async () => {
-    console.log("[ipc] SELECT_OUTPUT_FOLDER");
+    devLog("[ipc] SELECT_OUTPUT_FOLDER");
     const result = await dialog.showOpenDialog({ properties: ["openDirectory", "createDirectory"] });
     return result.canceled ? null : result.filePaths[0] ?? null;
   });

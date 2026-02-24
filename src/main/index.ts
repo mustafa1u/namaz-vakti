@@ -4,12 +4,26 @@ import { join } from "node:path";
 import { registerIpcHandlers } from "./ipc-handlers";
 
 let mainWindow: BrowserWindow | null = null;
+const IS_DEV = !app.isPackaged;
+
+function devLog(message: string): void {
+  if (IS_DEV) {
+    console.log(message);
+  }
+}
+
+function devError(message: string): void {
+  if (IS_DEV) {
+    console.error(message);
+  }
+}
 
 function resolveAppIconPath(): string | undefined {
   const iconNames = process.platform === "win32"
     ? ["app.ico", "app.png"]
     : ["app.png"];
   const bases = [
+    process.resourcesPath,
     app.getAppPath(),
     process.cwd(),
     join(process.cwd(), "desktop-app"),
@@ -20,7 +34,7 @@ function resolveAppIconPath(): string | undefined {
   const candidates = bases.flatMap((base) => iconNames.map((name) => join(base, "build/icons", name)));
   const resolved = candidates.find((candidate) => existsSync(candidate));
   if (!resolved) {
-    console.log(`[main] icon lookup failed. appPath=${app.getAppPath()} cwd=${process.cwd()} __dirname=${__dirname}`);
+    devLog(`[main] icon lookup failed. appPath=${app.getAppPath()} cwd=${process.cwd()} __dirname=${__dirname}`);
   }
   return resolved;
 }
@@ -33,11 +47,11 @@ function createMainWindow(): void {
   ];
   const preloadPath = preloadCandidates.find((candidate) => existsSync(candidate)) ?? preloadCandidates[0]!;
 
-  console.log("[main] creating window");
-  console.log(`[main] preload path: ${preloadPath}`);
-  console.log(`[main] preload exists: ${existsSync(preloadPath)}`);
+  devLog("[main] creating window");
+  devLog(`[main] preload path: ${preloadPath}`);
+  devLog(`[main] preload exists: ${existsSync(preloadPath)}`);
   const iconPath = resolveAppIconPath();
-  console.log(`[main] icon path: ${iconPath ?? "<none>"}`);
+  devLog(`[main] icon path: ${iconPath ?? "<none>"}`);
 
   mainWindow = new BrowserWindow({
     width: 1160,
@@ -53,23 +67,23 @@ function createMainWindow(): void {
   });
 
   mainWindow.webContents.on("console-message", (_event, level, message) => {
-    console.log(`[renderer:${level}] ${message}`);
+    devLog(`[renderer:${level}] ${message}`);
   });
   mainWindow.webContents.on("did-fail-load", (_event, code, desc) => {
-    console.error(`[main] renderer failed to load: ${code} ${desc}`);
+    devError(`[main] renderer failed to load: ${code} ${desc}`);
   });
   mainWindow.webContents.on("preload-error", (_event, preloadPathValue, error) => {
-    console.error(`[main] preload error at ${preloadPathValue}: ${error}`);
+    devError(`[main] preload error at ${preloadPathValue}: ${error}`);
   });
 
   mainWindow.once("ready-to-show", () => mainWindow?.show());
 
   if (process.env.ELECTRON_RENDERER_URL) {
-    console.log(`[main] loading renderer url: ${process.env.ELECTRON_RENDERER_URL}`);
+    devLog(`[main] loading renderer url: ${process.env.ELECTRON_RENDERER_URL}`);
     mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
   } else {
     const htmlPath = join(__dirname, "../renderer/index.html");
-    console.log(`[main] loading renderer file: ${htmlPath}`);
+    devLog(`[main] loading renderer file: ${htmlPath}`);
     mainWindow.loadFile(htmlPath);
   }
 

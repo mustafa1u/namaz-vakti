@@ -3780,6 +3780,15 @@ const LOCATION_ENTRIES = [
   {
     countryId: "usa",
     countryLabel: "USA",
+    stateId: "ny",
+    stateLabel: "NY",
+    cityId: "brooklyn",
+    cityLabel: "Brooklyn",
+    scheduleFolder: "New York City-NY"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
     stateId: "il",
     stateLabel: "IL",
     cityId: "chicago",
@@ -3931,31 +3940,121 @@ const LOCATION_ENTRIES = [
     scheduleFolder: "Lanham-MD"
   },
   {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "ny",
+    stateLabel: "NY",
+    cityId: "albany",
+    cityLabel: "Albany",
+    scheduleFolder: "albany-NY"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "ct",
+    stateLabel: "CT",
+    cityId: "new-haven",
+    cityLabel: "New Haven",
+    scheduleFolder: "new-haven-CT"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "ma",
+    stateLabel: "MA",
+    cityId: "springfield",
+    cityLabel: "Springfield",
+    scheduleFolder: "springfield-MA"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "de",
+    stateLabel: "DE",
+    cityId: "new-castle",
+    cityLabel: "New Castle",
+    scheduleFolder: "new-castle-DE"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "pa",
+    stateLabel: "PA",
+    cityId: "levittown",
+    cityLabel: "Levittown",
+    scheduleFolder: "levittown-PA"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "pa",
+    stateLabel: "PA",
+    cityId: "lancaster",
+    cityLabel: "Lancaster",
+    scheduleFolder: "lancaster-PA"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "nj",
+    stateLabel: "NJ",
+    cityId: "cliffside-park",
+    cityLabel: "Cliffside Park",
+    scheduleFolder: "cliffside-park-NJ"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "nj",
+    stateLabel: "NJ",
+    cityId: "burlington",
+    cityLabel: "Burlington",
+    scheduleFolder: "burlington-NJ"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "ny",
+    stateLabel: "NY",
+    cityId: "port-jefferson-station",
+    cityLabel: "Port Jefferson Station",
+    scheduleFolder: "port-jefferson-NY"
+  },
+  {
+    countryId: "usa",
+    countryLabel: "USA",
+    stateId: "nj",
+    stateLabel: "NJ",
+    cityId: "monroeville",
+    cityLabel: "Monroeville",
+    scheduleFolder: "monroeville-NJ"
+  },
+  {
     countryId: "turkiye",
-    countryLabel: "Turkiye",
+    countryLabel: "Türkiye",
     stateId: "ankara",
     stateLabel: "Ankara",
-    cityId: "cankaya",
-    cityLabel: "Çankaya",
-    scheduleFolder: "Çankaya-Ankara"
+    cityId: "altindag",
+    cityLabel: "Altındağ",
+    scheduleFolder: "Altındağ-Ankara"
   },
   {
     countryId: "turkiye",
-    countryLabel: "Turkiye",
+    countryLabel: "Türkiye",
     stateId: "istanbul",
     stateLabel: "İstanbul",
-    cityId: "kadikoy",
-    cityLabel: "Kadıkoy",
-    scheduleFolder: "Kadıkoy-İstanbul"
+    cityId: "fatih",
+    cityLabel: "Fatih",
+    scheduleFolder: "Fatih-İstanbul"
   },
   {
     countryId: "turkiye",
-    countryLabel: "Turkiye",
+    countryLabel: "Türkiye",
     stateId: "aydin",
     stateLabel: "Aydın",
-    cityId: "aydin",
-    cityLabel: "Aydın",
-    scheduleFolder: "Aydın-Aydın"
+    cityId: "efeler",
+    cityLabel: "Efeler",
+    scheduleFolder: "Efeler-Aydın"
   }
 ];
 const DEFAULT_LOCATION_SELECTION = {
@@ -6397,6 +6496,7 @@ const generateXlsxButton = getEl("generateXlsx");
 const resetDefaultsButton = getEl("resetDefaults");
 const PRAYER_ORDER = ["fajr", "zhuhr", "asr", "maghrib", "isha"];
 const LIMIT_ORDER = ["noEarlier", "noLater"];
+const IS_DEV = window.location.protocol === "http:";
 const RESET_DEFAULT_MONTH = "2026-01";
 const RESET_DEFAULT_YEAR = RESET_DEFAULT_MONTH.split("-")[0] ?? "2026";
 const RESET_DEFAULT_MONTH_NUMBER = RESET_DEFAULT_MONTH.split("-")[1] ?? "01";
@@ -6427,6 +6527,22 @@ const BUILTIN_MOSQUES = [
   },
   {
     kind: "builtin",
+    id: "mevlana-efeler",
+    nameEn: "Mevlana Mosque",
+    nameTr: "Mevlana Camii",
+    address: "Efeler Mah., 1464. Sk. No:2, 09020 Efeler/Aydın",
+    location: { countryId: "turkiye", stateId: "aydin", cityId: "efeler" }
+  },
+  {
+    kind: "builtin",
+    id: "yavuz-sultan-selim-efeler",
+    nameEn: "Yavuz Sultan Selim Mosque",
+    nameTr: "Yavuz Sultan Selim Cami",
+    address: "Girne Mah., Şehitler Blv. No:24, 09100 Efeler/Aydın",
+    location: { countryId: "turkiye", stateId: "aydin", cityId: "efeler" }
+  },
+  {
+    kind: "builtin",
     id: "mimar-sinan-sunnyside",
     nameEn: "Mimar Sinan Sunnyside Mosque",
     nameTr: "Mimar Sinan Sunnyside Camii",
@@ -6440,6 +6556,86 @@ const BUILTIN_MOSQUES = [
     nameTr: "Amerika Diyanet Merkezi",
     address: "9610 Good Luck Rd, Lanham, MD 20706",
     location: { countryId: "usa", stateId: "md", cityId: "lanham" }
+  },
+  {
+    kind: "builtin",
+    id: "diyanet-new-haven",
+    nameEn: "Diyanet Mosque of New Haven",
+    nameTr: "New Haven Diyanet Camii",
+    address: "531 Middletown Ave, New Haven, CT 06513, United States",
+    location: { countryId: "usa", stateId: "ct", cityId: "new-haven" }
+  },
+  {
+    kind: "builtin",
+    id: "diyanet-springfield-imam-buhari",
+    nameEn: "Diyanet Imam Buhari Mosque Cami",
+    nameTr: "Springfield Diyanet İmam Buhari Camii",
+    address: "50 Pinevale St, Springfield, MA 01151, United States",
+    location: { countryId: "usa", stateId: "ma", cityId: "springfield" }
+  },
+  {
+    kind: "builtin",
+    id: "diyanet-brooklyn-eyup-sultan",
+    nameEn: "Diyanet Mosque of Brooklyn Eyup Sultan",
+    nameTr: "Brooklyn Eyüp Sultan Diyanet Camii",
+    address: "2812 Brighton 3rd St, Brooklyn, NY 11235, United States",
+    location: { countryId: "usa", stateId: "ny", cityId: "brooklyn" }
+  },
+  {
+    kind: "builtin",
+    id: "diyanet-delaware",
+    nameEn: "Diyanet Mosque of Delaware",
+    nameTr: "Delaware Diyanet Camii",
+    address: "249 Appleby Rd #5403, New Castle, DE 19720, United States",
+    location: { countryId: "usa", stateId: "de", cityId: "new-castle" }
+  },
+  {
+    kind: "builtin",
+    id: "tamca-levittown",
+    nameEn: "TAMCA (Diyanet Mosque of Levittown)",
+    nameTr: "Levittown Diyanet Yunus Emre Camii",
+    address: "541 Levittown Pkwy, Levittown, PA 19054, United States",
+    location: { countryId: "usa", stateId: "pa", cityId: "levittown" }
+  },
+  {
+    kind: "builtin",
+    id: "diyanet-lancaster-ahiska",
+    nameEn: "Diyanet Mosque of Lancaster Ahiska Turks",
+    nameTr: "Lancaster Diyanet Ahıska Türk Camii",
+    address: "747 Centerville Rd, Lancaster, PA 17601, United States",
+    location: { countryId: "usa", stateId: "pa", cityId: "lancaster" }
+  },
+  {
+    kind: "builtin",
+    id: "diyanet-bergen",
+    nameEn: "Diyanet Mosque of Bergen",
+    nameTr: "Bergen Diyanet Camii",
+    address: "240 Knox Ave, Cliffside Park, NJ 07010, United States",
+    location: { countryId: "usa", stateId: "nj", cityId: "cliffside-park" }
+  },
+  {
+    kind: "builtin",
+    id: "murat-monroeville",
+    nameEn: "Murat Mosque",
+    nameTr: "Monroeville Diyanet Murat Camii",
+    address: "379 Monroeville Rd, Monroeville, NJ 08343, United States",
+    location: { countryId: "usa", stateId: "nj", cityId: "monroeville" }
+  },
+  {
+    kind: "builtin",
+    id: "selimiye-burlington",
+    nameEn: "Selimiye Mosque",
+    nameTr: "Burlington Diyanet Selimiye Camii",
+    address: "203 Fountain Ave, Burlington, NJ 08016, United States",
+    location: { countryId: "usa", stateId: "nj", cityId: "burlington" }
+  },
+  {
+    kind: "builtin",
+    id: "long-island-mevlana",
+    nameEn: "Long Island Mevlana Mosque",
+    nameTr: "Long Island Diyanet Mevlana Camii",
+    address: "366 Terryville Rd, Port Jefferson Station, NY 11776, United States",
+    location: { countryId: "usa", stateId: "ny", cityId: "port-jefferson-station" }
   }
 ];
 let customizationState = cloneCustomization(DEFAULT_CUSTOMIZATION);
@@ -7820,7 +8016,9 @@ function formatLimitForUi(minutes, timeFormat) {
   return { hour: hour12, minute, suffix };
 }
 function log(message) {
-  console.log(`[renderer] ${message}`);
+  if (IS_DEV) {
+    console.log(`[renderer] ${message}`);
+  }
 }
 function showStatus(message) {
   statusMessageEl.textContent = message;
@@ -7828,7 +8026,9 @@ function showStatus(message) {
 function logError(prefixKey, error) {
   const details = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
   const prefix = t(prefixKey);
-  console.error(`[renderer] ${prefix}`, error);
+  if (IS_DEV) {
+    console.error(`[renderer] ${prefix}`, error);
+  }
   showStatus(t("logs.errorWithDetails", { prefix, details }));
 }
 function getEl(id) {

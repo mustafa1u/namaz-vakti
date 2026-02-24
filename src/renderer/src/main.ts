@@ -74,6 +74,7 @@ const resetDefaultsButton = getEl<HTMLButtonElement>("resetDefaults");
 
 const PRAYER_ORDER: PrayerKey[] = ["fajr", "zhuhr", "asr", "maghrib", "isha"];
 const LIMIT_ORDER: Array<"noEarlier" | "noLater"> = ["noEarlier", "noLater"];
+const IS_DEV = window.location.protocol === "http:";
 const RESET_DEFAULT_MONTH = "2026-01";
 const RESET_DEFAULT_YEAR = RESET_DEFAULT_MONTH.split("-")[0] ?? "2026";
 const RESET_DEFAULT_MONTH_NUMBER = RESET_DEFAULT_MONTH.split("-")[1] ?? "01";
@@ -1902,7 +1903,9 @@ function formatLimitForUi(
 }
 
 function log(message: string): void {
-  console.log(`[renderer] ${message}`);
+  if (IS_DEV) {
+    console.log(`[renderer] ${message}`);
+  }
 }
 
 function showStatus(message: string): void {
@@ -1912,7 +1915,9 @@ function showStatus(message: string): void {
 function logError(prefixKey: string, error: unknown): void {
   const details = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
   const prefix = t(prefixKey);
-  console.error(`[renderer] ${prefix}`, error);
+  if (IS_DEV) {
+    console.error(`[renderer] ${prefix}`, error);
+  }
   showStatus(t("logs.errorWithDetails", { prefix, details }));
 }
 

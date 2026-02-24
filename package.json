@@ -1,6 +1,6 @@
 {
   "name": "namaz-vakti-desktop",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Electron desktop app for monthly iqamah schedule generation from TSV",
   "main": "dist/main/index.js",
@@ -11,7 +11,9 @@
     "preview": "electron-vite preview",
     "schedules:combine-yearly": "node scripts/combine-schedules-to-yearly.mjs",
     "typecheck": "tsc --noEmit",
-    "i18n:check": "node scripts/check-i18n-keys.mjs"
+    "i18n:check": "node scripts/check-i18n-keys.mjs",
+    "dist:win": "npm run build && set CSC_IDENTITY_AUTO_DISCOVERY=false && npx electron-builder --win nsis portable",
+    "dist:linux": "npm run build && npx electron-builder --linux AppImage"
   },
   "dependencies": {
     "csv-parse": "^5.5.6",
@@ -33,8 +35,15 @@
     },
     "files": [
       "dist/**/*",
-      "build/icons/**/*",
+      "assets/schedules/**/*",
+      "assets/templates/**/*",
       "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "build/icons",
+        "to": "build/icons"
+      }
     ],
     "win": {
       "icon": "icons/app.ico"
