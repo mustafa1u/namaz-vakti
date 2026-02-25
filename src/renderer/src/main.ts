@@ -1537,44 +1537,52 @@ function initializeCustomizeModalUi(): void {
     <section class="customize-prayer" data-prayer="${prayer}">
       <h3 class="customize-prayer-title" data-i18n="prayers.${prayer}">${prayer}</h3>
       <div class="customize-controls">
-        <label class="customize-field">
-          <input id="customize-${prayer}-enabled" type="checkbox" />
-          <span data-i18n="modal.enabled">Enabled</span>
-        </label>
+        <div class="customize-group">
+          <label class="customize-field">
+            <input id="customize-${prayer}-enabled" type="checkbox" />
+            <span data-i18n="modal.enabled">Enabled</span>
+          </label>
 
-        <label class="customize-field" for="customize-${prayer}-direction">
-          <span data-i18n="modal.direction">Direction</span>
-          <select id="customize-${prayer}-direction">
-            <option value="after" data-i18n="modal.after">After</option>
-            <option value="before" data-i18n="modal.before">Before</option>
-          </select>
-        </label>
+          <label class="customize-field" for="customize-${prayer}-direction">
+            <span data-i18n="modal.direction">Direction</span>
+            <select id="customize-${prayer}-direction">
+              <option value="after" data-i18n="modal.after">After</option>
+              <option value="before" data-i18n="modal.before">Before</option>
+            </select>
+          </label>
+        </div>
 
-        <label class="customize-field" for="customize-${prayer}-offsetMinutes">
-          <span data-i18n="modal.offsetMinutes">Offset minutes</span>
-          <button id="customize-${prayer}-offsetDec" class="tiny" type="button">-</button>
-          <input id="customize-${prayer}-offsetMinutes" type="text" inputmode="numeric" />
-          <button id="customize-${prayer}-offsetInc" class="tiny" type="button">+</button>
-        </label>
+        <div class="customize-group">
+          <label class="customize-field" for="customize-${prayer}-offsetMinutes">
+            <span data-i18n="modal.offsetMinutes">Offset minutes</span>
+            <button id="customize-${prayer}-offsetDec" class="tiny" type="button">-</button>
+            <input id="customize-${prayer}-offsetMinutes" type="text" inputmode="numeric" />
+            <button id="customize-${prayer}-offsetInc" class="tiny" type="button">+</button>
+          </label>
+        </div>
 
-        <label class="customize-field" for="customize-${prayer}-minuteMultiple">
-          <span data-i18n="modal.minuteMultiple">Minute multiple</span>
-          <select id="customize-${prayer}-minuteMultiple">
-            <option value="1" data-i18n="modal.minuteMultipleOptions.none">1</option>
-            <option value="5" data-i18n="modal.minuteMultipleOptions.five">5</option>
-            <option value="10" data-i18n="modal.minuteMultipleOptions.ten">10</option>
-          </select>
-        </label>
+        <div class="customize-group customize-group-no-separator">
+          <label class="customize-field" for="customize-${prayer}-minuteMultiple">
+            <span data-i18n="modal.minuteMultiple">Minute multiple</span>
+            <select id="customize-${prayer}-minuteMultiple">
+              <option value="1" data-i18n="modal.minuteMultipleOptions.none">1</option>
+              <option value="5" data-i18n="modal.minuteMultipleOptions.five">5</option>
+              <option value="10" data-i18n="modal.minuteMultipleOptions.ten">10</option>
+            </select>
+          </label>
+        </div>
 
-        <label class="customize-field">
-          <input id="customize-${prayer}-noEarlierEnabled" type="checkbox" />
-          <span data-i18n="modal.noEarlierEnabled">No earlier than</span>
-        </label>
+        <div class="customize-group customize-group-secondary">
+          <label class="customize-field">
+            <input id="customize-${prayer}-noEarlierEnabled" type="checkbox" />
+            <span data-i18n="modal.noEarlierEnabled">No earlier than</span>
+          </label>
 
-        <label class="customize-field">
-          <input id="customize-${prayer}-noLaterEnabled" type="checkbox" />
-          <span data-i18n="modal.noLaterEnabled">No later than</span>
-        </label>
+          <label class="customize-field">
+            <input id="customize-${prayer}-noLaterEnabled" type="checkbox" />
+            <span data-i18n="modal.noLaterEnabled">No later than</span>
+          </label>
+        </div>
       </div>
     </section>
   `).join("");

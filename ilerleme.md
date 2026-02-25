@@ -1,78 +1,59 @@
 ﻿# İlerleme Notu
 
 ## Commit Mesajı
-`PAKETLEME v1.0.0 + CAMI KONUMU GUNCELLEME -- Üretim paketleme altyapısı, ikon akışı, renderer çıktı yolu, log davranışı, lokasyon kataloğu ve yerleşik cami listesi güncellendi.`
+`ÖZELLEŞTİR PENCERESİ DÜZENİ V1.0.1 -- Customize penceresinde ayraçlı grup düzeni uygulanarak okunabilirlik artırıldı ve sürüm 1.0.1'e yükseltildi.`
 
 ## Commit Zamanı
-`2026-02-25 02:16:25 +03:00`
+`2026-02-25 02:58:09 +03:00`
 
 ## Bu Committe Yapılanlar
 
-1. **Paketleme sürümü ve dağıtım komutları güncellendi**
-- `desktop-app/package.json` içinde uygulama sürümü `1.0.0` olarak yükseltildi.
-- `dist:win` ve `dist:linux` script’leri eklendi.
-- Paket içeriğine `assets/schedules/**/*` ve `assets/templates/**/*` dahil edildi.
-- `extraResources` ile `build/icons` klasörü paket içine taşınacak şekilde tanımlandı.
+1. **Uygulama sürümü güncellendi**
+- `desktop-app/package.json` içinde sürüm değeri `1.0.0` -> `1.0.1` olarak yükseltildi.
 
-2. **Renderer çıktı yolu paketleme beklentisiyle hizalandı**
-- `desktop-app/electron.vite.config.ts` içinde renderer build çıktısı `dist/renderer` olarak ayarlandı.
-- Bu değişiklikle ana süreçte beklenen `dist/renderer/index.html` yolu ile gerçek derleme çıktısı aynı noktaya alındı.
+2. **Customize modal genişliği yeniden dengelendi**
+- `desktop-app/src/renderer/index.html` içinde `#customizeModal .modal-panel` genişliği `min(844px, 100%)` olarak tanımlandı.
+- Amaç, gereksiz yatay boşluğu azaltmak ve içerik yoğunluğunu daha dengeli bir düzene taşımaktır.
 
-3. **Ana süreçte (main) ikon çözümleme ve üretim log davranışı iyileştirildi**
-- `desktop-app/src/main/index.ts` içinde:
-  - `IS_DEV = !app.isPackaged` eklendi.
-  - `devLog` ve `devError` yardımcıları eklendi.
-  - `resolveAppIconPath()` aramasına `process.resourcesPath` dahil edildi.
-  - Üretimde gereksiz konsol çıktısı verilmemesi için debug loglar dev koşuluna alındı.
+3. **Customize alanları görsel gruplara ayrıldı**
+- `desktop-app/src/renderer/index.html` içinde yeni sınıflar eklendi:
+  - `.customize-group`
+  - `.customize-group-secondary`
+  - `.customize-group-no-separator`
+- `.customize-controls` yapısı güncellenerek satır içi öğeler bölümlere ayrıldı ve dikey ayraçlarla görsel ayrım güçlendirildi.
 
-4. **IPC katmanında üretim logları susturuldu**
-- `desktop-app/src/main/ipc-handlers.ts` içinde:
-  - `IS_DEV` ve `devLog(...args)` eklendi.
-  - `LIST_MONTHS`, `GENERATE_OUTPUTS`, `ZHUHR_PERIODS`, `SELECT_OUTPUT_FOLDER` logları koşullu hale getirildi.
+4. **Dikey ayraç davranışı bağlama göre optimize edildi**
+- Sağda gereksiz kalan ayraçların görünmemesi için:
+  - son grup davranışı (`:last-child`) korundu,
+  - ayrıca `.customize-group-no-separator` sınıfı ile seçili gruplarda ayraç kapatıldı.
 
-5. **Renderer tarafında loglama üretim modunda kapatıldı**
-- `desktop-app/src/renderer/src/main.ts` içinde:
-  - `IS_DEV = window.location.protocol === "http:"` eklendi.
-  - `log()` ve `logError()` çağrıları yalnızca geliştirme modunda konsola yazacak şekilde güncellendi.
-
-6. **Konum kataloğu ve cami verisi genişletildi**
-- Build çıktısına yansıyan renderer bundle değişikliğine göre:
-  - Yeni şehir/eyalet seçenekleri eklendi (ör. Brooklyn, Albany, New Haven, Springfield, New Castle, Levittown, Lancaster, Cliffside Park, Burlington, Port Jefferson Station, Monroeville).
-  - Türkiye tarafında adlandırmalar güncellendi (`Altındağ`, `Fatih`, `Efeler`, `Türkiye`).
-  - Yerleşik cami listesi önemli ölçüde genişletildi ve Efeler/Aydın camileri listeye dahil edildi.
-
-7. **UI düzeninde konum satırı genişlik dengesi güncellendi**
-- Build çıktısına yansıyan HTML değişikliğine göre:
-  - `State/Province` seçim kutusu daraltıldı.
-  - `City/Town` seçim kutusu genişletildi.
-
-8. **Uygulama ikonu güncellendi**
-- `desktop-app/build/icons/app.ico` dosyası yeni ikon içeriğiyle güncellendi.
-
-9. **Derleme çıktıları commit kapsamına alındı**
-- `desktop-app/out/renderer/index.html` güncellendi.
-- Renderer JS varlığı hash değişikliğiyle yeniden üretildi (`index-BBDW1EPv.js` -> `index-Dh_l4uUE.js`).
+5. **Customize modal içeriği satır/sütun semantiğiyle yeniden düzenlendi**
+- `desktop-app/src/renderer/src/main.ts` içinde `initializeCustomizeModalUi()` şablonu yeniden yapılandırıldı.
+- Kontroller şu gruplara ayrıldı:
+  - Grup 1: `Enabled` + `Direction`
+  - Grup 2: `Offset minutes`
+  - Grup 3: `Minute multiple` (sağ ayraçsız)
+  - Grup 4 (ikinci satır): `No earlier than` + `No later than` (sol hizalı)
+- Bu düzenlemede ikinci satır için `customize-group-secondary` kullanılarak checkbox’ların tek satır baskısını kırmadan okunaklı yerleşim sağlandı.
 
 ## Neden Bu Değişiklikler Yapıldı?
 
-- Paketlenen uygulamada kaynakların (özellikle takvimler ve şablonlar) eksik kalmasını engellemek.
-- Geliştirme ve üretim davranışını ayrıştırarak son kullanıcıya gereksiz CLI/debug çıktısı yansıtmamak.
-- Paketleme sırasında renderer dosya yolu uyuşmazlığından kaynaklanan boş/işlevsiz pencere riskini azaltmak.
-- Konum ve cami seçimini saha ihtiyaçlarına uygun ölçekte genişletmek.
-- Uygulama ikonunu kurumsal görsele yaklaştırmak ve dağıtım tutarlılığını artırmak.
+- Customize penceresinde hangi ayarın hangi kümeye ait olduğu görsel olarak yeterince ayırt edilemiyordu.
+- Özellikle dar genişlikte `Minute multiple` alanı satır kırılımında dengesiz davranıyor, `No earlier/no later` ile görsel karışıklık oluşturuyordu.
+- Sağ tarafta işlevsel karşılığı olmayan dikey ayraçlar arayüzde gereksiz gürültü üretiyordu.
+- Kullanıcı geri bildirimi doğrultusunda daha kompakt, daha net ve hizası güçlü bir düzen hedeflendi.
 
 ## Nasıl Yapıldı? (Teknik Yaklaşım)
 
-- Yapılandırma katmanında (`electron.vite.config.ts`, `package.json`) üretim artefaktlarının yolu ve paket kapsamı netleştirildi.
-- Ana süreçte (`src/main`) `app.isPackaged` tabanlı koşullu loglama uygulanarak üretim terminal gürültüsü düşürüldü.
-- Renderer katmanında protokol tabanlı geliştirme tespitiyle (`http:`) loglar dev modla sınırlandırıldı.
-- Lokasyon/mosque veri modeli mevcut seçim mimarisini bozmayacak şekilde genişletildi; mevcut akışa yeni seçenekler entegre edildi.
-- Görsel düzen değişiklikleri doğrudan renderer HTML/CSS çıktısına yansıtıldı.
+- CSS tarafında mevcut `customize-controls` flex düzeni korundu; ancak kontrol alanları semantik gruplara bölünerek her gruba özel ayraç/hizalama kuralları tanımlandı.
+- Template üretimi `main.ts` içinde doğrudan gruplu HTML üretecek şekilde revize edildi; böylece sadece stil değil, DOM yapısı da mantıksal bölümlere ayrıldı.
+- İkinci satıra taşınması istenen checkbox alanları için tam satır davranışı (`flex-basis: 100%`) uygulandı.
+- Son/ayraçsız grup kurallarıyla sağ uçtaki gereksiz border çizimi ortadan kaldırıldı.
 
 ## Commit Sonrası Beklenen Etki
 
-- Uygulama paketlendiğinde gerekli schedule/template dosyaları erişilebilir olur.
-- Üretimde konsol logları belirgin biçimde azalır.
-- Konum ve cami seçimi daha geniş veri setiyle çalışır.
-- Konum satırındaki kullanım ergonomisi (şehir alanı) iyileşir.
-- İkon altyapısı güncel kaynaklarla dağıtıma hazır hale gelir.
+- Customize penceresinde ayar kümeleri gözle daha hızlı ayrıştırılır.
+- `No earlier than` / `No later than` kutuları ikinci satırda, sol hizalı ve tutarlı görünür.
+- `Minute multiple` alanı sıkışmadan, kendi grubu içinde kalır.
+- Modal genişliği gereksiz boşluk üretmeden daha verimli kullanılır.
+- Sürüm numarası dağıtıma uygun şekilde `1.0.1` olarak güncel kalır.
