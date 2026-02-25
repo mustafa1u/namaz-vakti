@@ -6527,18 +6527,18 @@ const BUILTIN_MOSQUES = [
   },
   {
     kind: "builtin",
-    id: "mevlana-efeler",
-    nameEn: "Mevlana Mosque",
-    nameTr: "Mevlana Camii",
-    address: "Efeler Mah., 1464. Sk. No:2, 09020 Efeler/Aydın",
+    id: "suleiman-bey-efeler",
+    nameEn: "Suleiman Bey Mosque",
+    nameTr: "Süleyman Bey Camii",
+    address: "Cumhuriyet Mah., Adnan Menderes Blv. No:2, 09100 Efeler/Aydın",
     location: { countryId: "turkiye", stateId: "aydin", cityId: "efeler" }
   },
   {
     kind: "builtin",
-    id: "yavuz-sultan-selim-efeler",
-    nameEn: "Yavuz Sultan Selim Mosque",
-    nameTr: "Yavuz Sultan Selim Cami",
-    address: "Girne Mah., Şehitler Blv. No:24, 09100 Efeler/Aydın",
+    id: "ramazan-pasa-efeler",
+    nameEn: "Ramazan Pasha Mosque",
+    nameTr: "Ramazan Paşa Camii",
+    address: "Hasanefendi-Ramazan Paşa Mah., Doğu Gazi Blv. No:4, 09100 Efeler/Aydın",
     location: { countryId: "turkiye", stateId: "aydin", cityId: "efeler" }
   },
   {
