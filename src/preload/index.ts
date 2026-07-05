@@ -17,6 +17,10 @@ const api: DesktopApi = {
     console.log("[preload] invoke selectOutputFolder");
     return ipcRenderer.invoke(APP_CHANNELS.SELECT_OUTPUT_FOLDER);
   },
+  getDefaultOutputFolder: () => {
+    console.log("[preload] invoke getDefaultOutputFolder");
+    return ipcRenderer.invoke(APP_CHANNELS.GET_DEFAULT_OUTPUT_FOLDER);
+  },
   showInFolder: (filePath) => {
     console.log("[preload] invoke showInFolder", filePath);
     return ipcRenderer.invoke(APP_CHANNELS.SHOW_IN_FOLDER, { filePath });

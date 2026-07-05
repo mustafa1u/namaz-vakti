@@ -1,6 +1,6 @@
 {
   "name": "namaz-vakti-desktop",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "description": "Electron desktop app for monthly iqamah schedule generation from TSV",
   "main": "dist/main/index.js",
@@ -9,7 +9,7 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "test": "node --test scripts/output-paths.test.mjs scripts/reveal-in-folder.test.mjs",
+    "test": "node --test scripts/output-paths.test.mjs scripts/reveal-in-folder.test.mjs scripts/default-output-folder.test.mjs",
     "schedules:combine-yearly": "node scripts/combine-schedules-to-yearly.mjs",
     "typecheck": "tsc --noEmit",
     "i18n:check": "node scripts/check-i18n-keys.mjs",

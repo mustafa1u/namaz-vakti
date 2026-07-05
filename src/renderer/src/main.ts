@@ -68,6 +68,8 @@ const customizePrayers = getEl<HTMLElement>("customizePrayers");
 const saveCustomizeButton = getEl<HTMLButtonElement>("saveCustomize");
 const cancelCustomizeButton = getEl<HTMLButtonElement>("cancelCustomize");
 const statusMessageEl = getEl<HTMLElement>("statusMessage");
+const generateProgressEl = getEl<HTMLElement>("generateProgress");
+const generateResultMessageEl = getEl<HTMLElement>("generateResultMessage");
 const generatePngButton = getEl<HTMLButtonElement>("generatePng");
 const generateXlsxButton = getEl<HTMLButtonElement>("generateXlsx");
 const showInFolderButton = getEl<HTMLButtonElement>("showInFolder");
@@ -1064,7 +1066,7 @@ async function restoreLastEntries(): Promise<void> {
   customMosquesState = loadCustomMosques();
   const saved = loadLastEntries();
   if (!saved) {
-    applyFreshDefaults();
+    await applyFreshDefaults();
     renderAdvancedLimitRows();
     await refreshMonths();
     saveLastEntries();
@@ -1320,11 +1322,12 @@ function readOptions(): GenerationOptions {
   };
 }
 
-function applyFreshDefaults(): void {
+async function applyFreshDefaults(): Promise<void> {
   selectedMosqueId = BUILTIN_MOSQUE_ID_DEFAULT;
   const defaultMosque = getBuiltinMosqueById(BUILTIN_MOSQUE_ID_DEFAULT);
+  const defaultOutputFolder = await getDefaultOutputFolder();
   syncLocationSelectors(defaultMosque.location);
-  outputFolderInput.value = "";
+  outputFolderInput.value = defaultOutputFolder;
   yearSelect.value = RESET_DEFAULT_YEAR;
   monthSelect.value = RESET_DEFAULT_MONTH_NUMBER;
   localeSelect.value = "en";
@@ -1343,7 +1346,7 @@ async function resetToDefaults(): Promise<void> {
   localStorage.removeItem(LEGACY_V4_KEY);
   localStorage.removeItem(LEGACY_V3_KEY);
   localStorage.removeItem(LEGACY_V2_KEY);
-  applyFreshDefaults();
+  await applyFreshDefaults();
   renderAdvancedLimitRows();
   await refreshMonths();
   if (Array.from(yearSelect.options).some((option) => option.value === RESET_DEFAULT_YEAR)) {
@@ -1374,6 +1377,22 @@ function setShowInFolderButtonState(): void {
   showInFolderButton.disabled = !lastGeneratedFilePath;
 }
 
+async function getDefaultOutputFolder(): Promise<string> {
+  try {
+    return await window.appApi.getDefaultOutputFolder();
+  } catch {
+    return "";
+  }
+}
+
+function setGenerateProgressVisible(isVisible: boolean): void {
+  generateProgressEl.hidden = !isVisible;
+}
+
+function setGenerateResultMessage(message: string): void {
+  generateResultMessageEl.textContent = message;
+}
+
 async function generateForTarget(target: GenerateTarget): Promise<void> {
   if (isGenerating) {
     return;
@@ -1388,6 +1407,9 @@ async function generateForTarget(target: GenerateTarget): Promise<void> {
 
   isGenerating = true;
   setGenerateButtonsDisabled(true);
+  setGenerateResultMessage("");
+  setGenerateProgressVisible(true);
+  showStatus("");
   saveLastEntries();
   const targetLabel = target === "png" ? "PNG" : "XLSX";
 
@@ -1398,11 +1420,10 @@ async function generateForTarget(target: GenerateTarget): Promise<void> {
     if (generatedPath) {
       lastGeneratedFilePath = generatedPath;
       setShowInFolderButtonState();
+      setGenerateResultMessage(t("status.generatedFile", { file: getFileName(generatedPath) }));
     }
     if (response.warnings.length > 0) {
       showStatus(response.warnings.join(" | "));
-    } else if (generatedPath) {
-      showStatus(t("status.generatedFile", { file: getFileName(generatedPath) }));
     } else {
       showStatus("");
     }
@@ -1412,6 +1433,7 @@ async function generateForTarget(target: GenerateTarget): Promise<void> {
     logError("errors.generateFailed", error);
   } finally {
     isGenerating = false;
+    setGenerateProgressVisible(false);
     setGenerateButtonsDisabled(false);
   }
 }

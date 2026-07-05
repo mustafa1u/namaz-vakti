@@ -4,6 +4,7 @@ export const APP_CHANNELS = {
   LIST_MONTHS: "app:list-months",
   GENERATE_OUTPUTS: "app:generate-outputs",
   SELECT_OUTPUT_FOLDER: "app:select-output-folder",
+  GET_DEFAULT_OUTPUT_FOLDER: "app:get-default-output-folder",
   SHOW_IN_FOLDER: "app:show-in-folder"
 } as const;
 
@@ -225,5 +226,6 @@ export type DesktopApi = {
   listMonths: (tsvFolder: string) => Promise<string[]>;
   generateOutputs: (request: GenerateOutputsRequest) => Promise<GenerateOutputsResponse>;
   selectOutputFolder: () => Promise<string | null>;
+  getDefaultOutputFolder: () => Promise<string>;
   showInFolder: (filePath: string) => Promise<boolean>;
 };

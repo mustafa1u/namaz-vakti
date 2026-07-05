@@ -253,11 +253,16 @@
         opacity: 0.6;
         cursor: not-allowed;
       }
+      @keyframes generate-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
       .generate-btn {
         width: 140px;
       }
       .generate-pane {
-        display: inline-block;
+        flex: 1;
         background: #e9eef1;
         border: 1px solid #c8d1d7;
         padding: 0.75rem;
@@ -266,16 +271,54 @@
         margin: 0 0 0.6rem;
         font-size: 16px;
       }
+      .generate-output-row {
+        display: grid;
+        grid-template-columns: 150px minmax(180px, 1fr) auto;
+        gap: 0.5rem;
+        align-items: center;
+        margin-bottom: 0.75rem;
+      }
       .generate-actions {
         display: flex;
         gap: 0.5rem;
         flex-wrap: wrap;
       }
+      .generate-progress {
+        display: inline-flex;
+        align-items: center;
+        min-height: 1.5rem;
+        margin-top: 0.65rem;
+        gap: 0.5rem;
+        color: #183947;
+        font-weight: 600;
+      }
+      .generate-progress[hidden] {
+        display: none !important;
+      }
+      .generate-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(24, 57, 71, 0.25);
+        border-top-color: #183947;
+        border-radius: 50%;
+        animation: generate-spin 800ms linear infinite;
+        flex: 0 0 auto;
+      }
+      .generate-result {
+        min-height: 1.5rem;
+        margin: 0.55rem 0 0;
+        color: #183947;
+        font-weight: 600;
+        overflow-wrap: anywhere;
+      }
       .bottom-actions {
         display: flex;
         justify-content: space-between;
         align-items: flex-end;
-        gap: 1rem;
+        gap: 0.75rem;
+      }
+      .bottom-actions > button {
+        flex: 0 0 auto;
       }
       .status {
         min-height: 1.5rem;
@@ -382,12 +425,6 @@
         </div>
       </div>
 
-      <div class="row">
-        <label for="outputFolder" data-i18n="labels.outputFolder">Output Folder</label>
-        <input id="outputFolder" type="text" />
-        <button id="pickOutput" type="button" data-i18n="buttons.browse">Browse</button>
-      </div>
-
       <div class="row row-inline">
         <label for="countrySelect" data-i18n="labels.location">Location</label>
         <div class="field-inline">
@@ -434,7 +471,7 @@
 
       <div class="row">
         <label for="announcementMessage" data-i18n="labels.announcementMessage">Announcement</label>
-        <textarea id="announcementMessage" rows="2" data-i18n-placeholder="placeholders.announcementMessage" placeholder="Message shown above the table"></textarea>
+        <textarea id="announcementMessage" rows="2" data-i18n-placeholder="placeholders.announcementMessage" placeholder="Message/announcement/note/warning shown above the table"></textarea>
         <span></span>
       </div>
 
@@ -478,11 +515,21 @@
       <div class="bottom-actions">
         <div class="generate-pane">
           <h2 data-i18n="labels.generatePane">Generate</h2>
+          <div class="generate-output-row">
+            <label for="outputFolder" data-i18n="labels.outputFolder">Output Folder</label>
+            <input id="outputFolder" type="text" />
+            <button id="pickOutput" type="button" data-i18n="buttons.browse">Browse</button>
+          </div>
           <div class="generate-actions">
             <button id="generatePng" class="generate-btn" type="button">PNG</button>
             <button id="generateXlsx" class="generate-btn" type="button">Excel (.xlsx)</button>
             <button id="showInFolder" class="generate-btn" type="button" data-i18n="buttons.showInFolder" disabled>Show in Folder</button>
           </div>
+          <div id="generateProgress" class="generate-progress" role="progressbar" aria-live="polite" hidden>
+            <span class="generate-spinner" aria-hidden="true"></span>
+            <span data-i18n="status.generating">Generating...</span>
+          </div>
+          <p class="generate-result" id="generateResultMessage" aria-live="polite"></p>
         </div>
         <button id="resetDefaults" type="button" data-i18n="buttons.resetDefaults">Reset to defaults</button>
       </div>

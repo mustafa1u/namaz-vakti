@@ -16,6 +16,7 @@ import type { RawDailyRecord } from "@domain/types";
 import { buildMonthlyPlan } from "@domain/pipeline";
 import { writeXlsxFromTemplate } from "@services/xlsx-writer";
 import { renderPng } from "@services/png-renderer";
+import { resolveDefaultOutputFolder } from "./default-output-folder";
 import { revealFileInFolder } from "./reveal-in-folder";
 
 type WindowGetter = () => BrowserWindow | null;
@@ -23,12 +24,15 @@ const FIXED_TEMPLATE_FILE_NAME = "Mevlana Masjid Prayer Times_KALIP.xlsx";
 const STANDARD_ZHUHR_ANCHOR = (12 * 60) + 15;
 const DAYLIGHT_ZHUHR_ANCHOR = (13 * 60) + 15;
 const IS_DEV = !app.isPackaged;
+let preferredExplorerWindowHandle: string | null = null;
 const REUSE_EXPLORER_WINDOW_SCRIPT_BODY = `
 $ErrorActionPreference = 'SilentlyContinue'
 $folderPath = [System.IO.Path]::GetDirectoryName($FilePath)
 $fileName = [System.IO.Path]::GetFileName($FilePath)
 if (-not $folderPath -or -not $fileName) { exit 1 }
 $normalizedTarget = $folderPath.TrimEnd('\\')
+$preferredHwndNumber = 0
+try { $preferredHwndNumber = [int64]$PreferredHwnd } catch {}
 function Wait-ExplorerReady($window) {
   for ($i = 0; $i -lt 20; $i++) {
     try {
@@ -48,18 +52,61 @@ function Navigate-Explorer($window, [string]$path) {
     Wait-ExplorerReady $window
   } catch {}
 }
-$shell = New-Object -ComObject Shell.Application
-$targetWindow = $null
-foreach ($window in @($shell.Windows())) {
+try {
+  Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public static class ExplorerWindowActivation {
+  [DllImport("user32.dll")]
+  public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+  [DllImport("user32.dll")]
+  public static extern bool BringWindowToTop(IntPtr hWnd);
+  [DllImport("user32.dll")]
+  public static extern bool SetForegroundWindow(IntPtr hWnd);
+  [DllImport("user32.dll")]
+  public static extern void SwitchToThisWindow(IntPtr hWnd, bool fAltTab);
+}
+"@
+} catch {}
+function Activate-ExplorerWindow($window) {
   try {
-    $fullName = [string]$window.FullName
-    if (-not $fullName.ToLowerInvariant().EndsWith('\\explorer.exe')) { continue }
-    $currentPath = [string]$window.Document.Folder.Self.Path
-    if ($currentPath -and [System.String]::Equals($currentPath.TrimEnd('\\'), $normalizedTarget, [System.StringComparison]::OrdinalIgnoreCase)) {
-      $targetWindow = $window
+    $hwnd = [IntPtr]([int64]$window.HWND)
+    [void][ExplorerWindowActivation]::ShowWindowAsync($hwnd, 9)
+    Start-Sleep -Milliseconds 80
+    [void][ExplorerWindowActivation]::BringWindowToTop($hwnd)
+    [void][ExplorerWindowActivation]::SetForegroundWindow($hwnd)
+    [ExplorerWindowActivation]::SwitchToThisWindow($hwnd, $true)
+  } catch {}
+}
+$shell = New-Object -ComObject Shell.Application
+function Find-ExplorerWindow([int64]$preferredHwnd, [string]$targetPath) {
+  $pathMatchedWindow = $null
+  foreach ($window in @($shell.Windows())) {
+    try {
+      $fullName = [string]$window.FullName
+      if (-not $fullName.ToLowerInvariant().EndsWith('\\explorer.exe')) { continue }
+      $windowHwnd = [int64]$window.HWND
+      if ($preferredHwnd -gt 0 -and $windowHwnd -eq $preferredHwnd) {
+        return $window
+      }
+      $currentPath = [string]$window.Document.Folder.Self.Path
+      if ($currentPath -and [System.String]::Equals($currentPath.TrimEnd('\\'), $targetPath, [System.StringComparison]::OrdinalIgnoreCase)) {
+        $pathMatchedWindow = $window
+      }
+    } catch {}
+  }
+  return $pathMatchedWindow
+}
+$targetWindow = Find-ExplorerWindow $preferredHwndNumber $normalizedTarget
+if (-not $targetWindow) {
+  try { $shell.Open($folderPath) } catch {}
+  for ($i = 0; $i -lt 30; $i++) {
+    Start-Sleep -Milliseconds 100
+    $targetWindow = Find-ExplorerWindow 0 $normalizedTarget
+    if ($targetWindow) {
       break
     }
-  } catch {}
+  }
 }
 if (-not $targetWindow) { exit 1 }
 $selected = $false
@@ -80,11 +127,11 @@ try {
   }
 } catch {}
 try { $targetWindow.Visible = $true } catch {}
-try {
-  $wshell = New-Object -ComObject WScript.Shell
-  [void]$wshell.AppActivate([int]$targetWindow.HWND)
-} catch {}
-if ($selected) { exit 0 }
+Activate-ExplorerWindow $targetWindow
+if ($selected) {
+  try { Write-Output ([string]$targetWindow.HWND) } catch {}
+  exit 0
+}
 exit 2
 `.trim();
 
@@ -290,7 +337,7 @@ function tryReuseExistingExplorerWindow(filePath: string): boolean {
 
   try {
     const encodedScript = Buffer
-      .from(buildReuseExplorerWindowScript(filePath), "utf16le")
+      .from(buildReuseExplorerWindowScript(filePath, preferredExplorerWindowHandle), "utf16le")
       .toString("base64");
     const result = spawnSync(
       "powershell.exe",
@@ -303,22 +350,37 @@ function tryReuseExistingExplorerWindow(filePath: string): boolean {
         encodedScript
       ],
       {
-        stdio: "ignore",
-        timeout: 3500,
+        encoding: "utf8",
+        timeout: 7000,
         windowsHide: true
       }
     );
 
-    return result.status === 0;
+    if (result.status === 0) {
+      const windowHandle = parseExplorerWindowHandle(result.stdout);
+      if (windowHandle) {
+        preferredExplorerWindowHandle = windowHandle;
+      }
+      return true;
+    }
+
+    return false;
   } catch (error) {
     devLog("[ipc] REUSE_EXPLORER_WINDOW failed", error);
     return false;
   }
 }
 
-function buildReuseExplorerWindowScript(filePath: string): string {
+function parseExplorerWindowHandle(output: string | Buffer | null): string | null {
+  const text = output?.toString() ?? "";
+  return text.match(/\b\d+\b/)?.[0] ?? null;
+}
+
+function buildReuseExplorerWindowScript(filePath: string, preferredWindowHandle: string | null): string {
   const encodedFilePath = Buffer.from(filePath, "utf16le").toString("base64");
+  const safePreferredWindowHandle = preferredWindowHandle?.match(/^\d+$/) ? preferredWindowHandle : "0";
   return [
+    `$PreferredHwnd = '${safePreferredWindowHandle}'`,
     `$FilePath = [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String('${encodedFilePath}'))`,
     REUSE_EXPLORER_WINDOW_SCRIPT_BODY
   ].join("\n");
@@ -394,6 +456,14 @@ export function registerIpcHandlers(_getWindow: WindowGetter): void {
     devLog("[ipc] SELECT_OUTPUT_FOLDER");
     const result = await dialog.showOpenDialog({ properties: ["openDirectory", "createDirectory"] });
     return result.canceled ? null : result.filePaths[0] ?? null;
+  });
+
+  ipcMain.handle(APP_CHANNELS.GET_DEFAULT_OUTPUT_FOLDER, async () => {
+    devLog("[ipc] GET_DEFAULT_OUTPUT_FOLDER");
+    return resolveDefaultOutputFolder({
+      getPath: (name) => app.getPath(name),
+      exists: existsSync
+    });
   });
 
   ipcMain.handle(APP_CHANNELS.SHOW_IN_FOLDER, async (_event, rawRequest) => {

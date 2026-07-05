@@ -7,6 +7,79 @@
 - Commit mesajında KISA-ETIKET -- Normal commit mesajı şeklindeki format korunarak her komitin kolay okunur bir kısa etiketi olmasına dikkat edilir.
 
 ## Commit Mesajı
+`KAMET ÜRETİM AKIŞI V1.0.3 -- Üretim sırasında ilerleme göstergesi, güvenli dosya adlandırma, varsayılan çıktı klasörü ve Explorer odak akışı iyileştirildi.`
+
+## Commit Zamanı
+`2026-07-05 19:17:42 +03:00`
+
+## Bu Committe Yapılanlar
+
+1. **Üret paneli ve üretim geri bildirimi iyileştirildi**
+- `desktop-app/src/renderer/index.html` içinde çıktı klasörü satırı Üret paneline taşındı.
+- Üretim sırasında belirsiz süreli ilerleme göstergesi eklendi.
+- Oluşturulan dosya mesajı artık Üret panelinde düğmelerin altında gösterilir.
+- `Klasörde göster / Show in Folder` düğmesi son oluşturulan dosyayı göstermeye devam eder.
+
+2. **Varsayılan çıktı klasörü Windows kullanıcı klasörlerine bağlandı**
+- `desktop-app/src/main/default-output-folder.ts` içinde varsayılan çıktı klasörü çözümleyicisi eklendi.
+- Varsayılanlara dönüldüğünde önce `Documents`, yoksa `Downloads` klasörü kullanılır.
+- İki klasör de bulunamazsa çıktı klasörü boş bırakılır ve hata gösterilmez.
+- Bu davranış `desktop-app/scripts/default-output-folder.test.mjs` ile test edildi.
+
+3. **Çıktı dosya adları daha okunabilir hale getirildi**
+- Dosya adındaki çizelge ayı artık `January-2026` veya `Ocak-2026` gibi tam ay adıyla yazılır.
+- Çakışma yoksa zaman damgası eklenmez.
+- Çakışma varsa zaman damgası çift tireyle ayrılır: `iqamah_January-2026--05-Jul-2026_15-28-20.xlsx`.
+- Zaman damgalı ad da çakışırsa `_2`, `_3` gibi sıra numarası eklenir.
+- Zaman damgasındaki ay kısaltması seçili çıktı diline göre korunur.
+
+4. **Windows Explorer Klasörde Göster akışı güçlendirildi**
+- Mevcut Explorer penceresinin `HWND` değeri başarılı gösterimden sonra saklanır.
+- Sonraki gösterimlerde aynı Explorer penceresi önce denenir; pencere arka plandaysa aynı pencere hedef klasöre gezdirilir.
+- Pencere öne getirme için doğrudan Win32 `ShowWindowAsync`, `BringWindowToTop`, `SetForegroundWindow` ve `SwitchToThisWindow` çağrıları kullanılır.
+- Mevcut pencere kapatılmışsa klasör eşleşmesi veya yeni Explorer penceresi geri dönüş yolu olarak korunur.
+
+5. **Sürüm ve dağıtım çıktıları güncellendi**
+- `desktop-app/package.json` ve `desktop-app/package-lock.json` sürümü `1.0.3` yapıldı.
+- `Namaz Vakti Desktop Setup 1.0.3.exe` yeniden üretildi.
+- `Namaz Vakti Desktop 1.0.3.exe` taşınabilir dağıtım paketi yeniden üretildi.
+- `Namaz Vakti Desktop Setup 1.0.3.exe.blockmap` yeniden üretildi.
+
+## Neden Bu Değişiklikler Yapıldı?
+
+- Üretim sırasında uygulamanın çalıştığını gösteren belirgin bir geri bildirim gerekiyordu.
+- Varsayılanlara dönüldüğünde çıktı klasörünün boş kalması kullanıcıyı gereksiz ayar yapmaya zorluyordu.
+- Çıktı dosya adlarında çizelge ayı daha okunabilir olmalı, zaman damgası ise yalnızca gerçek çakışma durumunda eklenmeliydi.
+- Klasörde Göster akışı mevcut Explorer penceresini bulsa bile pencereyi her zaman ön plana getiremiyordu.
+
+## Nasıl Yapıldı? (Teknik Yaklaşım)
+
+- Ana süreçte varsayılan klasör için yeni IPC kanalı ve küçük, test edilebilir çözümleyici eklendi.
+- Dosya adı üretimi ortak `output-paths` servisinde güncellendi ve Node testleri yeni adlandırma kurallarına göre genişletildi.
+- Renderer tarafında üretim durumu ve son oluşturulan dosya mesajı ayrı UI öğelerine bağlandı.
+- Windows Explorer yeniden kullanım betiği mevcut pencere tanıtıcısını saklayıp sonraki çağrılarda doğrudan bu pencereyi hedefleyecek şekilde güncellendi.
+- Electron Builder ile 1.0.3 NSIS kurucusu ve taşınabilir paket yeniden üretildi.
+
+## Doğrulama
+
+- `npm test`
+- `npm run typecheck`
+- `npm run i18n:check`
+- `npm run build`
+- `npm run dist:win:all`
+
+## Commit Sonrası Beklenen Etki
+
+- Üretim sırasında kullanıcı uygulamanın çalışmaya devam ettiğini görür.
+- Varsayılanlara dönüşte kullanılabilir bir çıktı klasörü otomatik gelir.
+- Aynı ay için ilk üretimde sade ve okunabilir dosya adı oluşur.
+- Dosya adı çakışmalarında önceki dosyalar ezilmez.
+- Mevcut Explorer penceresi arka planda kalsa bile Klasörde Göster akışı onu öne getirmeye çalışır.
+- 1.0.3 kurucu ve taşınabilir paket bu değişiklikleri içerir.
+
+---
+
+## Commit Mesajı
 `KAMET ÇIKTI KORUMASI V1.0.2 -- Kamet çizelgesi çıktılarında zaman damgalı dosya adları, çakışma koruması ve OneDrive uyumlu Klasörde Göster akışı eklendi.`
 
 ## Commit Zamanı

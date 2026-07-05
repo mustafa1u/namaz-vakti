@@ -19,7 +19,7 @@ async function importOutputPathsModule() {
 
 const { buildTemporaryOutputPath, buildUniqueOutputPath } = await importOutputPathsModule();
 
-test("buildUniqueOutputPath adds an English month-abbreviated timestamp", () => {
+test("buildUniqueOutputPath uses full English schedule month without timestamp when there is no conflict", () => {
   const outputPath = buildUniqueOutputPath({
     outputFolder: "C:\\exports",
     scheduleMonth: "2026-01",
@@ -29,10 +29,10 @@ test("buildUniqueOutputPath adds an English month-abbreviated timestamp", () => 
     pathExists: () => false
   });
 
-  assert.equal(basename(outputPath), "iqamah_2026-01_2026-Jul-05_09-08-07.xlsx");
+  assert.equal(basename(outputPath), "iqamah_January-2026.xlsx");
 });
 
-test("buildUniqueOutputPath uses the selected output language for timestamp month abbreviation", () => {
+test("buildUniqueOutputPath uses full Turkish schedule month without timestamp when there is no conflict", () => {
   const outputPath = buildUniqueOutputPath({
     outputFolder: "C:\\exports",
     scheduleMonth: "2026-01",
@@ -42,13 +42,27 @@ test("buildUniqueOutputPath uses the selected output language for timestamp mont
     pathExists: () => false
   });
 
-  assert.equal(basename(outputPath), "iqamah_2026-01_2026-Tem-05_09-08-07.png");
+  assert.equal(basename(outputPath), "iqamah_Ocak-2026.png");
+});
+
+test("buildUniqueOutputPath adds double-dash day-month-year timestamp only when the schedule-month name already exists", () => {
+  const outputPath = buildUniqueOutputPath({
+    outputFolder: "C:\\exports",
+    scheduleMonth: "2026-01",
+    locale: "tr",
+    extension: "png",
+    now: new Date(2026, 6, 5, 9, 8, 7),
+    pathExists: (candidate) => basename(candidate) === "iqamah_Ocak-2026.png"
+  });
+
+  assert.equal(basename(outputPath), "iqamah_Ocak-2026--05-Tem-2026_09-08-07.png");
 });
 
 test("buildUniqueOutputPath suffixes a number when the timestamped name already exists", () => {
   const seen = new Set([
-    "iqamah_2026-01_2026-Jul-05_09-08-07.xlsx",
-    "iqamah_2026-01_2026-Jul-05_09-08-07_2.xlsx"
+    "iqamah_January-2026.xlsx",
+    "iqamah_January-2026--05-Jul-2026_09-08-07.xlsx",
+    "iqamah_January-2026--05-Jul-2026_09-08-07_2.xlsx"
   ]);
 
   const outputPath = buildUniqueOutputPath({
@@ -60,18 +74,18 @@ test("buildUniqueOutputPath suffixes a number when the timestamped name already 
     pathExists: (candidate) => seen.has(basename(candidate))
   });
 
-  assert.equal(basename(outputPath), "iqamah_2026-01_2026-Jul-05_09-08-07_3.xlsx");
+  assert.equal(basename(outputPath), "iqamah_January-2026--05-Jul-2026_09-08-07_3.xlsx");
 });
 
 test("buildTemporaryOutputPath uses a sibling temp file and avoids existing temp conflicts", () => {
   const seen = new Set([
-    "iqamah_2026-01_2026-Jul-05_09-08-07.xlsx.tmp",
-    "iqamah_2026-01_2026-Jul-05_09-08-07.xlsx.tmp-2"
+    "iqamah_January-2026.xlsx.tmp",
+    "iqamah_January-2026.xlsx.tmp-2"
   ]);
 
-  const temporaryPath = buildTemporaryOutputPath("C:\\exports\\iqamah_2026-01_2026-Jul-05_09-08-07.xlsx", {
+  const temporaryPath = buildTemporaryOutputPath("C:\\exports\\iqamah_January-2026.xlsx", {
     pathExists: (candidate) => seen.has(basename(candidate))
   });
 
-  assert.equal(basename(temporaryPath), "iqamah_2026-01_2026-Jul-05_09-08-07.xlsx.tmp-3");
+  assert.equal(basename(temporaryPath), "iqamah_January-2026.xlsx.tmp-3");
 });

@@ -88,7 +88,7 @@
   "placeholders": {
     "masjidName": "Masjid name shown in header",
     "masjidAddress": "Masjid address shown in header",
-    "announcementMessage": "Message shown above the table"
+    "announcementMessage": "Message/announcement/note/warning shown above the table"
   },
   "languages": {
     "en": "English",
@@ -124,6 +124,7 @@
   "status": {
     "validationFailed": "Cannot generate. {{details}}",
     "generateFailed": "Generate {{target}} failed: {{details}}",
+    "generating": "Generating...",
     "generatedFile": "Generated: {{file}}",
     "noGeneratedFile": "No generated file yet.",
     "generatedFileMissing": "The generated file is no longer available.",

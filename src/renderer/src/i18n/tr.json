@@ -88,7 +88,7 @@
   "placeholders": {
     "masjidName": "Başlıkta gösterilecek cami adı",
     "masjidAddress": "Başlıkta gösterilecek adres",
-    "announcementMessage": "Tablonun üstünde gösterilen mesaj"
+    "announcementMessage": "Tablonun üstünde gösterilen mesaj/duyuru/not/uyarı"
   },
   "languages": {
     "en": "English",
@@ -124,6 +124,7 @@
   "status": {
     "validationFailed": "Üretim başlatılamadı. {{details}}",
     "generateFailed": "{{target}} üretimi başarısız: {{details}}",
+    "generating": "\u00dcretiliyor...",
     "generatedFile": "Olu\u015fturuldu: {{file}}",
     "noGeneratedFile": "Hen\u00fcz olu\u015fturulmu\u015f dosya yok.",
     "generatedFileMissing": "Olu\u015fturulan dosya art\u0131k kullan\u0131lam\u0131yor.",

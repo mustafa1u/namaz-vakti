@@ -9,6 +9,11 @@ const MONTH_ABBREVIATIONS: Record<OutputLocale, string[]> = {
   tr: ["Oca", "\u015eub", "Mar", "Nis", "May", "Haz", "Tem", "A\u011fu", "Eyl", "Eki", "Kas", "Ara"]
 };
 
+const MONTH_NAMES: Record<OutputLocale, string[]> = {
+  en: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+  tr: ["Ocak", "\u015eubat", "Mart", "Nisan", "May\u0131s", "Haziran", "Temmuz", "A\u011fustos", "Eyl\u00fcl", "Ekim", "Kas\u0131m", "Aral\u0131k"]
+};
+
 export type BuildUniqueOutputPathOptions = {
   outputFolder: string;
   scheduleMonth: string;
@@ -21,12 +26,19 @@ export type BuildUniqueOutputPathOptions = {
 export function buildUniqueOutputPath(options: BuildUniqueOutputPathOptions): string {
   const now = options.now ?? new Date();
   const pathExists = options.pathExists ?? existsSync;
-  const baseName = `iqamah_${options.scheduleMonth}_${formatTimestampForFileName(now, options.locale)}`;
-  let candidate = join(options.outputFolder, `${baseName}.${options.extension}`);
+  const scheduleMonth = formatScheduleMonthForFileName(options.scheduleMonth, options.locale);
+  const baseName = `iqamah_${scheduleMonth}`;
+  const plainCandidate = join(options.outputFolder, `${baseName}.${options.extension}`);
+  if (!pathExists(plainCandidate)) {
+    return plainCandidate;
+  }
+
+  const timestampedBaseName = `${baseName}--${formatTimestampForFileName(now, options.locale)}`;
+  let candidate = join(options.outputFolder, `${timestampedBaseName}.${options.extension}`);
   let suffix = 2;
 
   while (pathExists(candidate)) {
-    candidate = join(options.outputFolder, `${baseName}_${suffix}.${options.extension}`);
+    candidate = join(options.outputFolder, `${timestampedBaseName}_${suffix}.${options.extension}`);
     suffix += 1;
   }
 
@@ -53,9 +65,25 @@ export function buildTemporaryOutputPath(
 export function formatTimestampForFileName(date: Date, locale: OutputLocale): string {
   const monthName = MONTH_ABBREVIATIONS[locale][date.getMonth()] ?? MONTH_ABBREVIATIONS.en[date.getMonth()] ?? "Mon";
   return [
-    `${date.getFullYear()}-${monthName}-${pad2(date.getDate())}`,
+    `${pad2(date.getDate())}-${monthName}-${date.getFullYear()}`,
     `${pad2(date.getHours())}-${pad2(date.getMinutes())}-${pad2(date.getSeconds())}`
   ].join("_");
+}
+
+export function formatScheduleMonthForFileName(scheduleMonth: string, locale: OutputLocale): string {
+  const match = /^(\d{4})-(\d{2})$/.exec(scheduleMonth);
+  if (!match) {
+    return scheduleMonth;
+  }
+
+  const [, year, monthNumber] = match;
+  const monthIndex = Number(monthNumber) - 1;
+  const monthName = MONTH_NAMES[locale][monthIndex] ?? MONTH_NAMES.en[monthIndex];
+  if (!monthName) {
+    return scheduleMonth;
+  }
+
+  return `${monthName}-${year}`;
 }
 
 function pad2(value: number): string {
