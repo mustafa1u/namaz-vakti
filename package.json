@@ -1,6 +1,6 @@
 {
   "name": "namaz-vakti-desktop",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "description": "Electron desktop app for monthly iqamah schedule generation from TSV",
   "main": "dist/main/index.js",
@@ -9,10 +9,13 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
+    "test": "node --test scripts/output-paths.test.mjs scripts/reveal-in-folder.test.mjs",
     "schedules:combine-yearly": "node scripts/combine-schedules-to-yearly.mjs",
     "typecheck": "tsc --noEmit",
     "i18n:check": "node scripts/check-i18n-keys.mjs",
-    "dist:win": "npm run build && set CSC_IDENTITY_AUTO_DISCOVERY=false && npx electron-builder --win nsis portable",
+    "dist:win": "npm run build && set CSC_IDENTITY_AUTO_DISCOVERY=false && npx electron-builder --win nsis",
+    "dist:win:portable": "npm run build && set CSC_IDENTITY_AUTO_DISCOVERY=false && npx electron-builder --win portable",
+    "dist:win:all": "npm run build && set CSC_IDENTITY_AUTO_DISCOVERY=false && npx electron-builder --win nsis portable",
     "dist:linux": "npm run build && npx electron-builder --linux AppImage"
   },
   "dependencies": {
@@ -31,10 +34,13 @@
     "appId": "com.namazvakti.desktop",
     "productName": "Namaz Vakti Desktop",
     "directories": {
-      "buildResources": "build"
+      "buildResources": "build",
+      "output": "release"
     },
     "files": [
-      "dist/**/*",
+      "dist/main/**/*",
+      "dist/preload/**/*",
+      "dist/renderer/**/*",
       "assets/schedules/**/*",
       "assets/templates/**/*",
       "package.json"
@@ -46,7 +52,22 @@
       }
     ],
     "win": {
-      "icon": "icons/app.ico"
+      "icon": "icons/app.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Namaz Vakti Desktop",
+      "multiLanguageInstaller": true,
+      "installerLanguages": [
+        "en_US",
+        "tr_TR"
+      ],
+      "language": "1033"
     },
     "mac": {
       "icon": "icons/app.icns"

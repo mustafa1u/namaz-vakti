@@ -70,6 +70,7 @@ const cancelCustomizeButton = getEl<HTMLButtonElement>("cancelCustomize");
 const statusMessageEl = getEl<HTMLElement>("statusMessage");
 const generatePngButton = getEl<HTMLButtonElement>("generatePng");
 const generateXlsxButton = getEl<HTMLButtonElement>("generateXlsx");
+const showInFolderButton = getEl<HTMLButtonElement>("showInFolder");
 const resetDefaultsButton = getEl<HTMLButtonElement>("resetDefaults");
 
 const PRAYER_ORDER: PrayerKey[] = ["fajr", "zhuhr", "asr", "maghrib", "isha"];
@@ -308,6 +309,7 @@ let availableMonthsByYear = new Map<string, string[]>();
 let customMosquesState: CustomMosque[] = [];
 let selectedMosqueId = BUILTIN_MOSQUE_ID_DEFAULT;
 let mosqueModalLocationState: LocationSelection = { ...DEFAULT_LOCATION_SELECTION };
+let lastGeneratedFilePath: string | null = null;
 
 void bootstrap();
 
@@ -360,6 +362,10 @@ async function bootstrap(): Promise<void> {
 
   generateXlsxButton.addEventListener("click", async () => {
     await generateForTarget("xlsx");
+  });
+
+  showInFolderButton.addEventListener("click", async () => {
+    await showLastGeneratedFileInFolder();
   });
 
   resetDefaultsButton.addEventListener("click", async () => {
@@ -471,7 +477,7 @@ function formatMonthNameForUi(year: string, monthNumber: string): string {
   }
   const locale = getUiLanguage() === "tr" ? "tr-TR" : "en-US";
   const date = new Date(Date.UTC(Number(year), monthIndex, 1));
-  const raw = new Intl.DateTimeFormat(locale, { month: "long" }).format(date);
+  const raw = new Intl.DateTimeFormat(locale, { month: "long", timeZone: "UTC" }).format(date);
   if (!raw) {
     return monthNumber;
   }
@@ -495,12 +501,25 @@ function getSelectedYearMonth(): string {
   return `${year}-${monthNumber}`;
 }
 
+function getLocalizedCountryLabel(countryId: CountryId, fallbackLabel: string): string {
+  if (countryId === "usa") {
+    return t("countries.usa", { defaultValue: fallbackLabel });
+  }
+  if (countryId === "turkiye") {
+    return t("countries.turkiye", { defaultValue: fallbackLabel });
+  }
+  return fallbackLabel;
+}
+
 function syncLocationSelectors(partial: Partial<LocationSelection>): LocationSelection {
   const normalized = normalizeLocationSelection(partial);
 
   renderSelectOptions(
     countrySelect,
-    getCountryOptions().map((entry) => ({ value: entry.id, label: entry.label })),
+    getCountryOptions().map((entry) => ({
+      value: entry.id,
+      label: getLocalizedCountryLabel(entry.id, entry.label)
+    })),
     normalized.countryId
   );
   renderSelectOptions(
@@ -681,7 +700,8 @@ function makeCustomMosqueId(name: string, location: LocationSelection): string {
 
 function getMosqueOptionLabel(entry: MosqueRecord): string {
   const labels = getLocationLabels(entry.location);
-  return `${getMosqueDisplayName(entry)} (${labels.city}, ${labels.state}, ${labels.country})`;
+  const countryLabel = getLocalizedCountryLabel(entry.location.countryId, labels.country);
+  return `${getMosqueDisplayName(entry)} (${labels.city}, ${labels.state}, ${countryLabel})`;
 }
 
 function renderMosqueList(selectedId = selectedMosqueId): void {
@@ -719,7 +739,10 @@ function syncMosqueModalLocationSelectors(partial: Partial<LocationSelection>): 
   const normalized = normalizeLocationSelection(partial);
   renderSelectOptions(
     mosqueModalCountrySelect,
-    getCountryOptions().map((entry) => ({ value: entry.id, label: entry.label })),
+    getCountryOptions().map((entry) => ({
+      value: entry.id,
+      label: getLocalizedCountryLabel(entry.id, entry.label)
+    })),
     normalized.countryId
   );
   renderSelectOptions(
@@ -1019,6 +1042,7 @@ function bindUiLanguageSwitch(): void {
 
 function applyUiTranslations(): void {
   translateStaticDocumentText();
+  syncLocationSelectors(getSelectedLocationSelection());
   renderMonthOptionsForSelectedYear(monthSelect.value);
   syncSelectedMosqueFromCurrentFields();
   const selected = getMosqueById(selectedMosqueId);
@@ -1346,6 +1370,10 @@ function setGenerateButtonsDisabled(disabled: boolean): void {
   generateXlsxButton.disabled = disabled;
 }
 
+function setShowInFolderButtonState(): void {
+  showInFolderButton.disabled = !lastGeneratedFilePath;
+}
+
 async function generateForTarget(target: GenerateTarget): Promise<void> {
   if (isGenerating) {
     return;
@@ -1366,8 +1394,15 @@ async function generateForTarget(target: GenerateTarget): Promise<void> {
   try {
     log(t("logs.generateClicked", { month: options.month, target: targetLabel }));
     const response = await window.appApi.generateOutputs({ options, targets: [target] });
+    const generatedPath = getGeneratedPath(response, target);
+    if (generatedPath) {
+      lastGeneratedFilePath = generatedPath;
+      setShowInFolderButtonState();
+    }
     if (response.warnings.length > 0) {
       showStatus(response.warnings.join(" | "));
+    } else if (generatedPath) {
+      showStatus(t("status.generatedFile", { file: getFileName(generatedPath) }));
     } else {
       showStatus("");
     }
@@ -1380,6 +1415,35 @@ async function generateForTarget(target: GenerateTarget): Promise<void> {
     setGenerateButtonsDisabled(false);
   }
 }
+
+function getGeneratedPath(
+  response: Awaited<ReturnType<typeof window.appApi.generateOutputs>>,
+  target: GenerateTarget
+): string | null {
+  return target === "png" ? response.pngPath : response.xlsxPath;
+}
+
+async function showLastGeneratedFileInFolder(): Promise<void> {
+  if (!lastGeneratedFilePath) {
+    showStatus(t("status.noGeneratedFile"));
+    return;
+  }
+
+  try {
+    log(t("logs.showInFolderClicked", { path: lastGeneratedFilePath }));
+    const shown = await window.appApi.showInFolder(lastGeneratedFilePath);
+    if (!shown) {
+      showStatus(t("status.generatedFileMissing"));
+    }
+  } catch (error) {
+    logError("errors.showInFolderFailed", error);
+  }
+}
+
+function getFileName(filePath: string): string {
+  return filePath.split(/[\\/]/).pop() ?? filePath;
+}
+
 function getOrderedActiveLimitRows(customization: Customization): ActiveLimitRow[] {
   const rows: ActiveLimitRow[] = [];
   for (const prayer of PRAYER_ORDER) {

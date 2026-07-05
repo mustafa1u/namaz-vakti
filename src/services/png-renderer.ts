@@ -1,11 +1,11 @@
-﻿import { writeFile } from "node:fs/promises";
-import { join } from "node:path";
+﻿import { rename, rm, writeFile } from "node:fs/promises";
 import { BrowserWindow } from "electron";
 import type { PrayerKey } from "@shared/ipc";
 import type { GroupResult, MonthlyPlan, RawDailyRecord } from "@domain/types";
 import { ODD_THEME, EVEN_THEME } from "@domain/pipeline";
 import { formatMinutes, formatMonthLabel } from "@domain/format";
 import { getTemplateSheetMap } from "./template-map";
+import { buildTemporaryOutputPath, buildUniqueOutputPath } from "./output-paths";
 
 type PngRenderInput = {
   outputFolder: string;
@@ -64,8 +64,20 @@ export async function renderPng(input: PngRenderInput): Promise<string> {
     win.setContentSize(Math.ceil(size.width) + 20, Math.ceil(size.height) + 20);
     await new Promise((resolve) => setTimeout(resolve, 100));
     const image = await win.webContents.capturePage();
-    const outputPath = join(input.outputFolder, `iqamah_${input.plan.month}.png`);
-    await writeFile(outputPath, image.toPNG());
+    const outputPath = buildUniqueOutputPath({
+      outputFolder: input.outputFolder,
+      scheduleMonth: input.plan.month,
+      locale: input.plan.locale,
+      extension: "png"
+    });
+    const temporaryOutputPath = buildTemporaryOutputPath(outputPath);
+    try {
+      await writeFile(temporaryOutputPath, image.toPNG());
+      await rename(temporaryOutputPath, outputPath);
+    } catch (error) {
+      await rm(temporaryOutputPath, { force: true });
+      throw error;
+    }
     return outputPath;
   } finally {
     win.destroy();

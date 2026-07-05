@@ -39,6 +39,7 @@
     "cancel": "Cancel",
     "generatePng": "Generate PNG",
     "generateXlsx": "Generate XLSX",
+    "showInFolder": "Show in Folder",
     "resetDefaults": "Reset to defaults",
     "switchToEnglish": "English",
     "switchToTurkish": "Türkçe"
@@ -100,7 +101,8 @@
   "errors": {
     "pickOutputFailed": "pickOutput failed",
     "refreshMonthsFailed": "refreshMonths failed",
-    "generateFailed": "generate failed"
+    "generateFailed": "generate failed",
+    "showInFolderFailed": "show in folder failed"
   },
   "logs": {
     "preloadMissing": "ERROR: window.appApi is undefined. Preload did not load.",
@@ -108,6 +110,7 @@
     "pickOutputClicked": "pickOutput clicked",
     "pickOutputResult": "pickOutput result: {{path}}",
     "generateClicked": "generate {{target}} clicked for {{month}}",
+    "showInFolderClicked": "show in folder clicked: {{path}}",
     "refreshMonthsForLocation": "refreshMonths for {{country}}/{{state}}/{{city}} at {{folder}}",
     "noMonthFilesFound": "No month files found in folder.",
     "foundMonths": "Found months: {{months}}",
@@ -121,6 +124,9 @@
   "status": {
     "validationFailed": "Cannot generate. {{details}}",
     "generateFailed": "Generate {{target}} failed: {{details}}",
+    "generatedFile": "Generated: {{file}}",
+    "noGeneratedFile": "No generated file yet.",
+    "generatedFileMissing": "The generated file is no longer available.",
     "defaultsRestored": "Defaults restored."
   },
   "mosqueModal": {
@@ -151,5 +157,9 @@
   "common": {
     "cancelled": "<cancelled>",
     "none": "none"
+  },
+  "countries": {
+    "usa": "USA",
+    "turkiye": "Turkey"
   }
 }

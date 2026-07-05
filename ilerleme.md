@@ -1,5 +1,83 @@
 ﻿# İlerleme Notu
 
+## Biçim Açıklaması
+- Bu nottaki açıklamalar güzel bir teknik Türkçe ile yazılır ve Türkçe karakterler kullanılır. Mojibake karakter olmamasına dikkat edilir.
+-Gereksiz olarak İngilizce kelimeler kullanılıp Türkçe-İngilizce arası bir dil olmamamsına dikkat edilir.
+- En yeni kayıt en üstte olur.
+- Commit mesajında KISA-ETIKET -- Normal commit mesajı şeklindeki format korunarak her komitin kolay okunur bir kısa etiketi olmasına dikkat edilir.
+
+## Commit Mesajı
+`KAMET ÇIKTI KORUMASI V1.0.2 -- Kamet çizelgesi çıktılarında zaman damgalı dosya adları, çakışma koruması ve OneDrive uyumlu Klasörde Göster akışı eklendi.`
+
+## Commit Zamanı
+`2026-07-05 14:35:58 +03:00`
+
+## Bu Committe Yapılanlar
+
+1. **Çıktı dosyaları için çakışma koruması eklendi**
+- `desktop-app/src/services/output-paths.ts` içinde ortak çıktı yolu üretimi eklendi.
+- XLSX ve PNG dosya adları artık ay bilgisi, seçili çıktı diline göre ay kısaltması ve zaman damgası içerir.
+- Aynı ad yine çakışırsa `_2`, `_3` gibi sıra numarası eklenir.
+- Geçici dosya adları için de ayrı çakışma koruması sağlandı.
+
+2. **Çıktı yazımı geçici dosya ve final taşıma akışına alındı**
+- `desktop-app/src/services/xlsx-writer.ts` ve `desktop-app/src/services/png-renderer.ts` çıktıyı önce aynı klasörde geçici dosyaya yazar.
+- Yazım tamamlandıktan sonra geçici dosya final dosya adına taşınır.
+- Hata durumunda geride geçici dosya kalmaması için temizlik yapılır.
+- Bu yöntem OneDrive ve Explorer tarafında yeni dosyanın daha güvenilir algılanmasını hedefler.
+
+3. **Klasörde Göster özelliği eklendi**
+- `desktop-app/src/shared/ipc.ts`, `desktop-app/src/preload/index.ts` ve `desktop-app/src/main/ipc-handlers.ts` içinde `SHOW_IN_FOLDER` kanalı eklendi.
+- Dosya üretimi tamamlandığında oluşturulan dosya otomatik olarak klasörde gösterilir.
+- Arayüze son oluşturulan dosyayı tekrar göstermek için `Klasörde göster / Show in Folder` düğmesi eklendi.
+- `desktop-app/src/renderer/src/main.ts`, `desktop-app/src/renderer/index.html` ve çeviri dosyaları bu yeni akışı destekleyecek şekilde güncellendi.
+
+4. **OneDrive uyumlu Windows Explorer gösterme stratejisi eklendi**
+- `desktop-app/src/main/reveal-in-folder.ts` içinde klasörde gösterme kararı merkezi hale getirildi.
+- Windows üzerinde önce aynı klasörü gösteren açık Explorer penceresi yeniden kullanılmaya çalışılır.
+- Mevcut Explorer penceresi kullanılırken klasör görünümü yeniden gezdirilip hedef klasöre döndürülür ve dosya seçilir.
+- Mevcut pencere yeniden kullanılamazsa `explorer.exe /select,<dosya>` ile güvenilir seçim akışı çalışır.
+- Electron `shell.showItemInFolder` son geri dönüş yolu olarak korunur.
+
+5. **Test altyapısı ve paket ayarları güncellendi**
+- `desktop-app/package.json` içine `npm test` komutu eklendi.
+- `desktop-app/scripts/output-paths.test.mjs` ile dosya adı, ay kısaltması, suffix ve geçici dosya adı davranışı test edildi.
+- `desktop-app/scripts/reveal-in-folder.test.mjs` ile Explorer penceresi yeniden kullanımı, geri dönüş akışı ve tek gösterim davranışı test edildi.
+- Paket sürümü ve paket kilidi `1.0.2` ile eşitlendi.
+- Windows dağıtım komutları ve NSIS paketleme ayarları staged değişikliklere uygun şekilde güncellendi.
+
+## Neden Bu Değişiklikler Yapıldı?
+
+- Aynı ay için tekrar üretim yapıldığında önceki çıktıların ezilmesi riski vardı.
+- OneDrive klasörlerinde Explorer görünümü yeni dosyayı bazen yenilemeden göstermiyordu.
+- Kullanıcının dosyayı bulmak için elle yenileme, sekme çoğaltma veya yeni pencere açma işlemi yapması gerekiyordu.
+- Üretim sonrası dosyaya hızlı erişim için otomatik ve elle tetiklenebilir Klasörde Göster akışı istendi.
+
+## Nasıl Yapıldı? (Teknik Yaklaşım)
+
+- Dosya adı üretimi servis katmanında ortaklaştırıldı ve yazar servisleri bu ortak üreticiyi kullanacak şekilde düzenlendi.
+- Çıktı dosyaları önce geçici ada yazılıp sonra final ada taşınarak OneDrive’ın final dosyayı algılaması kolaylaştırıldı.
+- Ana süreçte Windows Explorer için önce mevcut pencereyi yeniden kullanma, sonra yeni seçim penceresi açma, en sonda Electron kabuğuna düşme sırası kuruldu.
+- Arayüz tarafında son oluşturulan dosya yolu saklanarak `Klasörde göster` düğmesinin aynı dosyayı tekrar gösterebilmesi sağlandı.
+- Davranışlar Node testleriyle kapsandı ve test komutu paket betiklerine eklendi.
+
+## Doğrulama
+
+- `npm test`
+- `npm run typecheck`
+- `npm run i18n:check`
+- `npm run build`
+
+## Commit Sonrası Beklenen Etki
+
+- Önceki çıktı dosyaları yanlışlıkla ezilmez.
+- Çıktı dosya adları daha okunabilir ve izlenebilir olur.
+- OneDrive klasörlerinde oluşturulan dosyanın Explorer’da görünmesi daha güvenilir hale gelir.
+- Aynı klasör zaten açıksa yeni pencere açmadan mevcut Explorer penceresi kullanılmaya çalışılır.
+- Mevcut pencere yeniden kullanılamazsa dosya yine güvenilir geri dönüş akışıyla klasörde gösterilir.
+
+---
+
 ## Commit Mesajı
 `ÖZELLEŞTİR PENCERESİ DÜZENİ V1.0.1 -- Customize penceresinde ayraçlı grup düzeni uygulanarak okunabilirlik artırıldı ve sürüm 1.0.1'e yükseltildi.`
 

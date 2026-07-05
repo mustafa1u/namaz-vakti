@@ -1,10 +1,10 @@
-﻿import { readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+﻿import { readFile, rename, rm, writeFile } from "node:fs/promises";
 import type { PrayerKey } from "@shared/ipc";
 import type { GroupResult, MonthlyPlan, RawDailyRecord } from "@domain/types";
 import { formatMinutes, formatMonthLabel } from "@domain/format";
 import { EVEN_THEME, ODD_THEME } from "@domain/pipeline";
 import { getTemplateSheetMap } from "./template-map";
+import { buildTemporaryOutputPath, buildUniqueOutputPath } from "./output-paths";
 
 const PRAYERS: PrayerKey[] = ["fajr", "zhuhr", "asr", "maghrib", "isha"];
 const PRAYER_LABELS: Record<MonthlyPlan["locale"], Record<PrayerKey, string>> = {
@@ -65,9 +65,21 @@ export async function writeXlsxFromTemplate(input: XlsxWriteInput): Promise<stri
   writePrayerColumns(sheet, input.plan, map, slots, XlsxPopulate);
   keepOnlySelectedSheet(workbook, map.sheetName);
 
-  const outputPath = join(input.outputFolder, `iqamah_${input.plan.month}.xlsx`);
-  await workbook.toFileAsync(outputPath);
-  await rewritePrayerMergesInXml(outputPath, input.plan, map, slots);
+  const outputPath = buildUniqueOutputPath({
+    outputFolder: input.outputFolder,
+    scheduleMonth: input.plan.month,
+    locale: input.plan.locale,
+    extension: "xlsx"
+  });
+  const temporaryOutputPath = buildTemporaryOutputPath(outputPath);
+  try {
+    await workbook.toFileAsync(temporaryOutputPath);
+    await rewritePrayerMergesInXml(temporaryOutputPath, input.plan, map, slots);
+    await rename(temporaryOutputPath, outputPath);
+  } catch (error) {
+    await rm(temporaryOutputPath, { force: true });
+    throw error;
+  }
   return outputPath;
 }
 

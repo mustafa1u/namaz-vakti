@@ -39,6 +39,7 @@
     "cancel": "İptal",
     "generatePng": "PNG üret",
     "generateXlsx": "XLSX üret",
+    "showInFolder": "Klas\u00f6rde g\u00f6ster",
     "resetDefaults": "Varsayılanlara dön",
     "switchToEnglish": "English",
     "switchToTurkish": "Türkçe"
@@ -100,7 +101,8 @@
   "errors": {
     "pickOutputFailed": "Çıktı klasörü seçimi başarısız",
     "refreshMonthsFailed": "Ay yenileme başarısız",
-    "generateFailed": "Üretim başarısız"
+    "generateFailed": "Üretim başarısız",
+    "showInFolderFailed": "Klas\u00f6rde g\u00f6sterme ba\u015far\u0131s\u0131z"
   },
   "logs": {
     "preloadMissing": "HATA: window.appApi tanımsız. Preload yüklenmedi.",
@@ -108,6 +110,7 @@
     "pickOutputClicked": "Çıktı klasörü seçimi düğmesine tıklandı",
     "pickOutputResult": "Çıktı klasörü seçimi sonucu: {{path}}",
     "generateClicked": "{{month}} için {{target}} üret tıklandı",
+    "showInFolderClicked": "klas\u00f6rde g\u00f6ster t\u0131kland\u0131: {{path}}",
     "refreshMonthsForLocation": "{{country}}/{{state}}/{{city}} için aylar yenileniyor ({{folder}})",
     "noMonthFilesFound": "Klasörde ay dosyası bulunamadı.",
     "foundMonths": "Bulunan aylar: {{months}}",
@@ -121,6 +124,9 @@
   "status": {
     "validationFailed": "Üretim başlatılamadı. {{details}}",
     "generateFailed": "{{target}} üretimi başarısız: {{details}}",
+    "generatedFile": "Olu\u015fturuldu: {{file}}",
+    "noGeneratedFile": "Hen\u00fcz olu\u015fturulmu\u015f dosya yok.",
+    "generatedFileMissing": "Olu\u015fturulan dosya art\u0131k kullan\u0131lam\u0131yor.",
     "defaultsRestored": "Varsayılanlar yüklendi."
   },
   "common": {
@@ -128,11 +134,11 @@
     "none": "yok"
   },
   "mosqueModal": {
-    "title": "Cami y\u00fckle",
+    "title": "Cami yükle",
     "availableTitle": "Mevcut Camiler",
     "addTitle": "Cami Ekle",
     "buttons": {
-      "load": "Y\u00fckle",
+      "load": "Yükle",
       "add": "Ekle",
       "showAdd": "Cami Ekle",
       "hideAdd": "Cami Eklemeyi Gizle",
@@ -143,13 +149,17 @@
       "deleted": "Cami silindi."
     },
     "errors": {
-      "selectMosque": "Y\u00fcklemek i\u00e7in bir cami se\u00e7in.",
-      "requiredFields": "Konum, cami ad\u0131 ve adres zorunludur.",
-      "duplicate": "Bu konum ve adres i\u00e7in cami zaten var.",
-      "deleteBuiltin": "Yerle\u015fik camiler silinemez."
+      "selectMosque": "Yüklemek için bir cami seçin.",
+      "requiredFields": "Konum, cami adı ve adres zorunludur.",
+      "duplicate": "Bu konum ve adres için cami zaten var.",
+      "deleteBuiltin": "Yerleşik camiler silinemez."
     },
     "confirm": {
       "delete": "\"{{name}}\" camisini silmek istiyor musunuz?"
     }
+  },
+  "countries": {
+    "usa": "ABD",
+    "turkiye": "Türkiye"
   }
 }

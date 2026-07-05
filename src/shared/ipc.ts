@@ -3,7 +3,8 @@
 export const APP_CHANNELS = {
   LIST_MONTHS: "app:list-months",
   GENERATE_OUTPUTS: "app:generate-outputs",
-  SELECT_OUTPUT_FOLDER: "app:select-output-folder"
+  SELECT_OUTPUT_FOLDER: "app:select-output-folder",
+  SHOW_IN_FOLDER: "app:show-in-folder"
 } as const;
 
 export const LocaleSchema = z.enum(["en", "tr"]);
@@ -215,8 +216,14 @@ export const GenerateOutputsResponseSchema = z.object({
 
 export type GenerateOutputsResponse = z.infer<typeof GenerateOutputsResponseSchema>;
 
+export const ShowInFolderRequestSchema = z.object({
+  filePath: z.string().min(1)
+});
+export type ShowInFolderRequest = z.infer<typeof ShowInFolderRequestSchema>;
+
 export type DesktopApi = {
   listMonths: (tsvFolder: string) => Promise<string[]>;
   generateOutputs: (request: GenerateOutputsRequest) => Promise<GenerateOutputsResponse>;
   selectOutputFolder: () => Promise<string | null>;
+  showInFolder: (filePath: string) => Promise<boolean>;
 };

@@ -1,5 +1,6 @@
-import { app, dialog, ipcMain } from "electron";
+import { app, dialog, ipcMain, shell } from "electron";
 import type { BrowserWindow } from "electron";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import {
@@ -7,19 +8,85 @@ import {
   type Customization,
   type PrayerKey,
   GenerateOutputsRequestSchema,
-  GenerateOutputsResponseSchema
+  GenerateOutputsResponseSchema,
+  ShowInFolderRequestSchema
 } from "@shared/ipc";
 import { listAvailableMonths, readMonthTsv, readYearTsv } from "@services/tsv-reader";
 import type { RawDailyRecord } from "@domain/types";
 import { buildMonthlyPlan } from "@domain/pipeline";
 import { writeXlsxFromTemplate } from "@services/xlsx-writer";
 import { renderPng } from "@services/png-renderer";
+import { revealFileInFolder } from "./reveal-in-folder";
 
 type WindowGetter = () => BrowserWindow | null;
 const FIXED_TEMPLATE_FILE_NAME = "Mevlana Masjid Prayer Times_KALIP.xlsx";
 const STANDARD_ZHUHR_ANCHOR = (12 * 60) + 15;
 const DAYLIGHT_ZHUHR_ANCHOR = (13 * 60) + 15;
 const IS_DEV = !app.isPackaged;
+const REUSE_EXPLORER_WINDOW_SCRIPT_BODY = `
+$ErrorActionPreference = 'SilentlyContinue'
+$folderPath = [System.IO.Path]::GetDirectoryName($FilePath)
+$fileName = [System.IO.Path]::GetFileName($FilePath)
+if (-not $folderPath -or -not $fileName) { exit 1 }
+$normalizedTarget = $folderPath.TrimEnd('\\')
+function Wait-ExplorerReady($window) {
+  for ($i = 0; $i -lt 20; $i++) {
+    try {
+      if (-not $window.Busy) { break }
+    } catch {}
+    Start-Sleep -Milliseconds 100
+  }
+}
+function Navigate-Explorer($window, [string]$path) {
+  try {
+    $window.Navigate2($path)
+    Wait-ExplorerReady $window
+    return
+  } catch {}
+  try {
+    $window.Navigate($path)
+    Wait-ExplorerReady $window
+  } catch {}
+}
+$shell = New-Object -ComObject Shell.Application
+$targetWindow = $null
+foreach ($window in @($shell.Windows())) {
+  try {
+    $fullName = [string]$window.FullName
+    if (-not $fullName.ToLowerInvariant().EndsWith('\\explorer.exe')) { continue }
+    $currentPath = [string]$window.Document.Folder.Self.Path
+    if ($currentPath -and [System.String]::Equals($currentPath.TrimEnd('\\'), $normalizedTarget, [System.StringComparison]::OrdinalIgnoreCase)) {
+      $targetWindow = $window
+      break
+    }
+  } catch {}
+}
+if (-not $targetWindow) { exit 1 }
+$selected = $false
+try {
+  $parentPath = [System.IO.Directory]::GetParent($folderPath).FullName
+  if ($parentPath) {
+    Navigate-Explorer $targetWindow $parentPath
+  }
+} catch {}
+Navigate-Explorer $targetWindow $folderPath
+try { $targetWindow.Document.Refresh() } catch {}
+Start-Sleep -Milliseconds 250
+try {
+  $item = $targetWindow.Document.Folder.ParseName($fileName)
+  if ($item) {
+    $targetWindow.Document.SelectItem($item, 29)
+    $selected = $true
+  }
+} catch {}
+try { $targetWindow.Visible = $true } catch {}
+try {
+  $wshell = New-Object -ComObject WScript.Shell
+  [void]$wshell.AppActivate([int]$targetWindow.HWND)
+} catch {}
+if ($selected) { exit 0 }
+exit 2
+`.trim();
 
 function devLog(...args: unknown[]): void {
   if (IS_DEV) {
@@ -183,6 +250,80 @@ function collectLimitWarnings(customization: Customization): string[] {
   return warnings;
 }
 
+function showFileInFolder(filePath: string): boolean {
+  try {
+    const show = (target: string): void => {
+      try {
+        shell.showItemInFolder(target);
+      } catch (error) {
+        devLog("[ipc] SHOW_IN_FOLDER failed", error);
+      }
+    };
+
+    return revealFileInFolder(filePath, {
+      exists: existsSync,
+      show,
+      reuseExplorerWindow: (target) => tryReuseExistingExplorerWindow(target),
+      selectInExplorer: (target) => {
+        const child = spawn("explorer.exe", [`/select,${target}`], {
+          detached: true,
+          stdio: "ignore",
+          windowsHide: false
+        });
+        child.unref();
+      },
+      setTimer: (callback, delayMs) => {
+        setTimeout(callback, delayMs);
+      },
+      platform: process.platform
+    });
+  } catch (error) {
+    devLog("[ipc] SHOW_IN_FOLDER failed", error);
+    return false;
+  }
+}
+
+function tryReuseExistingExplorerWindow(filePath: string): boolean {
+  if (process.platform !== "win32") {
+    return false;
+  }
+
+  try {
+    const encodedScript = Buffer
+      .from(buildReuseExplorerWindowScript(filePath), "utf16le")
+      .toString("base64");
+    const result = spawnSync(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-NonInteractive",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-EncodedCommand",
+        encodedScript
+      ],
+      {
+        stdio: "ignore",
+        timeout: 3500,
+        windowsHide: true
+      }
+    );
+
+    return result.status === 0;
+  } catch (error) {
+    devLog("[ipc] REUSE_EXPLORER_WINDOW failed", error);
+    return false;
+  }
+}
+
+function buildReuseExplorerWindowScript(filePath: string): string {
+  const encodedFilePath = Buffer.from(filePath, "utf16le").toString("base64");
+  return [
+    `$FilePath = [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String('${encodedFilePath}'))`,
+    REUSE_EXPLORER_WINDOW_SCRIPT_BODY
+  ].join("\n");
+}
+
 export function registerIpcHandlers(_getWindow: WindowGetter): void {
   devLog("[main] registering IPC handlers");
 
@@ -238,6 +379,9 @@ export function registerIpcHandlers(_getWindow: WindowGetter): void {
     }
     const completed = await Promise.all(writes);
     const byTarget = new Map(completed);
+    for (const [, filePath] of completed) {
+      showFileInFolder(filePath);
+    }
 
     return GenerateOutputsResponseSchema.parse({
       xlsxPath: byTarget.get("xlsx") ?? null,
@@ -250,5 +394,11 @@ export function registerIpcHandlers(_getWindow: WindowGetter): void {
     devLog("[ipc] SELECT_OUTPUT_FOLDER");
     const result = await dialog.showOpenDialog({ properties: ["openDirectory", "createDirectory"] });
     return result.canceled ? null : result.filePaths[0] ?? null;
+  });
+
+  ipcMain.handle(APP_CHANNELS.SHOW_IN_FOLDER, async (_event, rawRequest) => {
+    const request = ShowInFolderRequestSchema.parse(rawRequest);
+    devLog("[ipc] SHOW_IN_FOLDER", request.filePath);
+    return showFileInFolder(request.filePath);
   });
 }
