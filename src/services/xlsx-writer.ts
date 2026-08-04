@@ -7,6 +7,16 @@ import { getTemplateSheetMap } from "./template-map";
 import { buildTemporaryOutputPath, buildUniqueOutputPath } from "./output-paths";
 
 const PRAYERS: PrayerKey[] = ["fajr", "zhuhr", "asr", "maghrib", "isha"];
+const DEFAULT_EXCEL_COLUMN_WIDTH = 8.43;
+const DEFAULT_EXCEL_ROW_HEIGHT_POINTS = 15;
+const EXCEL_COLUMN_CHARACTER_PIXELS = 7;
+const EXCEL_COLUMN_PIXEL_PADDING = 5;
+const CSS_PIXELS_PER_INCH = 96;
+const POINTS_PER_INCH = 72;
+const PRINT_MARGIN_CM = 2;
+const PRINT_TARGET_WIDTH_CM = 16.8;
+const PRINT_TARGET_HEIGHT_CM = 23.77;
+const PRINT_MARGIN_INCHES = cmToInches(PRINT_MARGIN_CM);
 const PRAYER_LABELS: Record<MonthlyPlan["locale"], Record<PrayerKey, string>> = {
   en: {
     fajr: "Fajr",
@@ -30,6 +40,13 @@ type DisplaySlot = {
   topRow: number;
   bottomRow: number;
   rowCount: number;
+};
+
+type WorksheetArea = {
+  startCol: number;
+  endCol: number;
+  startRow: number;
+  endRow: number;
 };
 
 export type XlsxWriteInput = {
@@ -63,6 +80,8 @@ export async function writeXlsxFromTemplate(input: XlsxWriteInput): Promise<stri
   writeDayColumns(sheet, input.plan, map, slots);
   applyGroupStyles(sheet, input.plan, map, slots);
   writePrayerColumns(sheet, input.plan, map, slots, XlsxPopulate);
+  applyClosingBottomBorder(sheet, map, slots);
+  applyPrintPageGeometry(sheet, map, slots);
   keepOnlySelectedSheet(workbook, map.sheetName);
 
   const outputPath = buildUniqueOutputPath({
@@ -74,7 +93,7 @@ export async function writeXlsxFromTemplate(input: XlsxWriteInput): Promise<stri
   const temporaryOutputPath = buildTemporaryOutputPath(outputPath);
   try {
     await workbook.toFileAsync(temporaryOutputPath);
-    await rewritePrayerMergesInXml(temporaryOutputPath, input.plan, map, slots);
+    await rewriteWorksheetLayoutInXml(temporaryOutputPath, input.plan, map, slots);
     await rename(temporaryOutputPath, outputPath);
   } catch (error) {
     await rm(temporaryOutputPath, { force: true });
@@ -435,7 +454,110 @@ function keepOnlySelectedSheet(workbook: any, selectedSheetName: string): void {
   }
 }
 
-async function rewritePrayerMergesInXml(
+function applyClosingBottomBorder(
+  sheet: any,
+  map: ReturnType<typeof getTemplateSheetMap>,
+  slots: DisplaySlot[]
+): void {
+  const bottomRow = getDataEndRow(map, slots);
+  for (const column of enumerateColumns("A", getPrintLastColumn(map))) {
+    addBottomBorder(sheet, `${column}${bottomRow}`);
+  }
+}
+
+function addBottomBorder(sheet: any, address: string): void {
+  const cell = sheet.cell(address);
+  let border: Record<string, unknown> = {};
+  try {
+    const rawBorder = cell.style("border");
+    if (rawBorder && typeof rawBorder === "object") {
+      border = JSON.parse(JSON.stringify(rawBorder)) as Record<string, unknown>;
+    }
+  } catch {
+    // Keep the default empty border object.
+  }
+
+  border.bottom = border.bottom ?? { style: "thin" };
+  try {
+    cell.style("border", border);
+  } catch {
+    // Ignore style assignment issues for this cell.
+  }
+}
+
+function applyPrintPageGeometry(
+  sheet: any,
+  map: ReturnType<typeof getTemplateSheetMap>,
+  slots: DisplaySlot[]
+): void {
+  const printLastColumn = getPrintLastColumn(map);
+  const printColumns = enumerateColumns("A", printLastColumn);
+  const dataEndRow = getDataEndRow(map, slots);
+
+  const currentWidthPixels = printColumns.reduce((sum, column) => {
+    return sum + excelColumnWidthToPixels(readColumnWidth(sheet, column));
+  }, 0);
+  const targetWidthPixels = cmToInches(PRINT_TARGET_WIDTH_CM) * CSS_PIXELS_PER_INCH;
+  const columnScale = currentWidthPixels > 0 ? Math.min(1, targetWidthPixels / currentWidthPixels) : 1;
+
+  for (const column of printColumns) {
+    const width = readColumnWidth(sheet, column);
+    try {
+      sheet.column(column).width(roundExcelMeasure(Math.max(1, width * columnScale)));
+    } catch {
+      // Ignore column-width assignment issues.
+    }
+  }
+
+  let currentHeightPoints = 0;
+  for (let row = 1; row <= dataEndRow; row += 1) {
+    currentHeightPoints += readRowHeight(sheet, row);
+  }
+
+  const targetHeightPoints = cmToInches(PRINT_TARGET_HEIGHT_CM) * POINTS_PER_INCH;
+  const rowScale = currentHeightPoints > 0 ? Math.min(1, targetHeightPoints / currentHeightPoints) : 1;
+
+  for (let row = 1; row <= dataEndRow; row += 1) {
+    const height = readRowHeight(sheet, row);
+    try {
+      sheet.row(row).height(roundExcelMeasure(Math.max(1, height * rowScale)));
+    } catch {
+      // Ignore row-height assignment issues.
+    }
+  }
+}
+
+function readColumnWidth(sheet: any, column: string): number {
+  const width = Number(sheet.column(column).width());
+  return Number.isFinite(width) && width > 0 ? width : DEFAULT_EXCEL_COLUMN_WIDTH;
+}
+
+function readRowHeight(sheet: any, row: number): number {
+  const height = Number(sheet.row(row).height());
+  return Number.isFinite(height) && height > 0 ? height : DEFAULT_EXCEL_ROW_HEIGHT_POINTS;
+}
+
+function excelColumnWidthToPixels(width: number): number {
+  return Math.floor((width * EXCEL_COLUMN_CHARACTER_PIXELS) + EXCEL_COLUMN_PIXEL_PADDING);
+}
+
+function roundExcelMeasure(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function cmToInches(value: number): number {
+  return value / 2.54;
+}
+
+function getPrintLastColumn(map: ReturnType<typeof getTemplateSheetMap>): string {
+  return map.prayerColumns.isha.endCol;
+}
+
+function getDataEndRow(map: ReturnType<typeof getTemplateSheetMap>, slots: DisplaySlot[]): number {
+  return slots.length > 0 ? slots[slots.length - 1]!.bottomRow : map.dataStartRow;
+}
+
+async function rewriteWorksheetLayoutInXml(
   xlsxPath: string,
   plan: MonthlyPlan,
   map: ReturnType<typeof getTemplateSheetMap>,
@@ -451,13 +573,20 @@ async function rewritePrayerMergesInXml(
   }
 
   const xml = await sheetFile.async("string");
-  const dataEndRow = slots.length > 0 ? slots[slots.length - 1]!.bottomRow : map.dataStartRow;
+  const dataEndRow = getDataEndRow(map, slots);
+  const printLastColumn = getPrintLastColumn(map);
+  const printArea = buildPrintArea(printLastColumn, dataEndRow);
+  const trimmedXml = trimWorksheetXmlToPrintArea(xml, printArea);
 
-  const existingRefs = extractMergeRefs(xml);
+  const existingRefs = extractMergeRefs(trimmedXml);
   const keptRefs = existingRefs.filter((ref) => {
     const range = parseRangeRef(ref);
     if (!range) {
       return true;
+    }
+
+    if (!containsArea(printArea, range)) {
+      return false;
     }
 
     for (const prayer of PRAYERS) {
@@ -479,8 +608,10 @@ async function rewritePrayerMergesInXml(
   const dynamicRefs = buildDynamicPrayerMergeRefs(plan, map, slots);
   const mergedRefs = [...new Set([...keptRefs, ...dynamicRefs])];
 
-  const updatedXml = replaceMergeBlock(xml, mergedRefs);
+  let updatedXml = replaceMergeBlock(trimmedXml, mergedRefs);
+  updatedXml = applyWorksheetPrintSettingsXml(updatedXml, printLastColumn, dataEndRow);
   zip.file(sheetPath, updatedXml);
+  await rewriteWorkbookPrintArea(zip, map.sheetName, printLastColumn, dataEndRow);
 
   await writeFile(xlsxPath, await zip.generateAsync({ type: "nodebuffer" }));
 }
@@ -565,6 +696,145 @@ function replaceMergeBlock(xml: string, refs: string[]): string {
   return xml.replace("</worksheet>", `${block}</worksheet>`);
 }
 
+function buildPrintArea(printLastColumn: string, dataEndRow: number): WorksheetArea {
+  return {
+    startCol: 1,
+    endCol: colToNumber(printLastColumn),
+    startRow: 1,
+    endRow: dataEndRow
+  };
+}
+
+function trimWorksheetXmlToPrintArea(xml: string, printArea: WorksheetArea): string {
+  return xml.replace(/<row\b(?=[^>]*\br="\d+")[^>]*(?:\/>|>[\s\S]*?<\/row>)/g, (rowXml) => {
+    const rowMatch = rowXml.match(/\br="(\d+)"/);
+    const rowNumber = Number(rowMatch?.[1]);
+    if (!Number.isFinite(rowNumber) || rowNumber < printArea.startRow || rowNumber > printArea.endRow) {
+      return "";
+    }
+
+    return rowXml.replace(/<c\b(?=[^>]*\br="[A-Z]+\d+")[^>]*(?:\/>|>[\s\S]*?<\/c>)/g, (cellXml) => {
+      const cellMatch = cellXml.match(/\br="([A-Z]+)(\d+)"/);
+      if (!cellMatch) {
+        return cellXml;
+      }
+
+      const cell = {
+        col: colToNumber(cellMatch[1]!),
+        row: Number(cellMatch[2]!)
+      };
+      return isCellInsideArea(cell, printArea) ? cellXml : "";
+    });
+  });
+}
+
+function applyWorksheetPrintSettingsXml(xml: string, printLastColumn: string, dataEndRow: number): string {
+  let out = ensureWorksheetPageSetupPrNoFit(xml);
+  out = upsertWorksheetDimension(out, `A1:${printLastColumn}${dataEndRow}`);
+  out = upsertWorksheetPrintOptions(out);
+  out = upsertWorksheetPageMargins(out);
+  out = upsertWorksheetPageSetup(out);
+  return out;
+}
+
+function ensureWorksheetPageSetupPrNoFit(xml: string): string {
+  if (/<sheetPr\b[\s\S]*?<\/sheetPr>/.test(xml)) {
+    return xml.replace(/<sheetPr\b([^>]*)>([\s\S]*?)<\/sheetPr>/, (_full, attrs: string, inner: string) => {
+      const nextInner = /<pageSetUpPr\b[^>]*\/>/.test(inner)
+        ? inner.replace(/<pageSetUpPr\b[^>]*\/>/, '<pageSetUpPr fitToPage="0"/>')
+        : `${inner}<pageSetUpPr fitToPage="0"/>`;
+      return `<sheetPr${attrs}>${nextInner}</sheetPr>`;
+    });
+  }
+
+  return xml.replace(/(<worksheet\b[^>]*>)/, '$1<sheetPr><pageSetUpPr fitToPage="0"/></sheetPr>');
+}
+
+function upsertWorksheetDimension(xml: string, ref: string): string {
+  const tag = `<dimension ref="${ref}"/>`;
+  if (/<dimension\b[^>]*\/>/.test(xml)) {
+    return xml.replace(/<dimension\b[^>]*\/>/, tag);
+  }
+
+  if (/<sheetPr\b[\s\S]*?<\/sheetPr>/.test(xml)) {
+    return xml.replace(/(<sheetPr\b[\s\S]*?<\/sheetPr>)/, `$1${tag}`);
+  }
+
+  return xml.replace(/(<worksheet\b[^>]*>)/, `$1${tag}`);
+}
+
+function upsertWorksheetPrintOptions(xml: string): string {
+  const tag = '<printOptions horizontalCentered="1"/>';
+  if (/<printOptions\b[^>]*\/>/.test(xml)) {
+    return xml.replace(/<printOptions\b[^>]*\/>/, tag);
+  }
+
+  if (/<pageMargins\b[^>]*\/>/.test(xml)) {
+    return xml.replace(/(<pageMargins\b[^>]*\/>)/, `${tag}$1`);
+  }
+
+  return xml.replace("</worksheet>", `${tag}</worksheet>`);
+}
+
+function upsertWorksheetPageMargins(xml: string): string {
+  const margin = formatXmlNumber(PRINT_MARGIN_INCHES);
+  const tag = `<pageMargins left="${margin}" right="${margin}" top="${margin}" bottom="${margin}" header="0.3" footer="0.3"/>`;
+  if (/<pageMargins\b[^>]*\/>/.test(xml)) {
+    return xml.replace(/<pageMargins\b[^>]*\/>/, tag);
+  }
+
+  if (/<pageSetup\b[^>]*\/>/.test(xml)) {
+    return xml.replace(/(<pageSetup\b[^>]*\/>)/, `${tag}$1`);
+  }
+
+  return xml.replace("</worksheet>", `${tag}</worksheet>`);
+}
+
+function upsertWorksheetPageSetup(xml: string): string {
+  const tag = '<pageSetup scale="100" orientation="portrait"/>';
+  if (/<pageSetup\b[^>]*\/>/.test(xml)) {
+    return xml.replace(/<pageSetup\b[^>]*\/>/, tag);
+  }
+
+  if (/<pageMargins\b[^>]*\/>/.test(xml)) {
+    return xml.replace(/(<pageMargins\b[^>]*\/>)/, `$1${tag}`);
+  }
+
+  return xml.replace("</worksheet>", `${tag}</worksheet>`);
+}
+
+async function rewriteWorkbookPrintArea(
+  zip: any,
+  sheetName: string,
+  printLastColumn: string,
+  dataEndRow: number
+): Promise<void> {
+  const workbook = zip.file("xl/workbook.xml");
+  if (!workbook) {
+    return;
+  }
+
+  const xml = await workbook.async("string");
+  const safeSheetName = sheetName.replace(/'/g, "''");
+  const printArea = `'${safeSheetName}'!$A$1:$${printLastColumn}$${dataEndRow}`;
+  const definedName = `<definedName name="_xlnm.Print_Area" localSheetId="0">${escapeXmlText(printArea)}</definedName>`;
+  const printAreaRegex = /<definedName\b[^>]*name="_xlnm\.Print_Area"[^>]*>[\s\S]*?<\/definedName>/g;
+
+  let updatedXml: string;
+  if (/<definedNames>[\s\S]*?<\/definedNames>/.test(xml)) {
+    updatedXml = xml.replace(/<definedNames>([\s\S]*?)<\/definedNames>/, (_full: string, body: string) => {
+      const cleanedBody = body.replace(printAreaRegex, "");
+      return `<definedNames>${cleanedBody}${definedName}</definedNames>`;
+    });
+  } else if (/<calcPr\b/.test(xml)) {
+    updatedXml = xml.replace(/<calcPr\b/, (match: string) => `<definedNames>${definedName}</definedNames>${match}`);
+  } else {
+    updatedXml = xml.replace("</workbook>", () => `<definedNames>${definedName}</definedNames></workbook>`);
+  }
+
+  zip.file("xl/workbook.xml", updatedXml);
+}
+
 function parseRangeRef(ref: string): { startCol: number; endCol: number; startRow: number; endRow: number } | null {
   const [startCellRaw, endCellRaw] = ref.split(":");
   if (!startCellRaw) {
@@ -595,12 +865,37 @@ function parseCell(cell: string): { col: number; row: number } | null {
 }
 
 function intersectsArea(
-  range: { startCol: number; endCol: number; startRow: number; endRow: number },
-  area: { startCol: number; endCol: number; startRow: number; endRow: number }
+  range: WorksheetArea,
+  area: WorksheetArea
 ): boolean {
   const colOverlap = range.startCol <= area.endCol && range.endCol >= area.startCol;
   const rowOverlap = range.startRow <= area.endRow && range.endRow >= area.startRow;
   return colOverlap && rowOverlap;
+}
+
+function containsArea(container: WorksheetArea, range: WorksheetArea): boolean {
+  return range.startCol >= container.startCol
+    && range.endCol <= container.endCol
+    && range.startRow >= container.startRow
+    && range.endRow <= container.endRow;
+}
+
+function isCellInsideArea(cell: { col: number; row: number }, area: WorksheetArea): boolean {
+  return cell.col >= area.startCol
+    && cell.col <= area.endCol
+    && cell.row >= area.startRow
+    && cell.row <= area.endRow;
+}
+
+function formatXmlNumber(value: number): string {
+  return String(Math.round(value * 10000) / 10000);
+}
+
+function escapeXmlText(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
 }
 
 function applyRowPalette(sheet: any, row: number, columns: string[], fillHex: string, textHex: string): void {
@@ -703,19 +998,19 @@ function buildSpecialDisplayRichText(
     return rich;
   }
 
-  if (hasDoubleAsteriskReference(line2)) {
+  if (hasJumahReference(line2)) {
     const rich = new xlsxPopulate.RichText();
     rich.add(line1 ?? "", { fontSize: 18, bold, fontColor });
     rich.add("\n");
-    rich.add(line2, { fontSize: 16, bold, fontColor });
+    rich.add(line2, { fontSize: 18, bold, fontColor });
     return rich;
   }
 
   return null;
 }
 
-function hasDoubleAsteriskReference(line: string): boolean {
-  return /^\((Bkz\.|See)\s+\*{2}\)$/.test(line.trim());
+function hasJumahReference(line: string): boolean {
+  return /^\((Bkz\.|See)\s+\*+\)$/.test(line.trim());
 }
 
 function toRichFontColor(raw: unknown): string | undefined {
@@ -930,6 +1225,11 @@ function normalizePrayerCellStyle(sheet: any, address: string, ref: PrayerStyleR
   }
   try {
     cell.style("numberFormat", "@");
+  } catch {
+    // Ignore style assignment issues for this cell.
+  }
+  try {
+    cell.style("wrapText", true);
   } catch {
     // Ignore style assignment issues for this cell.
   }

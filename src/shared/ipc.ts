@@ -83,7 +83,7 @@ export const DEFAULT_CUSTOMIZATION: Customization = {
         daylightMinutes: 0
       },
       noLater: {
-        enabled: true,
+        enabled: false,
         mode: "single",
         singleMinutes: 390,
         standardMinutes: 390,
@@ -93,10 +93,10 @@ export const DEFAULT_CUSTOMIZATION: Customization = {
     zhuhr: {
       enabled: true,
       direction: "after",
-      offsetMinutes: 7,
+      offsetMinutes: 4,
       minuteMultiple: 5,
       noEarlier: {
-        enabled: true,
+        enabled: false,
         mode: "single",
         singleMinutes: 730,
         standardMinutes: 750,
@@ -113,7 +113,7 @@ export const DEFAULT_CUSTOMIZATION: Customization = {
     asr: {
       enabled: true,
       direction: "after",
-      offsetMinutes: 7,
+      offsetMinutes: 4,
       minuteMultiple: 5,
       noEarlier: {
         enabled: false,
@@ -153,7 +153,7 @@ export const DEFAULT_CUSTOMIZATION: Customization = {
     isha: {
       enabled: true,
       direction: "after",
-      offsetMinutes: 7,
+      offsetMinutes: 4,
       minuteMultiple: 5,
       noEarlier: {
         enabled: false,

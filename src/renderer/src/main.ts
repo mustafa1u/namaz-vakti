@@ -1931,28 +1931,7 @@ function cloneCustomization(source: Customization): Customization {
 }
 
 function buildResetDefaultCustomization(): Customization {
-  const value = cloneCustomization(DEFAULT_CUSTOMIZATION);
-
-  value.prayers.fajr.noLater.enabled = true;
-  value.prayers.fajr.noLater.mode = "single";
-  value.prayers.fajr.noLater.singleMinutes = 390;
-  value.prayers.fajr.noLater.standardMinutes = 390;
-  value.prayers.fajr.noLater.daylightMinutes = 390;
-
-  value.prayers.zhuhr.noEarlier.enabled = true;
-  value.prayers.zhuhr.noEarlier.mode = "std-dst";
-  value.prayers.zhuhr.noEarlier.singleMinutes = 730;
-  value.prayers.zhuhr.noEarlier.standardMinutes = 730;
-  value.prayers.zhuhr.noEarlier.daylightMinutes = 790;
-
-  value.prayers.asr.noEarlier.enabled = false;
-  value.prayers.asr.noLater.enabled = false;
-  value.prayers.maghrib.noEarlier.enabled = false;
-  value.prayers.maghrib.noLater.enabled = false;
-  value.prayers.isha.noEarlier.enabled = false;
-  value.prayers.isha.noLater.enabled = false;
-
-  return sanitizeCustomization(value);
+  return sanitizeCustomization(cloneCustomization(DEFAULT_CUSTOMIZATION));
 }
 
 function toMinuteWithDefault(value: unknown, fallback: number): number {

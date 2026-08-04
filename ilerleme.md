@@ -7,6 +7,77 @@
 - Commit mesajında KISA-ETIKET -- Normal commit mesajı şeklindeki format korunarak her komitin kolay okunur bir kısa etiketi olmasına dikkat edilir.
 
 ## Commit Mesajı
+`KAMET BASKI AYARI V1.0.4 -- Excel çıktılarında sayfa yerleşimi, yazı sarma, kenarlıklar ve varsayılan kamet ayarları düzenlendi.`
+
+## Commit Zamanı
+`2026-07-07 00:17:33 +03:00`
+
+## Bu Committe Yapılanlar
+
+1. **Excel baskı yerleşimi A4 ve Letter sayfalara göre düzenlendi**
+- `desktop-app/src/services/xlsx-writer.ts` içinde Excel çıktısının yazdırma alanı gerçek tablo sınırlarına indirildi.
+- Kullanılmayan şablon satırlarının baskı alanını gereksiz büyütmesi engellendi.
+- Sayfa kenar boşlukları 2 cm olarak ayarlandı.
+- Genişlik A4 portre yazdırılabilir alana göre, yükseklik Letter portre yazdırılabilir alana yakın olacak şekilde ölçeklendi.
+- Dikey güvenlik payı yarıya düşürülerek tablo yüksekliği daha iyi sayfa dolduracak hale getirildi.
+- Excel yazdırma ayarları `No scaling` seçeneğinde daha tutarlı sonuç verecek şekilde yüzde 100, portre ve yatay ortalı olarak yazıldı.
+
+2. **Excel hücre biçimleri iyileştirildi**
+- Saat yazılan kamet hücrelerinde `Wrap text` artık her zaman etkinleştirildi.
+- `(See *)`, `(See **)`, `(Bkz. *)` ve `(Bkz. **)` içeren öğle hücrelerinde yazı boyutu 18 puntoya eşitlendi.
+- Çift sütunlu çift ay şablonunda son satırın alt kenarlığı bütün tablo boyunca kapatıldı.
+- Özellikle Haziran gibi çift aylarda Fajr ve Asr alanlarında gün 30 alt çizgisinin eksik kalması engellendi.
+
+3. **Varsayılan kamet ayarları güncellendi**
+- `desktop-app/src/shared/ipc.ts` içinde 7 dakika olan varsayılan offset değerleri 4 dakikaya düşürüldü.
+- Bu değişiklik öğle, ikindi ve yatsı için uygulandı.
+- Tüm vakitlerde `No earlier than` ve `No later than` varsayılan olarak seçili olmayacak hale getirildi.
+- `Varsayılanlara dön` akışı `DEFAULT_CUSTOMIZATION` değerini doğrudan kullanacak şekilde sadeleştirildi.
+
+4. **Sürüm ve dağıtım çıktıları güncellendi**
+- `desktop-app/package.json` ve `desktop-app/package-lock.json` sürümü `1.0.4` yapıldı.
+- `Namaz Vakti Desktop Setup 1.0.4.exe` üretildi.
+- `Namaz Vakti Desktop 1.0.4.exe` taşınabilir dağıtım paketi üretildi.
+- `Namaz Vakti Desktop Setup 1.0.4.exe.blockmap` üretildi.
+
+## Neden Bu Değişiklikler Yapıldı?
+
+- PNG çıktısı sayfayı iyi doldururken Excel çıktısı `No scaling` ve `Fit to page` seçimlerinde aynı ölçü hissini vermiyordu.
+- Şablondan kalan fazla satırlar Excel baskı alanını gereksiz büyütüyordu.
+- Bazı saat hücrelerinde yazı sarma açık olmadığı için biçim davranışı sütunlara göre değişiyordu.
+- Çift ay şablonunda bazı son satır alt kenarlıkları şablondan eksik geliyordu.
+- Varsayılan kamet offset ve sınır seçimleri yeni istenen kullanım şekline göre sadeleştirilmeliydi.
+
+## Nasıl Yapıldı? (Teknik Yaklaşım)
+
+- Excel yazımı sonrasında çalışma sayfası XML'i işlenerek gerçek tablo alanı dışındaki satır ve hücreler temizlendi.
+- Yazdırma alanı, sayfa kenar boşlukları, yönlendirme ve ölçek ayarları XML seviyesinde sabitlendi.
+- Sütun genişlikleri ve satır yükseklikleri hedef yazdırılabilir ölçülere göre hesaplandı.
+- Kamet hücre stili normalizasyonuna yazı sarma eklendi.
+- Son tablo satırına açıkça alt kenarlık uygulanarak şablon farklılıklarına bağımlılık azaltıldı.
+- Varsayılan özelleştirme değerleri ortak yapıdan güncellendi ve sıfırlama akışı bu ortak yapı ile eşitlendi.
+
+## Doğrulama
+
+- `npm test`
+- `npm run typecheck`
+- `npm run i18n:check`
+- `npm run build`
+- `npm run dist:win:all`
+
+## Commit Sonrası Beklenen Etki
+
+- Excel çıktıları portre A4 ve Letter sayfalarda daha dengeli ve dolu görünür.
+- `No scaling` ve `Fit to page` arasında beklenen fark azalır.
+- Saat hücreleri bütün vakitlerde daha tutarlı biçimlenir.
+- Çift aylarda son satır alt çizgisi eksik kalmaz.
+- Yeni üretimlerde öğle, ikindi ve yatsı varsayılan offset değeri 4 dakika olur.
+- Vakit sınırı seçenekleri varsayılan olarak kapalı gelir.
+- 1.0.4 kurucu ve taşınabilir paket bu değişiklikleri içerir.
+
+---
+
+## Commit Mesajı
 `KAMET ÜRETİM AKIŞI V1.0.3 -- Üretim sırasında ilerleme göstergesi, güvenli dosya adlandırma, varsayılan çıktı klasörü ve Explorer odak akışı iyileştirildi.`
 
 ## Commit Zamanı
