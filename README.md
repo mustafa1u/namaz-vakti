@@ -82,6 +82,42 @@ Defined in `src/shared/ipc.ts`:
 - XLSX writer now uses concrete `Odd`/`Even` sheet maps from the provided template and preserves template styles by copying source row styles.
 - PNG export is generated from a hidden offscreen BrowserWindow for deterministic capture.
 
+## Application Screenshots
+
+The following screenshots show the same application state in English and Turkish. The language switch changes the user interface labels while the generated-output language remains an independent setting in the Advanced section.
+
+### Basic window
+
+The basic window provides the location, month, mosque information, announcement, and output controls without expanding the advanced settings.
+
+| English | Turkish |
+| --- | --- |
+| ![Basic window in English](docs/screenshots/ui-basic-en.png) | ![Basic window in Turkish](docs/screenshots/ui-basic-tr.png) |
+
+### Advanced section opened
+
+The Advanced section exposes the generated-content language, base group size, Ramadan calculation option, and the entry point to prayer-time customization.
+
+| English | Turkish |
+| --- | --- |
+| ![Advanced section in English](docs/screenshots/ui-advanced-en.png) | ![Advanced section in Turkish](docs/screenshots/ui-advanced-tr.png) |
+
+### Customize window opened
+
+The Customize dialog lets each prayer be enabled or disabled and adjusts its direction, minute offset, rounding multiple, and optional earliest/latest limits.
+
+| English | Turkish |
+| --- | --- |
+| ![Customize dialog in English](docs/screenshots/ui-customize-en.png) | ![Customize dialog in Turkish](docs/screenshots/ui-customize-tr.png) |
+
+### Schedule snapshots
+
+These examples show the exported schedule layout for an odd-numbered month (January 2026) and an even-numbered month (February 2026). The odd-month example displays Turkish schedule headings; the even-month example keeps the English output labels. The alternating colored blocks represent groups of days that share the same calculated iqamah values.
+
+| Odd month — Turkish output | Even month — English output |
+| --- | --- |
+| ![January 2026 Turkish schedule](docs/screenshots/schedule-odd-turkish.png) | ![February 2026 English schedule](docs/screenshots/schedule-even-english.png) |
+
 ## Run
 
 ```bash

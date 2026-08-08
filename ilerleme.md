@@ -6,6 +6,44 @@
 - En yeni kayıt en üstte olur.
 - Commit mesajında KISA-ETIKET -- Normal commit mesajı şeklindeki format korunarak her komitin kolay okunur bir kısa etiketi olmasına dikkat edilir.
 
+---
+
+## Commit Mesajı
+`GITHUB YAYIN HAZIRLIĞI -- Masaüstü uygulaması bağımsız GitHub deposuna gönderilmek üzere belgelendi ve seçili dosyalar aşamalı alana alındı.`
+
+## Commit Zamanı
+`2026-08-08`
+
+## Bu Committe Yapılanlar
+
+1. **Masaüstü uygulaması README belgeleri güncellendi**
+- `desktop-app/README.md` içine İngilizce ve Türkçe arayüz ekran görüntüleri eklendi.
+- Temel pencere, gelişmiş ayarlar ve Özelleştir penceresi için karşılaştırmalı görseller eklendi.
+- Tek ve çift numaralı aylar için örnek çizelge görselleri ve İngilizce açıklamalar eklendi.
+- README belgesinin DOCX karşılığı `desktop-app/README.docx` olarak oluşturuldu.
+
+2. **Bağımsız GitHub deposu için yayın kapsamı belirlendi**
+- Yayın kapsamı yalnızca `desktop-app` klasöründeki uygulama dosyalarıyla sınırlandırıldı.
+- Ekran görüntüleri `desktop-app/docs/screenshots/` altında tutuldu.
+- Geçici tarayıcı yakalama klasörleri, editör kilit dosyaları ve geçici yardımcı betikler yayın kapsamına alınmadı.
+
+## Neden Bu Değişiklikler Yapıldı?
+
+- Masaüstü uygulamasının ana depodan ayrılarak `mustafa1u/namaz-vakti` GitHub deposunda kendi kök diziniyle yayımlanması planlandı.
+- Yeni depoda kullanıcıların uygulamayı ve arayüz seçeneklerini README üzerinden hızlıca anlayabilmesi hedeflendi.
+
+## Doğrulama
+
+- `npm run typecheck`
+- README görsellerinin ve DOCX içindeki gömülü görsellerin kontrolü yapıldı.
+- Seçili masaüstü uygulaması dosyaları Git aşamalı alanına alındı.
+
+## Commit Sonrası Beklenen Etki
+
+- Masaüstü uygulaması bağımsız GitHub deposuna temiz bir kök dizin yapısıyla aktarılabilir.
+- README hem Markdown hem DOCX biçiminde kullanılabilir.
+- Geçici ve üretilmiş çalışma dosyaları GitHub deposuna taşınmaz.
+
 ## Commit Mesajı
 `KAMET BASKI AYARI V1.0.4 -- Excel çıktılarında sayfa yerleşimi, yazı sarma, kenarlıklar ve varsayılan kamet ayarları düzenlendi.`
 

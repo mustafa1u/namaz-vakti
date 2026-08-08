@@ -1,1 +1,15 @@
-﻿# Ignore rules are centralized at repository root: ../.gitignore
+# Dependencies and build output
+node_modules/
+dist/
+release/
+.vite/
+
+# Generated application output
+outputs/
+
+# Temporary inspection and capture files
+.tmp-readme-chrome/
+~$*.docx
+
+# Local logs
+*.log
