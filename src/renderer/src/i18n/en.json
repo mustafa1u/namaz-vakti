@@ -134,15 +134,26 @@
     "title": "Load Mosque",
     "availableTitle": "Available Mosques",
     "addTitle": "Add Mosque",
+    "locationMode": "Location source",
+    "builtinMode": "Built-in location",
+    "diyanetMode": "Other Diyanet location",
+    "diyanetLocation": "Diyanet location",
+    "diyanetCountry": "Diyanet country",
+    "diyanetState": "Diyanet state/province",
+    "diyanetCity": "Diyanet city",
+    "locationHint": "Choose any location returned by Diyanet. The city ID is shown for verification.",
     "buttons": {
       "load": "Load",
       "add": "Add",
+      "loadLocations": "Load Diyanet locations",
       "showAdd": "Add Mosque",
       "hideAdd": "Hide Add Mosque",
       "delete": "Delete Mosque"
     },
     "messages": {
       "added": "Mosque added.",
+      "loadingLocations": "Loading locations from Diyanet...",
+      "downloading": "Downloading the selected year's schedule...",
       "deleted": "Mosque deleted."
     },
     "errors": {

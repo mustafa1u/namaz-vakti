@@ -9,6 +9,10 @@ const api: DesktopApi = {
     console.log("[preload] invoke listMonths", tsvFolder);
     return ipcRenderer.invoke(APP_CHANNELS.LIST_MONTHS, tsvFolder);
   },
+  listDiyanetCountries: () => ipcRenderer.invoke(APP_CHANNELS.LIST_DIYANET_COUNTRIES),
+  listDiyanetStates: (countryId) => ipcRenderer.invoke(APP_CHANNELS.LIST_DIYANET_STATES, countryId),
+  listDiyanetCities: (stateId) => ipcRenderer.invoke(APP_CHANNELS.LIST_DIYANET_CITIES, stateId),
+  fetchDiyanetSchedule: (request) => ipcRenderer.invoke(APP_CHANNELS.FETCH_DIYANET_SCHEDULE, request),
   generateOutputs: (request) => {
     console.log("[preload] invoke generateOutputs", request.options.month, request.targets.join(","));
     return ipcRenderer.invoke(APP_CHANNELS.GENERATE_OUTPUTS, request);

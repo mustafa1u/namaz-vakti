@@ -1,5 +1,5 @@
 ﻿import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { parse } from "csv-parse/sync";
 import type { RawDailyRecord } from "@domain/types";
 
@@ -116,13 +116,22 @@ async function parseTsvRows(path: string): Promise<TsvRow[]> {
 }
 
 async function findYearlyFilesRecursive(folder: string): Promise<string[]> {
+  const scheduleFolders = await resolveScheduleFolders(folder);
+  const files: string[] = [];
+  for (const scheduleFolder of scheduleFolders) {
+    files.push(...await findYearlyFilesInFolder(scheduleFolder));
+  }
+  return files.sort();
+}
+
+async function findYearlyFilesInFolder(folder: string): Promise<string[]> {
   const out: string[] = [];
   const entries = await readdir(folder, { withFileTypes: true });
 
   for (const entry of entries) {
     const fullPath = join(folder, entry.name);
     if (entry.isDirectory()) {
-      const nested = await findYearlyFilesRecursive(fullPath);
+      const nested = await findYearlyFilesInFolder(fullPath);
       out.push(...nested);
       continue;
     }
@@ -139,6 +148,48 @@ async function findYearlyFilesRecursive(folder: string): Promise<string[]> {
   }
 
   return out.sort();
+}
+
+async function resolveScheduleFolders(folder: string): Promise<string[]> {
+  try {
+    const entries = await readdir(folder, { withFileTypes: true });
+    if (entries) {
+      return [folder];
+    }
+  } catch (error) {
+    if (!isNodeError(error) || error.code !== "ENOENT") {
+      throw error;
+    }
+  }
+
+  // Location paths are intentionally year-independent, e.g.
+  // assets/schedules/Paterson-NJ. Expand them to every year directory.
+  const yearRoot = dirname(folder);
+  const locationFolder = basename(folder);
+  let yearEntries;
+  try {
+    yearEntries = await readdir(yearRoot, { withFileTypes: true });
+  } catch (error) {
+    if (isNodeError(error) && error.code === "ENOENT") return [folder];
+    throw error;
+  }
+
+  const matches = [];
+  for (const entry of yearEntries) {
+    if (!entry.isDirectory() || !/^\d{4}$/.test(entry.name)) continue;
+    const candidate = join(yearRoot, entry.name, locationFolder);
+    try {
+      const childEntries = await readdir(candidate, { withFileTypes: true });
+      if (childEntries) matches.push(candidate);
+    } catch (error) {
+      if (!isNodeError(error) || error.code !== "ENOENT") throw error;
+    }
+  }
+  return matches.length > 0 ? matches.sort() : [folder];
+}
+
+function isNodeError(error: unknown): error is NodeJS.ErrnoException {
+  return error instanceof Error && "code" in error;
 }
 
 async function findYearFilesByYearRecursive(folder: string, year: string): Promise<string[]> {

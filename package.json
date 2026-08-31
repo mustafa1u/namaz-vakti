@@ -10,6 +10,8 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "test": "node --test scripts/output-paths.test.mjs scripts/reveal-in-folder.test.mjs scripts/default-output-folder.test.mjs",
+    "schedules:fetch-diyanet-2027": "node scripts/fetch-diyanet-year.mjs",
+    "schedules:fetch-diyanet-built-in-2027": "node scripts/fetch-diyanet-built-in-year.mjs",
     "schedules:combine-yearly": "node scripts/combine-schedules-to-yearly.mjs",
     "typecheck": "tsc --noEmit",
     "i18n:check": "node scripts/check-i18n-keys.mjs",

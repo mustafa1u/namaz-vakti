@@ -555,17 +555,35 @@
           <details id="mosqueAddPane" class="mosque-modal-section mosque-add-details">
             <summary data-i18n="mosqueModal.addTitle">Add Mosque</summary>
             <div class="mosque-add-body">
-            <div class="mosque-modal-row">
-              <label for="mosqueModalCountry" data-i18n="labels.country">Country</label>
-              <select id="mosqueModalCountry"></select>
+            <fieldset class="mosque-modal-section">
+              <legend data-i18n="mosqueModal.locationMode">Location source</legend>
+              <label><input type="radio" name="mosqueLocationMode" id="mosqueBuiltinMode" value="builtin" checked /> <span data-i18n="mosqueModal.builtinMode">Built-in location</span></label>
+              <label><input type="radio" name="mosqueLocationMode" id="mosqueDiyanetMode" value="diyanet" /> <span data-i18n="mosqueModal.diyanetMode">Other Diyanet location</span></label>
+            </fieldset>
+            <div id="mosqueBuiltinLocationFields">
+              <div class="mosque-modal-row">
+                <label for="mosqueModalCountry" data-i18n="labels.country">Country</label>
+                <select id="mosqueModalCountry"></select>
+              </div>
+              <div class="mosque-modal-row">
+                <label for="mosqueModalState" data-i18n="labels.stateProvince">State/Province</label>
+                <select id="mosqueModalState"></select>
+              </div>
+              <div class="mosque-modal-row">
+                <label for="mosqueModalCity" data-i18n="labels.cityTown">City/Town</label>
+                <select id="mosqueModalCity"></select>
+              </div>
             </div>
-            <div class="mosque-modal-row">
-              <label for="mosqueModalState" data-i18n="labels.stateProvince">State/Province</label>
-              <select id="mosqueModalState"></select>
-            </div>
-            <div class="mosque-modal-row">
-              <label for="mosqueModalCity" data-i18n="labels.cityTown">City/Town</label>
-              <select id="mosqueModalCity"></select>
+            <div id="mosqueDiyanetLocationFields" hidden>
+              <div class="mosque-modal-row">
+              <label for="mosqueDiyanetCountry" data-i18n="mosqueModal.diyanetCountry">Diyanet country</label>
+              <select id="mosqueDiyanetCountry"></select>
+              <label for="mosqueDiyanetState" data-i18n="mosqueModal.diyanetState">Diyanet state/province</label>
+              <select id="mosqueDiyanetState"></select>
+              <label for="mosqueDiyanetCity" data-i18n="mosqueModal.diyanetCity">Diyanet city</label>
+              <select id="mosqueDiyanetCity"></select>
+              <small data-i18n="mosqueModal.locationHint">Select country, then state/province, then city. Only the selected level is requested from Diyanet.</small>
+              </div>
             </div>
             <div class="mosque-modal-row">
               <label for="mosqueModalName" data-i18n="labels.masjidName">Name of Masjid</label>

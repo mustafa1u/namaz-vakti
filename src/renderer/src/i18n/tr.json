@@ -138,15 +138,26 @@
     "title": "Cami yükle",
     "availableTitle": "Mevcut Camiler",
     "addTitle": "Cami Ekle",
+    "locationMode": "Konum kaynağı",
+    "builtinMode": "Yerleşik konum",
+    "diyanetMode": "Diğer Diyanet konumu",
+    "diyanetLocation": "Diyanet konumu",
+    "diyanetCountry": "Diyanet ülkesi",
+    "diyanetState": "Diyanet ili/eyaleti",
+    "diyanetCity": "Diyanet şehri",
+    "locationHint": "Diyanet'in döndürdüğü herhangi bir konumu seçin. Doğrulama için şehir kimliği gösterilir.",
     "buttons": {
       "load": "Yükle",
       "add": "Ekle",
+      "loadLocations": "Diyanet konumlarını yükle",
       "showAdd": "Cami Ekle",
       "hideAdd": "Cami Eklemeyi Gizle",
       "delete": "Camiyi Sil"
     },
     "messages": {
       "added": "Cami eklendi.",
+      "loadingLocations": "Konumlar Diyanet'ten yükleniyor...",
+      "downloading": "Seçilen yılın çizelgesi indiriliyor...",
       "deleted": "Cami silindi."
     },
     "errors": {

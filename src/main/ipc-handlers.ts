@@ -9,7 +9,9 @@ import {
   type PrayerKey,
   GenerateOutputsRequestSchema,
   GenerateOutputsResponseSchema,
-  ShowInFolderRequestSchema
+  ShowInFolderRequestSchema,
+  FetchDiyanetScheduleRequestSchema,
+  FetchDiyanetScheduleResponseSchema
 } from "@shared/ipc";
 import { listAvailableMonths, readMonthTsv, readYearTsv } from "@services/tsv-reader";
 import type { RawDailyRecord } from "@domain/types";
@@ -18,6 +20,7 @@ import { writeXlsxFromTemplate } from "@services/xlsx-writer";
 import { renderPng } from "@services/png-renderer";
 import { resolveDefaultOutputFolder } from "./default-output-folder";
 import { revealFileInFolder } from "./reveal-in-folder";
+import { configureDiyanetPlaceCache, fetchDiyanetSchedule, listDiyanetCities, listDiyanetCountries, listDiyanetStates } from "@services/diyanet-api";
 
 type WindowGetter = () => BrowserWindow | null;
 const FIXED_TEMPLATE_FILE_NAME = "Mevlana Masjid Prayer Times_KALIP.xlsx";
@@ -388,11 +391,22 @@ function buildReuseExplorerWindowScript(filePath: string, preferredWindowHandle:
 
 export function registerIpcHandlers(_getWindow: WindowGetter): void {
   devLog("[main] registering IPC handlers");
+  configureDiyanetPlaceCache(join(app.getPath("userData"), "diyanet-place-cache.json"));
 
   ipcMain.handle(APP_CHANNELS.LIST_MONTHS, async (_event, tsvFolder: string) => {
     const resolvedTsvFolder = resolveTsvFolderPath(tsvFolder);
     devLog("[ipc] LIST_MONTHS", tsvFolder, "->", resolvedTsvFolder);
     return listAvailableMonths(resolvedTsvFolder);
+  });
+
+  ipcMain.handle(APP_CHANNELS.LIST_DIYANET_COUNTRIES, async () => listDiyanetCountries());
+  ipcMain.handle(APP_CHANNELS.LIST_DIYANET_STATES, async (_event, countryId: number) => listDiyanetStates(countryId));
+  ipcMain.handle(APP_CHANNELS.LIST_DIYANET_CITIES, async (_event, stateId: number) => listDiyanetCities(stateId));
+
+  ipcMain.handle(APP_CHANNELS.FETCH_DIYANET_SCHEDULE, async (_event, rawRequest) => {
+    const request = FetchDiyanetScheduleRequestSchema.parse(rawRequest);
+    const outputBase = join(app.getPath("userData"), "schedules", `diyanet-city-${request.cityId}`);
+    return FetchDiyanetScheduleResponseSchema.parse(await fetchDiyanetSchedule(request, outputBase));
   });
 
   ipcMain.handle(APP_CHANNELS.GENERATE_OUTPUTS, async (_event, rawRequest) => {

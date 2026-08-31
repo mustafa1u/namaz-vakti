@@ -54,7 +54,7 @@ type Option<T extends string> = {
   label: string;
 };
 
-const SCHEDULES_BASE_FOLDER = "assets/schedules/2026";
+const SCHEDULES_BASE_FOLDER = "assets/schedules";
 
 const LOCATION_ENTRIES: LocationEntry[] = [
   {

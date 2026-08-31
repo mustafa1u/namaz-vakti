@@ -2,6 +2,10 @@
 
 export const APP_CHANNELS = {
   LIST_MONTHS: "app:list-months",
+  LIST_DIYANET_COUNTRIES: "app:list-diyanet-countries",
+  LIST_DIYANET_STATES: "app:list-diyanet-states",
+  LIST_DIYANET_CITIES: "app:list-diyanet-cities",
+  FETCH_DIYANET_SCHEDULE: "app:fetch-diyanet-schedule",
   GENERATE_OUTPUTS: "app:generate-outputs",
   SELECT_OUTPUT_FOLDER: "app:select-output-folder",
   GET_DEFAULT_OUTPUT_FOLDER: "app:get-default-output-folder",
@@ -222,8 +226,41 @@ export const ShowInFolderRequestSchema = z.object({
 });
 export type ShowInFolderRequest = z.infer<typeof ShowInFolderRequestSchema>;
 
+export const DiyanetPlaceSchema = z.object({
+  id: z.number().int().positive(),
+  name: z.string().min(1)
+});
+export type DiyanetPlace = z.infer<typeof DiyanetPlaceSchema>;
+
+export const DiyanetLocationSchema = z.object({
+  countryId: z.number().int().positive(),
+  stateId: z.number().int().positive(),
+  cityId: z.number().int().positive(),
+  countryLabel: z.string().min(1),
+  stateLabel: z.string().min(1),
+  cityLabel: z.string().min(1)
+});
+export type DiyanetLocation = z.infer<typeof DiyanetLocationSchema>;
+
+export const FetchDiyanetScheduleRequestSchema = z.object({
+  cityId: z.number().int().positive(),
+  year: z.number().int().min(2000).max(2100)
+});
+export type FetchDiyanetScheduleRequest = z.infer<typeof FetchDiyanetScheduleRequestSchema>;
+
+export const FetchDiyanetScheduleResponseSchema = z.object({
+  tsvFolder: z.string().min(1),
+  year: z.number().int(),
+  records: z.number().int().positive()
+});
+export type FetchDiyanetScheduleResponse = z.infer<typeof FetchDiyanetScheduleResponseSchema>;
+
 export type DesktopApi = {
   listMonths: (tsvFolder: string) => Promise<string[]>;
+  listDiyanetCountries: () => Promise<DiyanetPlace[]>;
+  listDiyanetStates: (countryId: number) => Promise<DiyanetPlace[]>;
+  listDiyanetCities: (stateId: number) => Promise<DiyanetPlace[]>;
+  fetchDiyanetSchedule: (request: FetchDiyanetScheduleRequest) => Promise<FetchDiyanetScheduleResponse>;
   generateOutputs: (request: GenerateOutputsRequest) => Promise<GenerateOutputsResponse>;
   selectOutputFolder: () => Promise<string | null>;
   getDefaultOutputFolder: () => Promise<string>;

@@ -9,6 +9,95 @@
 ---
 
 ## Commit Mesajı
+`DİYANET KONUM EKLEME V1.0.5 -- Diyanet konumlarından cami ekleme, güncel yıl çizelgesi indirme ve cami yönetimi akışı iyileştirildi.`
+
+## Commit Zamanı
+`2026-08-31`
+
+## Bu Committe Yapılanlar
+
+1. **Diyanet konumlarından cami ekleme desteği genişletildi**
+- Diyanet ülke, il ve şehir listeleri uygulamaya eklendi.
+- Kullanıcı, yerleşik konumlar dışında Diyanet API'sindeki bir şehir için cami ekleyebilir.
+- Ülke, il ve şehir seçimleri yalnızca ilgili seviye için istek gönderir.
+- Alınan konum listeleri kalıcı önbelleğe kaydedilerek aynı seçimlerde kota tekrar kullanılmaz.
+- Şehir/ilçe kimlikleri kullanıcı arayüzünde gösterilmez.
+
+2. **Çizelge indirme ve yıl seçimi güncellendi**
+- Yeni cami eklendiğinde geçerli yılın çizelgesi otomatik indirilir.
+- Ana ekrandaki yıl seçimi varsayılan olarak geçerli yılı seçer.
+- Kullanıcı, geçerli yılın yanında bir sonraki yılın çizelgesini de seçip indirebilir.
+- Birden fazla cami aynı Diyanet konumunu kullanıyorsa aynı konum için gereksiz tekrar indirme yapılmaz.
+
+3. **Cami ve konum seçimleri düzeltildi**
+- Yerleşik ve Diyanet konumlarından cami ekleme seçenekleri birbirinden ayrıldı.
+- Eklenen cami yüklendiğinde ülke, il ve şehir seçimleri doğru konuma eşitlenir.
+- Eklenen konumlar ülke, il ve şehir seçim listelerine dahil edilir.
+- Aynı şehirdeki yerleşik camiler ile Diyanet konumları birlikte gösterilebilir.
+- Cami listesindeki ülke ve şehir adları yanlış yerleşik varsayılanlara düşmeyecek şekilde düzeltildi.
+
+4. **Cami silme ve yeni cami ekleme formu düzeltildi**
+- Cami silindikten sonra Load Mosque penceresi yenilenerek Add Mosque bölümü yeniden açılır.
+- Masjid adı ve adres alanları her açılışta temiz ve etkin giriş öğeleriyle oluşturulur.
+- Electron/Chromium bazı modal yeniden açılışlarında klavye olayını alıp metin giriş olayı üretmediğinde güvenli giriş geri dönüşü eklendi.
+- Teknik borç: `kutucuğun içine yazılabiliyor. Ama kursör halen gözükmüyor`
+
+## Neden Bu Değişiklikler Yapıldı?
+
+- Kullanıcının yerleşik listede bulunmayan şehirlerden cami ekleyebilmesi gerekiyordu.
+- Diyanet API kota kullanımını azaltmak için konum listelerinin ve çizelgelerin kontrollü biçimde önbelleğe alınması gerekiyordu.
+- Yeni camilerde geçerli yılın otomatik kullanılmasına ve sonraki yılın seçilebilir olmasına ihtiyaç vardı.
+- Cami silme sonrasında Add Mosque formundaki giriş alanı Electron yeniden çizim davranışı nedeniyle yazı kabul etmeyebiliyordu.
+
+## Doğrulama
+
+- `npm run typecheck`
+- `npm run build`
+- `npm test` — 14 test başarılı.
+- Add Mosque → Delete Mosque → Add Mosque akışı elle doğrulandı; silme sonrasında masjid adı yazılıp yeni cami eklenebiliyor.
+
+## Commit Sonrası Beklenen Etki
+
+- Kullanıcı, yerleşik olmayan Diyanet şehirlerinden cami ekleyebilir.
+- Yeni eklenen camiler için geçerli yıl çizelgesi otomatik hazır olur.
+- Konum listeleri tekrar tekrar kota harcamadan kullanılabilir.
+- Cami silme sonrasında yeni cami ekleme formu çalışır durumda kalır.
+
+---
+
+## Commit Mesajı
+`DİYANET API -- Yetkili API kullanımı düzeltildi, çok yıllı çizelge okuma eklendi ve yerleşik konumların 2027 çizelgeleri indirildi.`
+
+## Commit Zamanı
+`2026-08-30`
+
+## Bu Committe Yapılanlar
+
+1. **Diyanet API kullanımı düzeltildi**
+- Giriş isteği `https://awqatsalah.diyanet.gov.tr/Auth/Login` adresine taşındı.
+- Korunan isteklerde girişten alınan erişim belirteci kullanılacak şekilde istemci düzeltildi.
+- Yıllık çizelge isteği, güncel API'nin `POST /api/PrayerTime/DateRange` uç noktasını kullanacak şekilde güncellendi.
+- Yıl bilgisi `DIYANET_YEAR` değişkeniyle seçilebilir hâle getirildi.
+
+2. **Çok yıllı çizelge desteği eklendi**
+- Uygulama çizelgeleri artık doğrudan 2026 klasörüne bağlı kalmadan `assets/schedules/<yıl>/` altındaki klasörlerde arıyor.
+- Böylece aynı konum için farklı yıllara ait çizelgeler uygulama tarafından bulunabiliyor.
+
+3. **Yerleşik konumların 2027 çizelgeleri indirildi**
+- 33 benzersiz yerleşik konum için 2027 çizelgesi doğrulanarak `desktop-app/assets/schedules/2027/` altına kaydedildi.
+- Aynı Diyanet konumunu kullanan Brooklyn/New York City kaydı iki kez indirilmedi.
+- İlçe adları için Diyanet'teki şehir karşılıkları (Altındağ/Ankara, Fatih/İstanbul, Efeler/Aydın ve New York City/New York) tanımlandı.
+- Paterson, NJ için Diyanet şehir kimliği 8877 kullanıldı.
+
+## Doğrulama
+
+- `npm run typecheck`
+- `npm test`
+- 2027 çizelgelerinin her biri 365 günlük kayıt ve geçerli başlık satırı içeriyor.
+
+---
+
+## Commit Mesajı
 `GITHUB YAYIN HAZIRLIĞI -- Masaüstü uygulaması bağımsız GitHub deposuna gönderilmek üzere belgelendi ve seçili dosyalar aşamalı alana alındı.`
 
 ## Commit Zamanı
