@@ -9,6 +9,26 @@
 ---
 
 ## Commit Mesajı
+`PAKETLEME V1.0.7 -- Yerel credential önceliği ve DigitalOcean proxy geri dönüşü içeren Windows kurucusu üretildi.`
+
+## Commit Zamanı
+`2026-09-01`
+
+## Bu Committe Yapılanlar
+
+- Uygulama ve paket kilidi sürümü `1.0.7` olarak güncellendi.
+- Güncel proxy geri dönüş davranışını içeren `Namaz Vakti Desktop Setup 1.0.7.exe` üretildi.
+- 1.0.7 sürümü kendi installer, taşınabilir paket ve blockmap dosya adlarını kullanacak şekilde hazırlandı.
+- Önceki sürüm dosyalarının üzerine yazılmaması sağlandı.
+
+## Doğrulama
+
+- `npm run dist:win`
+- Installer çıktısı ve blockmap dosyası kontrol edildi.
+
+---
+
+## Commit Mesajı
 `DİYANET KAYNAK SEÇİMİ V1.0.7 -- Geçerli yerel credential varsa doğrudan Diyanet, yoksa DigitalOcean proxy kullanımı eklendi.`
 
 ## Commit Zamanı
