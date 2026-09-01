@@ -9,6 +9,42 @@
 ---
 
 ## Commit Mesajı
+`DİYANET PROXY V1.0.6 -- Diyanet kimlik bilgileri masaüstü uygulamasından çıkarıldı ve güvenli sunucu proxy'sine yönlendirme eklendi.`
+
+## Commit Zamanı
+`2026-09-01`
+
+## Bu Committe Yapılanlar
+
+1. **Diyanet istekleri güvenli proxy'ye yönlendirildi**
+- Electron masaüstü uygulaması ülke, il, şehir ve çizelge isteklerini Namaz Vakti proxy hizmetine gönderir.
+- Diyanet kullanıcı adı, parolası ve erişim belirteci uygulama paketinde bulunmaz.
+- Komut satırındaki bakım ve indirme betikleri doğrudan Diyanet istemcisi olarak çalışmaya devam eder.
+- Proxy adresi gerektiğinde `NAMAZ_VAKTI_API_BASE` ile değiştirilebilir.
+
+2. **Sunucu hizmeti devreye alındı**
+- Diyanet kimlik bilgileri yalnızca DigitalOcean Droplet üzerindeki sunucu ortamında tutulur.
+- Proxy, yerleşik olmayan konumların listelerini ve yıllık çizelgelerini önbelleğe alır.
+- Paterson 2027 çizelgesi proxy üzerinden 365 kayıtla doğrulandı.
+
+## Güvenlik ve Yayın Kapsamı
+
+- Diyanet kimlik bilgileri kaynak koda, `.env` dosyasına veya GitHub deposuna eklenmedi.
+- Masaüstü uygulaması yalnızca herkese açık HTTPS proxy adresini içerir.
+- Sunucu kodu ve gizli yapılandırma, masaüstü uygulamasının public deposuna dahil edilmez.
+
+## Doğrulama
+
+- Proxy `/health` kontrolü başarılı.
+- Proxy ülke listesi isteği başarılı.
+- Paterson 2027 çizelgesi proxy üzerinden 365 kayıt döndürdü.
+- `npm run typecheck`
+- `npm run build`
+- `npm test` — 14 test başarılı.
+
+---
+
+## Commit Mesajı
 `DİYANET KONUM EKLEME V1.0.5 -- Diyanet konumlarından cami ekleme, güncel yıl çizelgesi indirme ve cami yönetimi akışı iyileştirildi.`
 
 ## Commit Zamanı

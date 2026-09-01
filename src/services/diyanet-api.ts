@@ -4,6 +4,10 @@ import type { DiyanetLocation, DiyanetPlace, FetchDiyanetScheduleRequest, FetchD
 
 const AUTH_BASE = process.env.DIYANET_AUTH_BASE ?? "https://awqatsalah.diyanet.gov.tr";
 const API_BASE = process.env.DIYANET_API_BASE ?? `${AUTH_BASE}/api`;
+const PUBLIC_PROXY_BASE = "https://namaz-vakti.138.197.190.74.sslip.io/api";
+const PROXY_BASE = process.versions.electron
+  ? (process.env.NAMAZ_VAKTI_API_BASE ?? PUBLIC_PROXY_BASE)
+  : null;
 const MONTHS_TR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
 const WEEKDAYS_TR = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
 
@@ -77,6 +81,19 @@ async function request(token: string | null, path: string, options: RequestInit 
   return body;
 }
 
+async function requestProxy(path: string, options: RequestInit = {}): Promise<any> {
+  if (!PROXY_BASE) throw new Error("Diyanet proxy is available only to the desktop application");
+  const response = await fetch(`${PROXY_BASE}${path}`, {
+    ...options,
+    headers: { Accept: "application/json", ...(options.body ? { "Content-Type": "application/json" } : {}) }
+  });
+  const text = await response.text();
+  let body: any = null;
+  try { body = text ? JSON.parse(text) : null; } catch { /* handled below */ }
+  if (!response.ok) throw new Error(`Namaz Vakti sunucusu ${path} başarısız (${response.status}): ${body?.error ?? text.slice(0, 300)}`);
+  return body;
+}
+
 async function login(): Promise<string> {
   if (cachedToken) return cachedToken;
   const config = await loadConfig();
@@ -88,6 +105,7 @@ async function login(): Promise<string> {
 }
 
 export async function listDiyanetCountries(): Promise<DiyanetPlace[]> {
+  if (PROXY_BASE) return toPlaces((await requestProxy("/Place/Countries")).data);
   await loadPlaceCache();
   const cached = countryCache.get(0);
   if (cached) return cached;
@@ -99,6 +117,7 @@ export async function listDiyanetCountries(): Promise<DiyanetPlace[]> {
 }
 
 export async function listDiyanetStates(countryId: number): Promise<DiyanetPlace[]> {
+  if (PROXY_BASE) return toPlaces((await requestProxy(`/Place/States/${countryId}`)).data);
   await loadPlaceCache();
   const cached = stateCache.get(countryId);
   if (cached) return cached;
@@ -109,6 +128,7 @@ export async function listDiyanetStates(countryId: number): Promise<DiyanetPlace
 }
 
 export async function listDiyanetCities(stateId: number): Promise<DiyanetPlace[]> {
+  if (PROXY_BASE) return toPlaces((await requestProxy(`/Place/Cities/${stateId}`)).data);
   await loadPlaceCache();
   const cached = cityCache.get(stateId);
   if (cached) return cached;
@@ -125,8 +145,12 @@ function toPlaces(value: unknown): DiyanetPlace[] {
 }
 
 export async function fetchDiyanetSchedule(requestData: FetchDiyanetScheduleRequest, outputBase: string): Promise<FetchDiyanetScheduleResponse> {
-  const token = await login();
-  const response = await request(token, "/PrayerTime/DateRange", {
+  const response = PROXY_BASE
+    ? await requestProxy("/PrayerTime/DateRange", {
+      method: "POST",
+      body: JSON.stringify({ cityId: requestData.cityId, startDate: `${requestData.year}-01-01T00:00:00`, endDate: `${requestData.year}-12-31T23:59:59` })
+    })
+    : await request(await login(), "/PrayerTime/DateRange", {
     method: "POST",
     body: JSON.stringify({ cityId: requestData.cityId, startDate: `${requestData.year}-01-01T00:00:00`, endDate: `${requestData.year}-12-31T23:59:59` })
   });
