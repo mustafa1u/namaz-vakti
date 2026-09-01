@@ -9,6 +9,37 @@
 ---
 
 ## Commit Mesajı
+`DİYANET KAYNAK SEÇİMİ V1.0.7 -- Geçerli yerel credential varsa doğrudan Diyanet, yoksa DigitalOcean proxy kullanımı eklendi.`
+
+## Commit Zamanı
+`2026-09-01`
+
+## Bu Committe Yapılanlar
+
+1. **Yerel geliştirme kullanımında doğrudan Diyanet erişimi korundu**
+- Electron uygulaması çalışırken geçerli `DIYANET_API_EMAIL` ve `DIYANET_API_PASSWORD` değerleri varsa Diyanet API'sine doğrudan bağlanır.
+- Geliştirici kendi `.env.local` dosyasıyla test yaparken DigitalOcean proxy'si gereksiz yere kullanılmaz.
+- Komut satırı betikleri mevcut doğrudan Diyanet akışını korur.
+
+2. **Credential bulunamaması durumunda proxy geri dönüşü eklendi**
+- `.env.local` bulunmadığında veya gerekli credential değerleri eksik olduğunda Diyanet'e istek gönderilmeden public proxy kullanılır.
+- Credential mevcut fakat Diyanet girişi başarısızsa uygulama proxy'ye geçer.
+- Başarısız doğrudan erişim aynı çalışma oturumunda tekrar tekrar denenmez.
+- Paketlenmiş son kullanıcı uygulaması credential içermediği için doğrudan proxy kullanır.
+
+3. **Güvenlik ve kota davranışı netleştirildi**
+- Diyanet kullanıcı adı, parolası ve erişim belirteci masaüstü paketine eklenmez.
+- Geliştirici ortamındaki geçerli credential ile yapılan testler DigitalOcean proxy'sinin ve Diyanet kotasının gereksiz kullanımını önler.
+
+## Doğrulama
+
+- `npm run typecheck`
+- `npm run build`
+- `npm test` — 14 test başarılı.
+
+---
+
+## Commit Mesajı
 `DİYANET PROXY V1.0.6 -- Diyanet kimlik bilgileri masaüstü uygulamasından çıkarıldı ve güvenli sunucu proxy'sine yönlendirme eklendi.`
 
 ## Commit Zamanı

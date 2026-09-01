@@ -14,6 +14,7 @@ const WEEKDAYS_TR = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "
 type ApiPlace = { id: number; name?: string };
 type TsvRow = { date: string; weekday: string; gregorian: string; hijri: string; fajr: string; sunrise: string; dhuhr: string; asr: string; maghrib: string; isha: string };
 let cachedToken: string | null = null;
+let directApiDisabled = false;
 let placeCachePath: string | null = null;
 let placeCacheLoaded = false;
 const countryCache = new Map<number, DiyanetPlace[]>();
@@ -94,6 +95,20 @@ async function requestProxy(path: string, options: RequestInit = {}): Promise<an
   return body;
 }
 
+async function requestWithDesktopFallback<T>(directRequest: () => Promise<T>, proxyRequest: () => Promise<T>): Promise<T> {
+  if (!PROXY_BASE || directApiDisabled) return PROXY_BASE ? proxyRequest() : directRequest();
+  try {
+    // Check locally before attempting a network request. Packaged users do
+    // not have credentials, so they go directly to the proxy.
+    await loadConfig();
+    return await directRequest();
+  } catch (error) {
+    directApiDisabled = true;
+    console.warn("[diyanet] Local credentials unavailable or rejected; using the server proxy.", error);
+    return proxyRequest();
+  }
+}
+
 async function login(): Promise<string> {
   if (cachedToken) return cachedToken;
   const config = await loadConfig();
@@ -105,37 +120,49 @@ async function login(): Promise<string> {
 }
 
 export async function listDiyanetCountries(): Promise<DiyanetPlace[]> {
-  if (PROXY_BASE) return toPlaces((await requestProxy("/Place/Countries")).data);
-  await loadPlaceCache();
-  const cached = countryCache.get(0);
-  if (cached) return cached;
-  const token = await login();
-  const places = toPlaces((await request(token, "/Place/Countries")).data);
-  countryCache.set(0, places);
-  await savePlaceCache();
-  return places;
+  return requestWithDesktopFallback(
+    async () => {
+      await loadPlaceCache();
+      const cached = countryCache.get(0);
+      if (cached) return cached;
+      const token = await login();
+      const places = toPlaces((await request(token, "/Place/Countries")).data);
+      countryCache.set(0, places);
+      await savePlaceCache();
+      return places;
+    },
+    async () => toPlaces((await requestProxy("/Place/Countries")).data)
+  );
 }
 
 export async function listDiyanetStates(countryId: number): Promise<DiyanetPlace[]> {
-  if (PROXY_BASE) return toPlaces((await requestProxy(`/Place/States/${countryId}`)).data);
-  await loadPlaceCache();
-  const cached = stateCache.get(countryId);
-  if (cached) return cached;
-  const places = toPlaces((await request(await login(), `/Place/States/${countryId}`)).data);
-  stateCache.set(countryId, places);
-  await savePlaceCache();
-  return places;
+  return requestWithDesktopFallback(
+    async () => {
+      await loadPlaceCache();
+      const cached = stateCache.get(countryId);
+      if (cached) return cached;
+      const places = toPlaces((await request(await login(), `/Place/States/${countryId}`)).data);
+      stateCache.set(countryId, places);
+      await savePlaceCache();
+      return places;
+    },
+    async () => toPlaces((await requestProxy(`/Place/States/${countryId}`)).data)
+  );
 }
 
 export async function listDiyanetCities(stateId: number): Promise<DiyanetPlace[]> {
-  if (PROXY_BASE) return toPlaces((await requestProxy(`/Place/Cities/${stateId}`)).data);
-  await loadPlaceCache();
-  const cached = cityCache.get(stateId);
-  if (cached) return cached;
-  const places = toPlaces((await request(await login(), `/Place/Cities/${stateId}`)).data);
-  cityCache.set(stateId, places);
-  await savePlaceCache();
-  return places;
+  return requestWithDesktopFallback(
+    async () => {
+      await loadPlaceCache();
+      const cached = cityCache.get(stateId);
+      if (cached) return cached;
+      const places = toPlaces((await request(await login(), `/Place/Cities/${stateId}`)).data);
+      cityCache.set(stateId, places);
+      await savePlaceCache();
+      return places;
+    },
+    async () => toPlaces((await requestProxy(`/Place/Cities/${stateId}`)).data)
+  );
 }
 
 function toPlaces(value: unknown): DiyanetPlace[] {
@@ -145,15 +172,16 @@ function toPlaces(value: unknown): DiyanetPlace[] {
 }
 
 export async function fetchDiyanetSchedule(requestData: FetchDiyanetScheduleRequest, outputBase: string): Promise<FetchDiyanetScheduleResponse> {
-  const response = PROXY_BASE
-    ? await requestProxy("/PrayerTime/DateRange", {
+  const response = await requestWithDesktopFallback(
+    async () => request(await login(), "/PrayerTime/DateRange", {
+      method: "POST",
+      body: JSON.stringify({ cityId: requestData.cityId, startDate: `${requestData.year}-01-01T00:00:00`, endDate: `${requestData.year}-12-31T23:59:59` })
+    }),
+    async () => requestProxy("/PrayerTime/DateRange", {
       method: "POST",
       body: JSON.stringify({ cityId: requestData.cityId, startDate: `${requestData.year}-01-01T00:00:00`, endDate: `${requestData.year}-12-31T23:59:59` })
     })
-    : await request(await login(), "/PrayerTime/DateRange", {
-    method: "POST",
-    body: JSON.stringify({ cityId: requestData.cityId, startDate: `${requestData.year}-01-01T00:00:00`, endDate: `${requestData.year}-12-31T23:59:59` })
-  });
+  );
   const records = response?.data;
   if (!Array.isArray(records) || records.length === 0) throw new Error("Diyanet çizelge yanıtı boş veya geçersiz.");
   const rows = records.map((record) => toTsvRow(record, requestData.year)).sort((a, b) => a.date.localeCompare(b.date));
